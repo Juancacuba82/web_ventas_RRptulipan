@@ -73,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-step3": "4. Climate Control",
             "buy-step4": "5. Delivery or Pickup",
             "buy-step5": "6. Logistics Details",
+            "buy-step6": "7. Payment Method",
             "buy-depot-info": "Select the depot closest to your location to get the lowest shipping rates.",
             "buy-summary": "Summary",
             "buy-btn-pricing": "Get Pricing",
@@ -92,6 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-opt-reefer": "Reefer",
             "buy-opt-delivery": "Delivery",
             "buy-opt-pickup": "Pickup",
+            "buy-pay-cash": "Cash",
+            "buy-pay-zelle": "Zelle",
+            "buy-pay-card": "Credit/Debit Card",
             "buy-zip-placeholder": "Enter Delivery Zip Code",
             "buy-btn-next": "Next",
             "buy-depot-sav": "Savannah (31408)",
@@ -170,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-step3": "4. Climatización",
             "buy-step4": "5. Entrega o Recogida",
             "buy-step5": "6. Detalles de Logística",
+            "buy-step6": "7. Método de Pago",
             "buy-depot-info": "Seleccione el depósito más cercano a su ubicación para obtener las tarifas de envío más bajas.",
             "buy-summary": "Resumen",
             "buy-btn-pricing": "Obtener Precios",
@@ -189,6 +194,9 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-opt-reefer": "Reefer",
             "buy-opt-delivery": "Entrega",
             "buy-opt-pickup": "Recogida",
+            "buy-pay-cash": "Efectivo",
+            "buy-pay-zelle": "Zelle",
+            "buy-pay-card": "Tarjeta de Crédito/Débito",
             "buy-zip-placeholder": "Código Postal de Entrega",
             "buy-btn-next": "Siguiente",
             "buy-depot-sav": "Savannah (31408)",
@@ -266,8 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnBuyContainer = document.getElementById('btn-buy-container');
     const btnRentContainer = document.getElementById('btn-rent-container');
     const btnTransContainer = document.getElementById('btn-trans-container');
-    const logoHome = document.querySelectorAll('.logo-home');
-    const homeLinks = document.querySelectorAll('.nav-link');
+    const logoHome = document.querySelectorAll('#logo-home, .logo-home');
+    const homeLinks = document.querySelectorAll('.nav-link, #nav-home');
 
     const showView = (viewName) => {
         homeView.style.display = viewName === 'home' ? 'block' : 'none';
@@ -337,19 +345,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Form Submission Mock
+    // EmailJS Form Submission
     const contactForm = document.querySelector('.contact-form');
     if (contactForm) {
         contactForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const originalBtnText = contactForm.querySelector('button').innerText;
-            contactForm.querySelector('button').innerText = currentLang === 'en' ? 'Message Sent!' : '¡Mensaje Enviado!';
-            contactForm.querySelector('button').style.backgroundColor = '#2ecc71';
-            setTimeout(() => {
-                contactForm.reset();
-                contactForm.querySelector('button').innerText = originalBtnText;
-                contactForm.querySelector('button').style.backgroundColor = 'var(--primary-color)';
-            }, 3000);
+            const submitBtn = contactForm.querySelector('button');
+            const originalBtnText = submitBtn.innerText;
+            
+            submitBtn.innerText = currentLang === 'en' ? 'Sending...' : 'Enviando...';
+            submitBtn.disabled = true;
+
+            const templateParams = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                service: document.getElementById('service').value,
+                message: document.getElementById('message').value
+            };
+
+            if (typeof emailjs === 'undefined') {
+                alert('El servicio de correo ha tardado en cargar. Reintentando...');
+                location.reload(); 
+                return;
+            }
+
+            emailjs.init("4x1rkqnQuj83tl-mh");
+            emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
+                .then(() => {
+                    submitBtn.innerText = currentLang === 'en' ? 'Message Sent!' : '¡Mensaje Enviado!';
+                    submitBtn.style.backgroundColor = '#2ecc71';
+                    contactForm.reset();
+                    setTimeout(() => {
+                        submitBtn.innerText = originalBtnText;
+                        submitBtn.style.backgroundColor = 'var(--primary-color)';
+                        submitBtn.disabled = false;
+                    }, 3000);
+                }, (error) => {
+                    console.error('EmailJS Error:', error);
+                    submitBtn.innerText = currentLang === 'en' ? 'Error!' : '¡Error!';
+                    submitBtn.style.backgroundColor = '#e74c3c';
+                    setTimeout(() => {
+                        submitBtn.innerText = originalBtnText;
+                        submitBtn.style.backgroundColor = 'var(--primary-color)';
+                        submitBtn.disabled = false;
+                    }, 3000);
+                });
         });
     }
 
@@ -430,9 +470,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <!-- JS will populate this -->
                             </div>
                         </div>
+                        <!-- Step 7: Payment Method -->
+                        <div class="buy-step" id="${mode}-step-payment-method" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="logistics-details"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step6">${t["buy-step6"]}</h3>
+                            <div class="options-grid">
+                                <div class="option-card" data-value="Cash"><i class="fas fa-money-bill-wave"></i><span>${t["buy-pay-cash"]}</span></div>
+                                <div class="option-card" data-value="Zelle"><i class="fas fa-mobile-screen-button"></i><span>${t["buy-pay-zelle"]}</span></div>
+                                <div class="option-card" data-value="Card"><i class="fas fa-credit-card"></i><span>${t["buy-pay-card"]}</span></div>
+                            </div>
+                        </div>
                     </div>
                     <div id="${mode}-summary" style="display:none;" class="summary-view">
-                        <button class="btn-back back-btn-action" data-prev="logistics-details"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                        <button class="btn-back back-btn-action" data-prev="payment-method"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                         <h3 data-i18n="buy-summary">${t["buy-summary"]}</h3>
                         <div class="summary-details">
                             <p><strong>Size:</strong> <span class="summary-size">-</span></p>
@@ -441,6 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p><strong>Climate:</strong> <span class="summary-type">-</span></p>
                             <p><strong>Logistics:</strong> <span class="summary-delivery-mode">-</span></p>
                             <p id="${mode}-logistics-summary-line" style="display:none;"><strong>Detail:</strong> <span class="summary-logistics-detail">-</span></p>
+                            <p><strong>Payment:</strong> <span class="summary-payment-method">-</span></p>
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 20px;">
                             <button class="btn btn-primary btn-get-pricing" style="flex: 1;" data-i18n="${mode}-btn-pricing">${btnPricing}</button>
@@ -449,8 +500,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             </main>`;
-        const selections = { size: null, condition: null, 'container-condition': null, type: null, 'delivery-mode': null, 'logistics-details': null };
-        const steps = ['size', 'condition', 'container-condition', 'type', 'delivery-mode', 'logistics-details'];
+        const selections = { size: null, condition: null, 'container-condition': null, type: null, 'delivery-mode': null, 'logistics-details': null, 'payment-method': null };
+        const steps = ['size', 'condition', 'container-condition', 'type', 'delivery-mode', 'logistics-details', 'payment-method'];
         let currentIndex = 0;
 
         const updateConditionOptions = (serviceType) => {
@@ -496,7 +547,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!zip) { alert(currentLang === 'en' ? 'Please enter zip code' : 'Por favor ingrese código postal'); return; }
                     selections['logistics-details'] = zip;
                     viewEl.querySelector(`#${mode}-step-logistics-details`).style.display = 'none';
-                    showSummary();
+                    currentIndex++;
+                    const nextStep = steps[currentIndex];
+                    const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
+                    nextEl.style.display = 'block';
+                    nextEl.classList.add('fade-in');
                 });
             } else {
                 const depots = [
@@ -518,7 +573,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         card.classList.add('selected');
                         setTimeout(() => {
                             viewEl.querySelector(`#${mode}-step-logistics-details`).style.display = 'none';
-                            showSummary();
+                            currentIndex++;
+                            const nextStep = steps[currentIndex];
+                            const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
+                            nextEl.style.display = 'block';
+                            nextEl.classList.add('fade-in');
                         }, 400);
                     });
                 });
@@ -539,6 +598,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 detailLine.style.display = 'none';
             }
+
+            viewEl.querySelector('.summary-payment-method').textContent = selections['payment-method'];
 
             viewEl.querySelector('.summary-view').style.display = 'block';
             viewEl.querySelector('.summary-view').classList.add('fade-in');
@@ -720,4 +781,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderBuyView() { renderConfigurationView('buy-view', 'buy'); }
     function renderRentView() { renderConfigurationView('rent-view', 'rent'); }
+
+    // Initial language sync and view setup
+    updateLanguage(currentLang);
 });
