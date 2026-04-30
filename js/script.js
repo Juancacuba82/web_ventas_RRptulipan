@@ -68,8 +68,12 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-h1": "Configure Your Container",
             "buy-p": "Select the options that best fit your needs",
             "buy-step1": "1. Select Size",
-            "buy-step2": "2. Select Condition",
-            "buy-step3": "3. Climatización",
+            "buy-step2": "2. Type of Service",
+            "buy-step-cond": "3. Container Condition",
+            "buy-step3": "4. Climate Control",
+            "buy-step4": "5. Delivery or Pickup",
+            "buy-step5": "6. Logistics Details",
+            "buy-depot-info": "Select the depot closest to your location to get the lowest shipping rates.",
             "buy-summary": "Summary",
             "buy-btn-pricing": "Get Pricing",
             "buy-btn-restart": "Restart",
@@ -77,11 +81,25 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-back-home": "Back to Services",
             "buy-opt-20": "20' Standard",
             "buy-opt-40": "40' High Cube",
+            "buy-opt-40std": "40' Standard",
             "buy-opt-45": "45' High Cube",
-            "buy-opt-new": "One Trip (New)",
-            "buy-opt-used": "Cargo Worthy (Used)",
-            "buy-opt-dry": "Dry Storage",
-            "buy-opt-reefer": "Reefer (Climatizado)",
+            "buy-opt-int": "International Shipping",
+            "buy-opt-local": "Local Storage",
+            "buy-opt-cw": "CW (Cargo Worthy)",
+            "buy-opt-new-cond": "New (One Way)",
+            "buy-opt-wwt": "WWT (Wind and Water Tight)",
+            "buy-opt-dry": "Dry",
+            "buy-opt-reefer": "Reefer",
+            "buy-opt-delivery": "Delivery",
+            "buy-opt-pickup": "Pickup",
+            "buy-zip-placeholder": "Enter Delivery Zip Code",
+            "buy-btn-next": "Next",
+            "buy-depot-sav": "Savannah (31408)",
+            "buy-depot-atl": "Atlanta (30288)",
+            "buy-depot-jax": "Jacksonville (32218)",
+            "buy-depot-tit": "Titusville (32780)",
+            "buy-depot-tam": "Tampa (33619)",
+            "buy-depot-mia": "Miami (33178)",
             "rent-h1": "Rent Your Container",
             "rent-btn-pricing": "Get Rental Quote",
             "trans-h1": "Transportation Quote",
@@ -147,8 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-h1": "Configura tu Contenedor",
             "buy-p": "Selecciona las opciones que mejor se adapten a tus necesidades",
             "buy-step1": "1. Seleccionar Tamaño",
-            "buy-step2": "2. Seleccionar Condición",
-            "buy-step3": "3. Climatización",
+            "buy-step2": "2. Tipo de Servicio",
+            "buy-step-cond": "3. Condición del Contenedor",
+            "buy-step3": "4. Climatización",
+            "buy-step4": "5. Entrega o Recogida",
+            "buy-step5": "6. Detalles de Logística",
+            "buy-depot-info": "Seleccione el depósito más cercano a su ubicación para obtener las tarifas de envío más bajas.",
             "buy-summary": "Resumen",
             "buy-btn-pricing": "Obtener Precios",
             "buy-btn-restart": "Reiniciar",
@@ -156,11 +178,25 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-back-home": "Volver a Servicios",
             "buy-opt-20": "20' Estándar",
             "buy-opt-40": "40' High Cube",
+            "buy-opt-40std": "40' Estándar",
             "buy-opt-45": "45' High Cube",
-            "buy-opt-new": "One Trip (Nuevo)",
-            "buy-opt-used": "Cargo Worthy (Usado)",
-            "buy-opt-dry": "Dry Storage",
-            "buy-opt-reefer": "Reefer (Climatizado)",
+            "buy-opt-int": "Envío Internacional",
+            "buy-opt-local": "Almacenamiento Local",
+            "buy-opt-cw": "CW (Cargo Worthy)",
+            "buy-opt-new-cond": "New (One Way)",
+            "buy-opt-wwt": "WWT (Wind and Water Tight)",
+            "buy-opt-dry": "Dry",
+            "buy-opt-reefer": "Reefer",
+            "buy-opt-delivery": "Entrega",
+            "buy-opt-pickup": "Recogida",
+            "buy-zip-placeholder": "Código Postal de Entrega",
+            "buy-btn-next": "Siguiente",
+            "buy-depot-sav": "Savannah (31408)",
+            "buy-depot-atl": "Atlanta (30288)",
+            "buy-depot-jax": "Jacksonville (32218)",
+            "buy-depot-tit": "Titusville (32780)",
+            "buy-depot-tam": "Tampa (33619)",
+            "buy-depot-mia": "Miami (33178)",
             "rent-h1": "Alquila tu Contenedor",
             "rent-btn-pricing": "Obtener Cotización",
             "trans-h1": "Cotización de Transporte",
@@ -330,16 +366,203 @@ document.addEventListener('DOMContentLoaded', () => {
         const t = translations[currentLang];
         const h1 = mode === 'buy' ? t["buy-h1"] : t["rent-h1"];
         const btnPricing = mode === 'buy' ? t["buy-btn-pricing"] : t["rent-btn-pricing"];
-        viewEl.innerHTML = `<header class="buy-header"><div class="container"><h1 data-i18n="${mode}-h1">${h1}</h1><p data-i18n="buy-p">${t["buy-p"]}</p></div></header><main class="container"><div class="buy-container"><div id="${mode}-steps"><div class="buy-step active" id="${mode}-step-size"><button class="btn-back back-btn-action"><i class="fas fa-arrow-left"></i> ${t["buy-back-home"]}</button><h3 data-i18n="buy-step1">${t["buy-step1"]}</h3><div class="options-grid"><div class="option-card" data-value="20'"><i class="fas fa-box"></i><span>${t["buy-opt-20"]}</span></div><div class="option-card" data-value="40'"><i class="fas fa-boxes"></i><span>${t["buy-opt-40"]}</span></div><div class="option-card" data-value="45'"><i class="fas fa-boxes"></i><span>${t["buy-opt-45"]}</span></div></div></div><div class="buy-step" id="${mode}-step-condition" style="display:none;"><button class="btn-back back-btn-action" data-prev="size"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button><h3 data-i18n="buy-step2">${t["buy-step2"]}</h3><div class="options-grid"><div class="option-card" data-value="NEW"><i class="fas fa-star"></i><span>${t["buy-opt-new"]}</span></div><div class="option-card" data-value="USED"><i class="fas fa-recycle"></i><span>${t["buy-opt-used"]}</span></div></div></div><div class="buy-step" id="${mode}-step-type" style="display:none;"><button class="btn-back back-btn-action" data-prev="condition"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button><h3 data-i18n="buy-step3">${t["buy-step3"]}</h3><div class="options-grid"><div class="option-card" data-value="Dry"><i class="fas fa-wind"></i><span>${t["buy-opt-dry"]}</span></div><div class="option-card" data-value="Reefer"><i class="fas fa-snowflake"></i><span>${t["buy-opt-reefer"]}</span></div></div></div></div><div id="${mode}-summary" style="display:none;" class="summary-view"><button class="btn-back back-btn-action" data-prev="type"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button><h3 data-i18n="buy-summary">${t["buy-summary"]}</h3><div class="summary-details"><p><strong>Size:</strong> <span class="summary-size">-</span></p><p><strong>Condition:</strong> <span class="summary-condition">-</span></p><p><strong>Type:</strong> <span class="summary-type">-</span></p></div><div style="display: flex; gap: 10px; margin-top: 20px;"><button class="btn btn-primary btn-get-pricing" style="flex: 1;" data-i18n="${mode}-btn-pricing">${btnPricing}</button><button class="btn btn-outline btn-restart-action" style="flex: 1; color: var(--primary-color); border-color: var(--primary-color);" data-i18n="buy-btn-restart">${t["buy-btn-restart"]}</button></div></div></div></main>`;
-        const selections = { size: null, condition: null, type: null };
-        const steps = ['size', 'condition', 'type'];
+        viewEl.innerHTML = `
+            <header class="buy-header">
+                <div class="container">
+                    <h1 data-i18n="${mode}-h1">${h1}</h1>
+                    <p data-i18n="buy-p">${t["buy-p"]}</p>
+                </div>
+            </header>
+            <main class="container">
+                <div class="buy-container">
+                    <div id="${mode}-steps">
+                        <!-- Step 1: Size -->
+                        <div class="buy-step active" id="${mode}-step-size">
+                            <button class="btn-back back-btn-action"><i class="fas fa-arrow-left"></i> ${t["buy-back-home"]}</button>
+                            <h3 data-i18n="buy-step1">${t["buy-step1"]}</h3>
+                            <div class="options-grid">
+                                <div class="option-card" data-value="20'"><i class="fas fa-box"></i><span>${t["buy-opt-20"]}</span></div>
+                                <div class="option-card" data-value="40' STD"><i class="fas fa-boxes"></i><span>${t["buy-opt-40std"]}</span></div>
+                                <div class="option-card" data-value="40' HC"><i class="fas fa-boxes"></i><span>${t["buy-opt-40"]}</span></div>
+                                <div class="option-card" data-value="45'"><i class="fas fa-boxes"></i><span>${t["buy-opt-45"]}</span></div>
+                            </div>
+                        </div>
+                        <!-- Step 2: Type of Service -->
+                        <div class="buy-step" id="${mode}-step-condition" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="size"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step2">${t["buy-step2"]}</h3>
+                            <div class="options-grid">
+                                <div class="option-card" data-value="International"><i class="fas fa-ship"></i><span>${t["buy-opt-int"]}</span></div>
+                                <div class="option-card" data-value="Local"><i class="fas fa-warehouse"></i><span>${t["buy-opt-local"]}</span></div>
+                            </div>
+                        </div>
+                        <!-- Step 3: Container Condition (Conditional) -->
+                        <div class="buy-step" id="${mode}-step-container-condition" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="condition"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step-cond">${t["buy-step-cond"]}</h3>
+                            <div class="options-grid" id="${mode}-cond-options">
+                                <!-- JS will populate this -->
+                            </div>
+                        </div>
+                        <!-- Step 4: Type (Climatización) -->
+                        <div class="buy-step" id="${mode}-step-type" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="container-condition"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step3">${t["buy-step3"]}</h3>
+                            <div class="options-grid">
+                                <div class="option-card" data-value="Dry"><i class="fas fa-wind"></i><span>${t["buy-opt-dry"]}</span></div>
+                                <div class="option-card" data-value="Reefer"><i class="fas fa-snowflake"></i><span>${t["buy-opt-reefer"]}</span></div>
+                            </div>
+                        </div>
+                        <!-- Step 5: Delivery or Pickup -->
+                        <div class="buy-step" id="${mode}-step-delivery-mode" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="type"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step4">${t["buy-step4"]}</h3>
+                            <div class="options-grid">
+                                <div class="option-card" data-value="Delivery"><i class="fas fa-truck-fast"></i><span>${t["buy-opt-delivery"]}</span></div>
+                                <div class="option-card" data-value="Pickup"><i class="fas fa-warehouse"></i><span>${t["buy-opt-pickup"]}</span></div>
+                            </div>
+                        </div>
+                        <!-- Step 6: Logistics Details (Conditional) -->
+                        <div class="buy-step" id="${mode}-step-logistics-details" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="delivery-mode"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step5">${t["buy-step5"]}</h3>
+                            <div id="${mode}-logistics-content">
+                                <!-- JS will populate this -->
+                            </div>
+                        </div>
+                    </div>
+                    <div id="${mode}-summary" style="display:none;" class="summary-view">
+                        <button class="btn-back back-btn-action" data-prev="logistics-details"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                        <h3 data-i18n="buy-summary">${t["buy-summary"]}</h3>
+                        <div class="summary-details">
+                            <p><strong>Size:</strong> <span class="summary-size">-</span></p>
+                            <p><strong>Type of Service:</strong> <span class="summary-service">-</span></p>
+                            <p><strong>Condition:</strong> <span class="summary-container-condition">-</span></p>
+                            <p><strong>Climate:</strong> <span class="summary-type">-</span></p>
+                            <p><strong>Logistics:</strong> <span class="summary-delivery-mode">-</span></p>
+                            <p id="${mode}-logistics-summary-line" style="display:none;"><strong>Detail:</strong> <span class="summary-logistics-detail">-</span></p>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button class="btn btn-primary btn-get-pricing" style="flex: 1;" data-i18n="${mode}-btn-pricing">${btnPricing}</button>
+                            <button class="btn btn-outline btn-restart-action" style="flex: 1; color: var(--primary-color); border-color: var(--primary-color);" data-i18n="buy-btn-restart">${t["buy-btn-restart"]}</button>
+                        </div>
+                    </div>
+                </div>
+            </main>`;
+        const selections = { size: null, condition: null, 'container-condition': null, type: null, 'delivery-mode': null, 'logistics-details': null };
+        const steps = ['size', 'condition', 'container-condition', 'type', 'delivery-mode', 'logistics-details'];
         let currentIndex = 0;
+
+        const updateConditionOptions = (serviceType) => {
+            const container = viewEl.querySelector(`#${mode}-cond-options`);
+            let html = `
+                <div class="option-card" data-value="CW"><i class="fas fa-check-circle"></i><span>${t["buy-opt-cw"]}</span></div>
+                <div class="option-card" data-value="New"><i class="fas fa-star"></i><span>${t["buy-opt-new-cond"]}</span></div>
+            `;
+            if (serviceType === 'Local') {
+                html += `<div class="option-card" data-value="WWT"><i class="fas fa-water"></i><span>${t["buy-opt-wwt"]}</span></div>`;
+            }
+            container.innerHTML = html;
+            
+            // Re-attach listeners to new cards
+            container.querySelectorAll('.option-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    selections['container-condition'] = card.dataset.value;
+                    container.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    setTimeout(() => {
+                        viewEl.querySelector(`#${mode}-step-container-condition`).style.display = 'none';
+                        currentIndex++;
+                        const nextStep = steps[currentIndex];
+                        const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
+                        nextEl.style.display = 'block';
+                        nextEl.classList.add('fade-in');
+                    }, 400);
+                });
+            });
+        };
+
+        const updateLogisticsDetails = (modeType) => {
+            const container = viewEl.querySelector(`#${mode}-logistics-content`);
+            if (modeType === 'Delivery') {
+                container.innerHTML = `
+                    <div class="form-group" style="margin-top: 20px;">
+                        <input type="text" id="${mode}-zip-input" placeholder="${t["buy-zip-placeholder"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                        <button class="btn btn-primary" id="${mode}-btn-zip-next" style="width: 100%;">${t["buy-btn-next"]}</button>
+                    </div>
+                `;
+                viewEl.querySelector(`#${mode}-btn-zip-next`).addEventListener('click', () => {
+                    const zip = viewEl.querySelector(`#${mode}-zip-input`).value;
+                    if (!zip) { alert(currentLang === 'en' ? 'Please enter zip code' : 'Por favor ingrese código postal'); return; }
+                    selections['logistics-details'] = zip;
+                    viewEl.querySelector(`#${mode}-step-logistics-details`).style.display = 'none';
+                    showSummary();
+                });
+            } else {
+                const depots = [
+                    { id: 'sav', label: t["buy-depot-sav"] },
+                    { id: 'atl', label: t["buy-depot-atl"] },
+                    { id: 'jax', label: t["buy-depot-jax"] },
+                    { id: 'tit', label: t["buy-depot-tit"] },
+                    { id: 'tam', label: t["buy-depot-tam"] },
+                    { id: 'mia', label: t["buy-depot-mia"] }
+                ];
+                container.innerHTML = `
+                    <p style="margin-bottom: 25px; text-align: center; color: var(--primary-color); font-weight: 600; font-size: 1.1rem;">${t["buy-depot-info"]}</p>
+                    <div class="options-grid">${depots.map(d => `<div class="option-card" data-value="${d.label}"><i class="fas fa-location-dot"></i><span>${d.label}</span></div>`).join('')}</div>
+                `;
+                container.querySelectorAll('.option-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        selections['logistics-details'] = card.dataset.value;
+                        container.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        setTimeout(() => {
+                            viewEl.querySelector(`#${mode}-step-logistics-details`).style.display = 'none';
+                            showSummary();
+                        }, 400);
+                    });
+                });
+            }
+        };
+
+        const showSummary = () => {
+            viewEl.querySelector('.summary-size').textContent = selections.size;
+            viewEl.querySelector('.summary-service').textContent = selections.condition;
+            viewEl.querySelector('.summary-container-condition').textContent = selections['container-condition'];
+            viewEl.querySelector('.summary-type').textContent = selections.type;
+            viewEl.querySelector('.summary-delivery-mode').textContent = selections['delivery-mode'];
+            
+            const detailLine = viewEl.querySelector(`#${mode}-logistics-summary-line`);
+            if (selections['logistics-details']) {
+                detailLine.style.display = 'block';
+                viewEl.querySelector('.summary-logistics-detail').textContent = selections['logistics-details'];
+            } else {
+                detailLine.style.display = 'none';
+            }
+
+            viewEl.querySelector('.summary-view').style.display = 'block';
+            viewEl.querySelector('.summary-view').classList.add('fade-in');
+            currentIndex = steps.length;
+        };
+
         viewEl.querySelectorAll('.option-card').forEach(card => {
             card.addEventListener('click', () => {
-                const stepId = card.closest('.buy-step').id.split('-').pop();
+                const stepEl = card.closest('.buy-step');
+                if (!stepEl) return;
+                const stepId = stepEl.id.replace(`${mode}-step-`, '');
+                if (stepId === 'container-condition' || stepId === 'logistics-details') return; // Handled separately
+
                 selections[stepId] = card.dataset.value;
                 card.parentNode.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
+
+                if (stepId === 'condition') {
+                    updateConditionOptions(card.dataset.value);
+                }
+                if (stepId === 'delivery-mode') {
+                    updateLogisticsDetails(card.dataset.value);
+                }
+
                 setTimeout(() => {
                     viewEl.querySelector(`#${mode}-step-${stepId}`).style.display = 'none';
                     currentIndex++;
@@ -349,11 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         nextEl.style.display = 'block';
                         nextEl.classList.add('fade-in');
                     } else {
-                        viewEl.querySelector('.summary-size').textContent = selections.size;
-                        viewEl.querySelector('.summary-condition').textContent = selections.condition;
-                        viewEl.querySelector('.summary-type').textContent = selections.type;
-                        viewEl.querySelector('.summary-view').style.display = 'block';
-                        viewEl.querySelector('.summary-view').classList.add('fade-in');
+                        showSummary();
                     }
                 }, 400);
             });
@@ -393,7 +612,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <h3 data-i18n="trans-step1">${t["trans-step1"]}</h3>
                             <div class="options-grid">
                                 <div class="option-card" data-value="20'"><i class="fas fa-box"></i><span>${t["buy-opt-20"]}</span></div>
-                                <div class="option-card" data-value="40'"><i class="fas fa-boxes"></i><span>${t["buy-opt-40"]}</span></div>
+                                <div class="option-card" data-value="40' STD"><i class="fas fa-boxes"></i><span>${t["buy-opt-40std"]}</span></div>
+                                <div class="option-card" data-value="40' HC"><i class="fas fa-boxes"></i><span>${t["buy-opt-40"]}</span></div>
                                 <div class="option-card" data-value="45'"><i class="fas fa-boxes"></i><span>${t["buy-opt-45"]}</span></div>
                             </div>
                         </div>
