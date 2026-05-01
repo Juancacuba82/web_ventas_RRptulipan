@@ -68,12 +68,15 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-h1": "Configure Your Container",
             "buy-p": "Select the options that best fit your needs",
             "buy-step1": "1. Select Size",
-            "buy-step2": "2. Type of Service",
-            "buy-step-cond": "3. Container Condition",
-            "buy-step3": "4. Climate Control",
-            "buy-step4": "5. Delivery or Pickup",
-            "buy-step5": "6. Logistics Details",
-            "buy-step6": "7. Payment Method",
+            "buy-step-qty": "2. Select Quantity",
+            "buy-step2": "3. Type of Service",
+            "buy-step-cond": "4. Container Condition",
+            "buy-step3": "5. Climate Control",
+            "buy-step4": "6. Delivery or Pickup",
+            "buy-step5": "7. Logistics Details",
+            "buy-step6": "8. Payment Method",
+            "buy-step7": "9. Contact Information",
+            "buy-step-contact": "9. Contact Details",
             "buy-depot-info": "Select the depot closest to your location to get the lowest shipping rates.",
             "buy-summary": "Summary",
             "buy-btn-pricing": "Get Pricing",
@@ -120,7 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
             "trans-btn-pricing": "Request Quote",
             "summary-status": "Status",
             "summary-crane": "Crane",
-            "summary-route": "Route"
+            "summary-route": "Route",
+            "summary-quantity": "Quantity",
+            "summary-contact": "Contact"
         },
         es: {
             "nav-home": "Inicio",
@@ -169,12 +174,15 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-h1": "Configura tu Contenedor",
             "buy-p": "Selecciona las opciones que mejor se adapten a tus necesidades",
             "buy-step1": "1. Seleccionar Tamaño",
-            "buy-step2": "2. Tipo de Servicio",
-            "buy-step-cond": "3. Condición del Contenedor",
-            "buy-step3": "4. Climatización",
-            "buy-step4": "5. Entrega o Recogida",
-            "buy-step5": "6. Detalles de Logística",
-            "buy-step6": "7. Método de Pago",
+            "buy-step-qty": "2. Seleccionar Cantidad",
+            "buy-step2": "3. Tipo de Servicio",
+            "buy-step-cond": "4. Condición del Contenedor",
+            "buy-step3": "5. Climatización",
+            "buy-step4": "6. Entrega o Recogida",
+            "buy-step5": "7. Detalles de Logística",
+            "buy-step6": "8. Método de Pago",
+            "buy-step7": "9. Información de Contacto",
+            "buy-step-contact": "9. Datos de Contacto",
             "buy-depot-info": "Seleccione el depósito más cercano a su ubicación para obtener las tarifas de envío más bajas.",
             "buy-summary": "Resumen",
             "buy-btn-pricing": "Obtener Precios",
@@ -221,7 +229,9 @@ document.addEventListener('DOMContentLoaded', () => {
             "trans-btn-pricing": "Solicitar Cotización",
             "summary-status": "Estado",
             "summary-crane": "Grúa",
-            "summary-route": "Ruta"
+            "summary-route": "Ruta",
+            "summary-quantity": "Cantidad",
+            "summary-contact": "Contacto"
         }
     };
 
@@ -427,9 +437,20 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="option-card" data-value="45'"><i class="fas fa-boxes"></i><span>${t["buy-opt-45"]}</span></div>
                             </div>
                         </div>
-                        <!-- Step 2: Type of Service -->
-                        <div class="buy-step" id="${mode}-step-condition" style="display:none;">
+                        <!-- Step 2: Quantity -->
+                        <div class="buy-step" id="${mode}-step-qty" style="display:none;">
                             <button class="btn-back back-btn-action" data-prev="size"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step-qty">${t["buy-step-qty"]}</h3>
+                            <div class="quantity-selector">
+                                <button class="qty-btn minus"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="qty-input" value="1" min="1" max="99">
+                                <button class="qty-btn plus"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <button class="btn btn-primary next-btn-action" data-next="condition" style="width: 100%;">${t["buy-btn-next"]}</button>
+                        </div>
+                        <!-- Step 3: Type of Service -->
+                        <div class="buy-step" id="${mode}-step-condition" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="qty"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="buy-step2">${t["buy-step2"]}</h3>
                             <div class="options-grid">
                                 <div class="option-card" data-value="International"><i class="fas fa-ship"></i><span>${t["buy-opt-int"]}</span></div>
@@ -470,7 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <!-- JS will populate this -->
                             </div>
                         </div>
-                        <!-- Step 7: Payment Method -->
+                        <!-- Step 8: Payment Method -->
                         <div class="buy-step" id="${mode}-step-payment-method" style="display:none;">
                             <button class="btn-back back-btn-action" data-prev="logistics-details"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="buy-step6">${t["buy-step6"]}</h3>
@@ -480,18 +501,31 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="option-card" data-value="Card"><i class="fas fa-credit-card"></i><span>${t["buy-pay-card"]}</span></div>
                             </div>
                         </div>
+                        <!-- Step 9: Contact Info -->
+                        <div class="buy-step" id="${mode}-step-contact" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="payment-method"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step7">${t["buy-step7"]}</h3>
+                            <div class="form-group" style="margin-top: 20px;">
+                                <input type="text" id="${mode}-contact-name" placeholder="${t["form-name"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <input type="email" id="${mode}-contact-email" placeholder="${t["form-email"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <input type="tel" id="${mode}-contact-phone" placeholder="Phone Number" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <button class="btn btn-primary next-btn-action" data-next="summary" style="width: 100%;">${t["buy-btn-next"]}</button>
+                            </div>
+                        </div>
                     </div>
                     <div id="${mode}-summary" style="display:none;" class="summary-view">
-                        <button class="btn-back back-btn-action" data-prev="payment-method"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                        <button class="btn-back back-btn-action" data-prev="contact"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                         <h3 data-i18n="buy-summary">${t["buy-summary"]}</h3>
                         <div class="summary-details">
                             <p><strong>Size:</strong> <span class="summary-size">-</span></p>
+                            <p><strong>Quantity:</strong> <span class="summary-qty">-</span></p>
                             <p><strong>Type of Service:</strong> <span class="summary-service">-</span></p>
                             <p><strong>Condition:</strong> <span class="summary-container-condition">-</span></p>
                             <p><strong>Climate:</strong> <span class="summary-type">-</span></p>
                             <p><strong>Logistics:</strong> <span class="summary-delivery-mode">-</span></p>
-                            <p id="${mode}-logistics-summary-line" style="display:none;"><strong>Detail:</strong> <span class="summary-logistics-detail">-</span></p>
+                            <p id="${mode}-logistics-summary-line" style="display:none;"><strong>Zip Code:</strong> <span class="summary-logistics-detail">-</span></p>
                             <p><strong>Payment:</strong> <span class="summary-payment-method">-</span></p>
+                            <p><strong>Contact:</strong> <span class="summary-contact">-</span></p>
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 20px;">
                             <button class="btn btn-primary btn-get-pricing" style="flex: 1;" data-i18n="${mode}-btn-pricing">${btnPricing}</button>
@@ -500,8 +534,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             </main>`;
-        const selections = { size: null, condition: null, 'container-condition': null, type: null, 'delivery-mode': null, 'logistics-details': null, 'payment-method': null };
-        const steps = ['size', 'condition', 'container-condition', 'type', 'delivery-mode', 'logistics-details', 'payment-method'];
+        const selections = { size: null, quantity: 1, condition: null, 'container-condition': null, type: null, 'delivery-mode': null, 'logistics-details': null, 'payment-method': null, contact: {} };
+        const steps = ['size', 'qty', 'condition', 'container-condition', 'type', 'delivery-mode', 'logistics-details', 'payment-method', 'contact'];
         let currentIndex = 0;
 
         const updateConditionOptions = (serviceType) => {
@@ -515,7 +549,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             container.innerHTML = html;
             
-            // Re-attach listeners to new cards
             container.querySelectorAll('.option-card').forEach(card => {
                 card.addEventListener('click', () => {
                     selections['container-condition'] = card.dataset.value;
@@ -586,10 +619,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const showSummary = () => {
             viewEl.querySelector('.summary-size').textContent = selections.size;
+            viewEl.querySelector('.summary-qty').textContent = selections.quantity;
             viewEl.querySelector('.summary-service').textContent = selections.condition;
             viewEl.querySelector('.summary-container-condition').textContent = selections['container-condition'];
             viewEl.querySelector('.summary-type').textContent = selections.type;
             viewEl.querySelector('.summary-delivery-mode').textContent = selections['delivery-mode'];
+            viewEl.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email})`;
             
             const detailLine = viewEl.querySelector(`#${mode}-logistics-summary-line`);
             if (selections['logistics-details']) {
@@ -606,12 +641,23 @@ document.addEventListener('DOMContentLoaded', () => {
             currentIndex = steps.length;
         };
 
+        viewEl.querySelectorAll('.qty-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = viewEl.querySelector('.qty-input');
+                let val = parseInt(input.value);
+                if (btn.classList.contains('minus') && val > 1) val--;
+                if (btn.classList.contains('plus') && val < 99) val++;
+                input.value = val;
+                selections.quantity = val;
+            });
+        });
+
         viewEl.querySelectorAll('.option-card').forEach(card => {
             card.addEventListener('click', () => {
                 const stepEl = card.closest('.buy-step');
                 if (!stepEl) return;
                 const stepId = stepEl.id.replace(`${mode}-step-`, '');
-                if (stepId === 'container-condition' || stepId === 'logistics-details') return; // Handled separately
+                if (stepId === 'container-condition' || stepId === 'logistics-details') return; 
 
                 selections[stepId] = card.dataset.value;
                 card.parentNode.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
@@ -650,6 +696,86 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentIndex = steps.indexOf(prevStep);
             });
         });
+        viewEl.querySelector('.btn-get-pricing').addEventListener('click', (e) => {
+            const btn = e.target;
+            const originalText = btn.innerText;
+            btn.innerText = currentLang === 'en' ? 'Sending Request...' : 'Enviando Solicitud...';
+            btn.disabled = true;
+
+            const summary = `
+                Container: ${selections.size}
+                Quantity: ${selections.quantity}
+                Service: ${selections.condition}
+                Condition: ${selections['container-condition']}
+                Climate: ${selections.type}
+                Logistics: ${selections['delivery-mode']}
+                Detail: ${selections['logistics-details']}
+                Payment: ${selections['payment-method']}
+                
+                Contact Info:
+                Name: ${selections.contact.name}
+                Email: ${selections.contact.email}
+                Phone: ${selections.contact.phone}
+            `;
+
+            const templateParams = {
+                name: selections.contact.name,
+                email: selections.contact.email,
+                service: mode === 'buy' ? 'Container Purchase' : 'Container Rental',
+                message: summary
+            };
+
+            if (typeof emailjs !== 'undefined') {
+                emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
+                    .then(() => {
+                        btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
+                        btn.style.backgroundColor = '#2ecc71';
+                        setTimeout(() => {
+                            btn.innerText = originalText;
+                            btn.style.backgroundColor = 'var(--primary-color)';
+                            btn.disabled = false;
+                            showView('home');
+                        }, 3000);
+                    })
+                    .catch((err) => {
+                        console.error('EmailJS Error:', err);
+                        btn.innerText = 'Error';
+                        btn.disabled = false;
+                    });
+            } else {
+                alert('Email service error. Please contact us directly.');
+                btn.disabled = false;
+            }
+        });
+
+        viewEl.querySelectorAll('.next-btn-action').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const nextStep = btn.dataset.next;
+                if (nextStep === 'summary') {
+                    selections.contact = {
+                        name: viewEl.querySelector(`#${mode}-contact-name`).value,
+                        email: viewEl.querySelector(`#${mode}-contact-email`).value,
+                        phone: viewEl.querySelector(`#${mode}-contact-phone`).value
+                    };
+                    if (!selections.contact.name || !selections.contact.email) {
+                        alert(currentLang === 'en' ? 'Please fill name and email' : 'Por favor ingrese nombre y email');
+                        return;
+                    }
+                    viewEl.querySelector(`#${mode}-step-contact`).style.display = 'none';
+                    showSummary();
+                    return;
+                }
+                
+                const stepEl = btn.closest('.buy-step');
+                const stepId = stepEl.id.replace(`${mode}-step-`, '');
+                stepEl.style.display = 'none';
+                currentIndex++;
+                const nextEl = viewEl.querySelector(`#${mode}-step-${steps[currentIndex]}`);
+                nextEl.style.display = 'block';
+                nextEl.classList.add('fade-in');
+            });
+        });
+
         viewEl.querySelector('.btn-restart-action').addEventListener('click', () => renderConfigurationView(viewId, mode));
         document.title = (mode === 'buy' ? t["service-sales-h3"] : t["service-rent-h3"]) + " | RP Tulipan Logistics";
     }
