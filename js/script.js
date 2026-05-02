@@ -41,6 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
             "service-trans-h3": "Transportation",
             "service-trans-p": "Fast and safe transportation services. We deliver your containers to any location with precision and care.",
             "service-trans-btn": "Quote",
+            "service-crane-h3": "Crane Services",
+            "service-crane-p": "Need heavy lifting? Our crane services provide safe and efficient handling for containers and large equipment.",
+            "service-crane-btn": "Request",
+            "crane-h1": "Crane Service Quote",
             "about-h2": "Why Choose RP Tulipan?",
             "about-p": "With years of experience in the logistics industry, we pride ourselves on providing top-tier container solutions. Our commitment to quality and customer satisfaction makes us a leader in the market.",
             "about-f1": "High-quality steel containers",
@@ -57,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "form-service-sales": "Container Sales",
             "form-service-rent": "Container Rentals",
             "form-service-trans": "Transportation",
+            "form-service-crane": "Crane Services",
             "form-message": "Your Message",
             "form-btn": "Send Message",
             "footer-p": "Providing excellence in container logistics.",
@@ -79,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-step-contact": "9. Contact Details",
             "buy-depot-info": "Select the depot closest to your location to get the lowest shipping rates.",
             "buy-summary": "Summary",
-            "buy-btn-pricing": "Get Pricing",
+            "buy-btn-pricing": "Place Order.",
             "buy-btn-restart": "Restart",
             "buy-back": "Back",
             "buy-back-home": "Back to Services",
@@ -99,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-pay-cash": "Cash",
             "buy-pay-zelle": "Zelle",
             "buy-pay-card": "Credit/Debit Card",
+            "buy-pay-check": "Check",
             "buy-zip-placeholder": "Enter Delivery Zip Code",
             "buy-btn-next": "Next",
             "buy-depot-sav": "Savannah (31408)",
@@ -107,13 +113,18 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-depot-tit": "Titusville (32780)",
             "buy-depot-tam": "Tampa (33619)",
             "buy-depot-mia": "Miami (33178)",
+            "rent-step-cond": "3. Container Condition",
+            "rent-step-logistics": "4. Logistics Details",
+            "rent-step-pay": "5. Payment Method",
+            "rent-step-contact": "6. Contact Information",
+            "rent-opt-used": "Used",
+            "rent-opt-new": "New",
             "rent-h1": "Rent Your Container",
-            "rent-btn-pricing": "Get Rental Quote",
+            "rent-btn-pricing": "Place Order.",
             "trans-h1": "Transportation Quote",
             "trans-step1": "1. Container Size",
             "trans-step2": "2. Container Status",
-            "trans-step3": "3. Crane Service",
-            "trans-step4": "4. Route Details",
+            "trans-step3": "3. Route Details",
             "trans-opt-empty": "Empty",
             "trans-opt-full": "Full",
             "trans-opt-crane-yes": "Crane Needed",
@@ -121,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "trans-zip-pickup": "Pickup Zip Code",
             "trans-zip-delivery": "Delivery Zip Code",
             "trans-btn-pricing": "Request Quote",
+            "trans-step-contact": "4. Contact Information",
             "summary-status": "Status",
             "summary-crane": "Crane",
             "summary-route": "Route",
@@ -147,6 +159,10 @@ document.addEventListener('DOMContentLoaded', () => {
             "service-trans-h3": "Transporte",
             "service-trans-p": "Servicios de transporte rápidos y seguros. Entregamos sus contenedores a cualquier ubicación con precisión y cuidado.",
             "service-trans-btn": "Cotizar",
+            "service-crane-h3": "Servicio de Grúa",
+            "service-crane-p": "¿Necesita elevación pesada? Nuestros servicios de grúa ofrecen un manejo seguro y eficiente para contenedores y equipos grandes.",
+            "service-crane-btn": "Solicitar",
+            "crane-h1": "Cotización de Servicio de Grúa",
             "about-h2": "¿Por qué elegir RP Tulipan?",
             "about-p": "Con años de experiencia en la industria logística, nos enorgullecemos de brindar soluciones de contenedores de primer nivel. Nuestro compromiso con la calidad y la satisfacción del cliente nos convierte en líderes en el mercado.",
             "about-f1": "Contenedores de acero de alta calidad",
@@ -163,6 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "form-service-sales": "Venta de contenedores",
             "form-service-rent": "Alquiler de contenedores",
             "form-service-trans": "Transporte",
+            "form-service-crane": "Servicio de grúa",
             "form-message": "Tu mensaje",
             "form-btn": "Enviar mensaje",
             "footer-p": "Brindando excelencia en logística de contenedores.",
@@ -185,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-step-contact": "9. Datos de Contacto",
             "buy-depot-info": "Seleccione el depósito más cercano a su ubicación para obtener las tarifas de envío más bajas.",
             "buy-summary": "Resumen",
-            "buy-btn-pricing": "Obtener Precios",
+            "buy-btn-pricing": "Realizar Pedido.",
             "buy-btn-restart": "Reiniciar",
             "buy-back": "Atrás",
             "buy-back-home": "Volver a Servicios",
@@ -205,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-pay-cash": "Efectivo",
             "buy-pay-zelle": "Zelle",
             "buy-pay-card": "Tarjeta de Crédito/Débito",
+            "buy-pay-check": "Cheque",
             "buy-zip-placeholder": "Código Postal de Entrega",
             "buy-btn-next": "Siguiente",
             "buy-depot-sav": "Savannah (31408)",
@@ -213,13 +231,18 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-depot-tit": "Titusville (32780)",
             "buy-depot-tam": "Tampa (33619)",
             "buy-depot-mia": "Miami (33178)",
+            "rent-step-cond": "3. Condición del Contenedor",
+            "rent-step-logistics": "4. Detalles de Logística",
+            "rent-step-pay": "5. Método de Pago",
+            "rent-step-contact": "6. Información de Contacto",
+            "rent-opt-used": "Usado",
+            "rent-opt-new": "Nuevo",
             "rent-h1": "Alquila tu Contenedor",
-            "rent-btn-pricing": "Obtener Cotización",
+            "rent-btn-pricing": "Realizar Pedido.",
             "trans-h1": "Cotización de Transporte",
             "trans-step1": "1. Tamaño del Contenedor",
             "trans-step2": "2. Estado del Contenedor",
-            "trans-step3": "3. Servicio de Grúa",
-            "trans-step4": "4. Detalles de la Ruta",
+            "trans-step3": "3. Detalles de la Ruta",
             "trans-opt-empty": "Vacío",
             "trans-opt-full": "Lleno",
             "trans-opt-crane-yes": "Necesita Grúa",
@@ -227,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "trans-zip-pickup": "Zip Code de Recogida",
             "trans-zip-delivery": "Zip Code de Entrega",
             "trans-btn-pricing": "Solicitar Cotización",
+            "trans-step-contact": "4. Información de Contacto",
             "summary-status": "Estado",
             "summary-crane": "Grúa",
             "summary-route": "Ruta",
@@ -279,11 +303,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const buyView = document.getElementById('buy-view');
     const rentView = document.getElementById('rent-view');
     const transView = document.getElementById('trans-view');
+    const craneView = document.getElementById('crane-view');
     const navGallery = document.getElementById('nav-gallery');
     const footerGallery = document.querySelector('.footer-gallery');
     const btnBuyContainer = document.getElementById('btn-buy-container');
     const btnRentContainer = document.getElementById('btn-rent-container');
     const btnTransContainer = document.getElementById('btn-trans-container');
+    const btnCraneService = document.getElementById('btn-crane-service');
     const logoHome = document.querySelectorAll('#logo-home, .logo-home');
     const homeLinks = document.querySelectorAll('.nav-link, #nav-home');
 
@@ -293,11 +319,13 @@ document.addEventListener('DOMContentLoaded', () => {
         buyView.style.display = viewName === 'buy' ? 'block' : 'none';
         rentView.style.display = viewName === 'rent' ? 'block' : 'none';
         transView.style.display = viewName === 'trans' ? 'block' : 'none';
+        craneView.style.display = viewName === 'crane' ? 'block' : 'none';
 
         if (viewName === 'gallery') renderGallery();
         if (viewName === 'buy') renderBuyView();
         if (viewName === 'rent') renderRentView();
         if (viewName === 'trans') renderTransView();
+        if (viewName === 'crane') renderCraneView();
 
         window.scrollTo(0, 0);
         if (nav.classList.contains('nav-active')) {
@@ -333,6 +361,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnBuyContainer) btnBuyContainer.addEventListener('click', (e) => { e.preventDefault(); showView('buy'); });
     if (btnRentContainer) btnRentContainer.addEventListener('click', (e) => { e.preventDefault(); showView('rent'); });
     if (btnTransContainer) btnTransContainer.addEventListener('click', (e) => { e.preventDefault(); showView('trans'); });
+    if (btnCraneService) {
+        btnCraneService.addEventListener('click', (e) => {
+            e.preventDefault();
+            showView('crane');
+        });
+    }
+
+    // Make Service Cards clickable
+    document.querySelectorAll('.service-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (!e.target.closest('.card-link')) {
+                const link = card.querySelector('.card-link');
+                if (link) link.click();
+            }
+        });
+    });
 
     // Reveal on Scroll
     const revealElements = document.querySelectorAll('.reveal');
@@ -446,10 +490,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <input type="number" class="qty-input" value="1" min="1" max="99">
                                 <button class="qty-btn plus"><i class="fas fa-plus"></i></button>
                             </div>
-                            <button class="btn btn-primary next-btn-action" data-next="condition" style="width: 100%;">${t["buy-btn-next"]}</button>
+                            <button class="btn btn-primary next-btn-action" data-next="${mode === 'buy' ? 'condition' : 'container-condition'}" style="width: 100%;">${t["buy-btn-next"]}</button>
                         </div>
                         <!-- Step 3: Type of Service -->
-                        <div class="buy-step" id="${mode}-step-condition" style="display:none;">
+                        <div class="buy-step" id="${mode}-step-condition" style="${mode === 'rent' ? 'display:none;' : 'display:none;'}">
                             <button class="btn-back back-btn-action" data-prev="qty"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="buy-step2">${t["buy-step2"]}</h3>
                             <div class="options-grid">
@@ -459,25 +503,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <!-- Step 3: Container Condition (Conditional) -->
                         <div class="buy-step" id="${mode}-step-container-condition" style="display:none;">
-                            <button class="btn-back back-btn-action" data-prev="condition"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
-                            <h3 data-i18n="buy-step-cond">${t["buy-step-cond"]}</h3>
+                            <button class="btn-back back-btn-action" data-prev="${mode === 'buy' ? 'condition' : 'qty'}"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="${mode}-step-cond">${mode === 'buy' ? t["buy-step-cond"] : t["rent-step-cond"]}</h3>
                             <div class="options-grid" id="${mode}-cond-options">
                                 <!-- JS will populate this -->
                             </div>
                         </div>
                         <!-- Step 4: Type (Climatización) -->
-                        <div class="buy-step" id="${mode}-step-type" style="display:none;">
+                        <div class="buy-step" id="${mode}-step-type" style="${mode === 'rent' ? 'display:none;' : 'display:none;'}">
                             <button class="btn-back back-btn-action" data-prev="container-condition"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
-                            <h3 data-i18n="buy-step3">${t["buy-step3"]}</h3>
+                            <h3 data-i18n="${mode}-step-type">${mode === 'buy' ? t["buy-step3"] : t["rent-step-type"]}</h3>
                             <div class="options-grid">
                                 <div class="option-card" data-value="Dry"><i class="fas fa-wind"></i><span>${t["buy-opt-dry"]}</span></div>
                                 <div class="option-card" data-value="Reefer"><i class="fas fa-snowflake"></i><span>${t["buy-opt-reefer"]}</span></div>
                             </div>
                         </div>
                         <!-- Step 5: Delivery or Pickup -->
-                        <div class="buy-step" id="${mode}-step-delivery-mode" style="display:none;">
-                            <button class="btn-back back-btn-action" data-prev="type"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
-                            <h3 data-i18n="buy-step4">${t["buy-step4"]}</h3>
+                        <div class="buy-step" id="${mode}-step-delivery-mode" style="${mode === 'rent' ? 'display:none;' : 'display:none;'}">
+                            <button class="btn-back back-btn-action" data-prev="${mode === 'buy' ? 'type' : 'container-condition'}"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="${mode}-step-delivery">${mode === 'buy' ? t["buy-step4"] : t["rent-step-delivery"]}</h3>
                             <div class="options-grid">
                                 <div class="option-card" data-value="Delivery"><i class="fas fa-truck-fast"></i><span>${t["buy-opt-delivery"]}</span></div>
                                 <div class="option-card" data-value="Pickup"><i class="fas fa-warehouse"></i><span>${t["buy-opt-pickup"]}</span></div>
@@ -485,8 +529,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <!-- Step 6: Logistics Details (Conditional) -->
                         <div class="buy-step" id="${mode}-step-logistics-details" style="display:none;">
-                            <button class="btn-back back-btn-action" data-prev="delivery-mode"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
-                            <h3 data-i18n="buy-step5">${t["buy-step5"]}</h3>
+                            <button class="btn-back back-btn-action" data-prev="${mode === 'buy' ? 'delivery-mode' : 'container-condition'}"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="${mode}-step-logistics">${mode === 'buy' ? t["buy-step5"] : t["rent-step-logistics"]}</h3>
                             <div id="${mode}-logistics-content">
                                 <!-- JS will populate this -->
                             </div>
@@ -494,17 +538,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         <!-- Step 8: Payment Method -->
                         <div class="buy-step" id="${mode}-step-payment-method" style="display:none;">
                             <button class="btn-back back-btn-action" data-prev="logistics-details"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
-                            <h3 data-i18n="buy-step6">${t["buy-step6"]}</h3>
+                            <h3 data-i18n="${mode}-step-pay">${mode === 'buy' ? t["buy-step6"] : t["rent-step-pay"]}</h3>
                             <div class="options-grid">
                                 <div class="option-card" data-value="Cash"><i class="fas fa-money-bill-wave"></i><span>${t["buy-pay-cash"]}</span></div>
                                 <div class="option-card" data-value="Zelle"><i class="fas fa-mobile-screen-button"></i><span>${t["buy-pay-zelle"]}</span></div>
                                 <div class="option-card" data-value="Card"><i class="fas fa-credit-card"></i><span>${t["buy-pay-card"]}</span></div>
+                                <div class="option-card" data-value="Check"><i class="fas fa-money-check-dollar"></i><span>${t["buy-pay-check"]}</span></div>
                             </div>
                         </div>
                         <!-- Step 9: Contact Info -->
                         <div class="buy-step" id="${mode}-step-contact" style="display:none;">
                             <button class="btn-back back-btn-action" data-prev="payment-method"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
-                            <h3 data-i18n="buy-step7">${t["buy-step7"]}</h3>
+                            <h3 data-i18n="${mode}-step-contact">${mode === 'buy' ? t["buy-step7"] : t["rent-step-contact"]}</h3>
                             <div class="form-group" style="margin-top: 20px;">
                                 <input type="text" id="${mode}-contact-name" placeholder="${t["form-name"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <input type="email" id="${mode}-contact-email" placeholder="${t["form-email"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
@@ -534,18 +579,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             </main>`;
-        const selections = { size: null, quantity: 1, condition: null, 'container-condition': null, type: null, 'delivery-mode': null, 'logistics-details': null, 'payment-method': null, contact: {} };
-        const steps = ['size', 'qty', 'condition', 'container-condition', 'type', 'delivery-mode', 'logistics-details', 'payment-method', 'contact'];
+        const selections = { size: null, quantity: 1, condition: mode === 'rent' ? 'Local' : null, 'container-condition': null, type: mode === 'rent' ? 'Dry' : null, 'delivery-mode': mode === 'rent' ? 'Delivery' : null, 'logistics-details': null, 'payment-method': null, contact: {} };
+        const steps = mode === 'buy' 
+            ? ['size', 'qty', 'condition', 'container-condition', 'type', 'delivery-mode', 'logistics-details', 'payment-method', 'contact']
+            : ['size', 'qty', 'container-condition', 'logistics-details', 'payment-method', 'contact'];
         let currentIndex = 0;
 
         const updateConditionOptions = (serviceType) => {
             const container = viewEl.querySelector(`#${mode}-cond-options`);
-            let html = `
-                <div class="option-card" data-value="CW"><i class="fas fa-check-circle"></i><span>${t["buy-opt-cw"]}</span></div>
-                <div class="option-card" data-value="New"><i class="fas fa-star"></i><span>${t["buy-opt-new-cond"]}</span></div>
-            `;
-            if (serviceType === 'Local') {
-                html += `<div class="option-card" data-value="WWT"><i class="fas fa-water"></i><span>${t["buy-opt-wwt"]}</span></div>`;
+            let html = '';
+            if (mode === 'rent') {
+                html = `
+                    <div class="option-card" data-value="Used"><i class="fas fa-check-circle"></i><span>${t["rent-opt-used"]}</span></div>
+                    <div class="option-card" data-value="New"><i class="fas fa-star"></i><span>${t["rent-opt-new"]}</span></div>
+                `;
+            } else {
+                html = `
+                    <div class="option-card" data-value="CW"><i class="fas fa-check-circle"></i><span>${t["buy-opt-cw"]}</span></div>
+                    <div class="option-card" data-value="New"><i class="fas fa-star"></i><span>${t["buy-opt-new-cond"]}</span></div>
+                `;
+                if (serviceType === 'Local') {
+                    html += `<div class="option-card" data-value="WWT"><i class="fas fa-water"></i><span>${t["buy-opt-wwt"]}</span></div>`;
+                }
             }
             container.innerHTML = html;
             
@@ -565,6 +620,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         };
+
+
+
+
 
         const updateLogisticsDetails = (modeType) => {
             const container = viewEl.querySelector(`#${mode}-logistics-content`);
@@ -617,6 +676,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
+        if (mode === 'rent') {
+            updateConditionOptions('Local');
+            updateLogisticsDetails('Delivery');
+        }
+
         const showSummary = () => {
             viewEl.querySelector('.summary-size').textContent = selections.size;
             viewEl.querySelector('.summary-qty').textContent = selections.quantity;
@@ -624,7 +688,7 @@ document.addEventListener('DOMContentLoaded', () => {
             viewEl.querySelector('.summary-container-condition').textContent = selections['container-condition'];
             viewEl.querySelector('.summary-type').textContent = selections.type;
             viewEl.querySelector('.summary-delivery-mode').textContent = selections['delivery-mode'];
-            viewEl.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email})`;
+            viewEl.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email}) - ${selections.contact.phone}`;
             
             const detailLine = viewEl.querySelector(`#${mode}-logistics-summary-line`);
             if (selections['logistics-details']) {
@@ -703,20 +767,23 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.disabled = true;
 
             const summary = `
-                Container: ${selections.size}
-                Quantity: ${selections.quantity}
-                Service: ${selections.condition}
-                Condition: ${selections['container-condition']}
-                Climate: ${selections.type}
-                Logistics: ${selections['delivery-mode']}
-                Detail: ${selections['logistics-details']}
-                Payment: ${selections['payment-method']}
-                
-                Contact Info:
-                Name: ${selections.contact.name}
-                Email: ${selections.contact.email}
-                Phone: ${selections.contact.phone}
-            `;
+📦 CONFIGURATION SUMMARY
+---------------------------------
+Size: ${selections.size}
+Quantity: ${selections.quantity}
+Type of Service: ${selections.condition}
+Condition: ${selections['container-condition']}
+Climate: ${selections.type}
+Logistics: ${selections['delivery-mode']}
+${selections['logistics-details'] ? `Location/Zip: ${selections['logistics-details']}` : ''}
+Payment: ${selections['payment-method']}
+
+👤 CONTACT INFORMATION
+---------------------------------
+Name: ${selections.contact.name}
+Email: ${selections.contact.email}
+Phone: ${selections.contact.phone}
+            `.trim();
 
             const templateParams = {
                 name: selections.contact.name,
@@ -726,7 +793,8 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             if (typeof emailjs !== 'undefined') {
-                emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
+                emailjs.init("4x1rkqnQuj83tl-mh");
+                emailjs.send('service_pfwtd14', 'template_t69rpu6', templateParams)
                     .then(() => {
                         btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
                         btn.style.backgroundColor = '#2ecc71';
@@ -813,37 +881,39 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="option-card" data-value="Full"><i class="fas fa-cubes"></i><span>${t["trans-opt-full"]}</span></div>
                             </div>
                         </div>
-                        <!-- Step 3: Crane -->
-                        <div class="buy-step" id="trans-step-crane" style="display:none;">
+                        <!-- Step 3: Zip Codes -->
+                        <div class="buy-step" id="trans-step-route" style="display:none;">
                             <button class="btn-back back-btn-action" data-prev="status"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="trans-step3">${t["trans-step3"]}</h3>
-                            <div class="options-grid">
-                                <div class="option-card" data-value="Yes"><i class="fas fa-truck-pickup"></i><span>${t["trans-opt-crane-yes"]}</span></div>
-                                <div class="option-card" data-value="No"><i class="fas fa-truck"></i><span>${t["trans-opt-crane-no"]}</span></div>
-                            </div>
-                        </div>
-                        <!-- Step 4: Zip Codes -->
-                        <div class="buy-step" id="trans-step-route" style="display:none;">
-                            <button class="btn-back back-btn-action" data-prev="crane"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
-                            <h3 data-i18n="trans-step4">${t["trans-step4"]}</h3>
                             <div class="form-group" style="margin-top: 20px;">
                                 <input type="text" id="zip-pickup" placeholder="${t["trans-zip-pickup"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <input type="text" id="zip-delivery" placeholder="${t["trans-zip-delivery"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
                                 <button class="btn btn-primary" id="btn-submit-route" style="width: 100%; margin-top: 20px;">Next</button>
                             </div>
                         </div>
+                        <!-- Step 4: Contact Info -->
+                        <div class="buy-step" id="trans-step-contact" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="route"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="trans-step-contact">${t["trans-step-contact"]}</h3>
+                            <div class="form-group" style="margin-top: 20px;">
+                                <input type="text" id="trans-contact-name" placeholder="${t["form-name"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <input type="email" id="trans-contact-email" placeholder="${t["form-email"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <input type="tel" id="trans-contact-phone" placeholder="Phone Number" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <button class="btn btn-primary" id="btn-submit-contact" style="width: 100%;">${t["buy-btn-next"]}</button>
+                            </div>
+                        </div>
                     </div>
                     <div id="trans-summary" style="display:none;" class="summary-view">
-                        <button class="btn-back back-btn-action" data-prev="route"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                        <button class="btn-back back-btn-action" data-prev="contact"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                         <h3 data-i18n="buy-summary">${t["buy-summary"]}</h3>
                         <div class="summary-details">
                             <p><strong>Size:</strong> <span class="summary-size">-</span></p>
                             <p><strong>${t["summary-status"]}:</strong> <span class="summary-status">-</span></p>
-                            <p><strong>${t["summary-crane"]}:</strong> <span class="summary-crane">-</span></p>
                             <p><strong>${t["summary-route"]}:</strong> <span class="summary-route">-</span></p>
+                            <p><strong>${t["summary-contact"]}:</strong> <span class="summary-contact">-</span></p>
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 20px;">
-                            <button class="btn btn-primary" style="flex: 1;" data-i18n="trans-btn-pricing">${t["trans-btn-pricing"]}</button>
+                            <button class="btn btn-primary btn-get-pricing" style="flex: 1;" data-i18n="trans-btn-pricing">${t["trans-btn-pricing"]}</button>
                             <button class="btn btn-outline btn-restart-action" style="flex: 1; color: var(--primary-color); border-color: var(--primary-color);" data-i18n="buy-btn-restart">${t["buy-btn-restart"]}</button>
                         </div>
                     </div>
@@ -851,8 +921,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </main>
         `;
 
-        const selections = { size: null, status: null, crane: null, pickup: '', delivery: '' };
-        const steps = ['size', 'status', 'crane', 'route'];
+        const selections = { size: null, status: null, pickup: '', delivery: '', contact: {} };
+        const steps = ['size', 'status', 'route', 'contact'];
         let currentIndex = 0;
 
         transView.querySelectorAll('.option-card').forEach(card => {
@@ -880,10 +950,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             transView.querySelector('#trans-step-route').style.display = 'none';
+            currentIndex++;
+            const nextStep = steps[currentIndex];
+            const nextEl = transView.querySelector(`#trans-step-${nextStep}`);
+            nextEl.style.display = 'block';
+            nextEl.classList.add('fade-in');
+        });
+
+        transView.querySelector('#btn-submit-contact').addEventListener('click', () => {
+            selections.contact = {
+                name: transView.querySelector('#trans-contact-name').value,
+                email: transView.querySelector('#trans-contact-email').value,
+                phone: transView.querySelector('#trans-contact-phone').value
+            };
+            if (!selections.contact.name || !selections.contact.email) {
+                alert(currentLang === 'en' ? 'Please fill name and email' : 'Por favor ingrese nombre y email');
+                return;
+            }
+            transView.querySelector('#trans-step-contact').style.display = 'none';
             transView.querySelector('.summary-size').textContent = selections.size;
             transView.querySelector('.summary-status').textContent = selections.status;
-            transView.querySelector('.summary-crane').textContent = selections.crane;
             transView.querySelector('.summary-route').textContent = `${selections.pickup} ➔ ${selections.delivery}`;
+            transView.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email}) - ${selections.contact.phone}`;
             transView.querySelector('#trans-summary').style.display = 'block';
             transView.querySelector('#trans-summary').classList.add('fade-in');
         });
@@ -902,7 +990,256 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         transView.querySelector('.btn-restart-action').addEventListener('click', () => renderTransView());
+
+        transView.querySelector('.btn-get-pricing').addEventListener('click', (e) => {
+            const btn = e.target;
+            const originalText = btn.innerText;
+            btn.innerText = currentLang === 'en' ? 'Sending Request...' : 'Enviando Solicitud...';
+            btn.disabled = true;
+
+            const summary = `
+🚛 TRANSPORTATION QUOTE REQUEST
+---------------------------------
+Size: ${selections.size}
+Status: ${selections.status}
+Route: ${selections.pickup} ➔ ${selections.delivery}
+
+👤 CONTACT INFORMATION
+---------------------------------
+Name: ${selections.contact.name}
+Email: ${selections.contact.email}
+Phone: ${selections.contact.phone}
+            `.trim();
+
+            const templateParams = {
+                name: selections.contact.name,
+                email: selections.contact.email,
+                service: 'Transportation Quote',
+                message: summary
+            };
+
+            if (typeof emailjs !== 'undefined') {
+                emailjs.init("4x1rkqnQuj83tl-mh");
+                emailjs.send('service_pfwtd14', 'template_t69rpu6', templateParams)
+                    .then(() => {
+                        btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
+                        btn.style.backgroundColor = '#2ecc71';
+                        setTimeout(() => {
+                            btn.innerText = originalText;
+                            btn.style.backgroundColor = 'var(--primary-color)';
+                            btn.disabled = false;
+                            showView('home');
+                        }, 3000);
+                    })
+                    .catch((err) => {
+                        console.error('EmailJS Error:', err);
+                        btn.innerText = 'Error';
+                        btn.disabled = false;
+                    });
+            } else {
+                alert('Email service error. Please contact us directly.');
+                btn.disabled = false;
+            }
+        });
+
         document.title = t["service-trans-h3"] + " | RP Tulipan Logistics";
+    }
+
+    function renderCraneView() {
+        const craneView = document.getElementById('crane-view');
+        const t = translations[currentLang];
+        craneView.innerHTML = `
+            <header class="buy-header">
+                <div class="container">
+                    <h1 data-i18n="crane-h1">${t["crane-h1"]}</h1>
+                    <p data-i18n="buy-p">${t["buy-p"]}</p>
+                </div>
+            </header>
+            <main class="container">
+                <div class="buy-container">
+                    <div id="crane-steps">
+                        <!-- Step 1: Size -->
+                        <div class="buy-step active" id="crane-step-size">
+                            <button class="btn-back back-btn-action"><i class="fas fa-arrow-left"></i> ${t["buy-back-home"]}</button>
+                            <h3 data-i18n="trans-step1">${t["trans-step1"]}</h3>
+                            <div class="options-grid">
+                                <div class="option-card" data-value="20'"><i class="fas fa-box"></i><span>${t["buy-opt-20"]}</span></div>
+                                <div class="option-card" data-value="40' STD"><i class="fas fa-boxes"></i><span>${t["buy-opt-40std"]}</span></div>
+                                <div class="option-card" data-value="40' HC"><i class="fas fa-boxes"></i><span>${t["buy-opt-40"]}</span></div>
+                                <div class="option-card" data-value="45'"><i class="fas fa-boxes"></i><span>${t["buy-opt-45"]}</span></div>
+                            </div>
+                        </div>
+                        <!-- Step 2: Status -->
+                        <div class="buy-step" id="crane-step-status" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="size"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="trans-step2">${t["trans-step2"]}</h3>
+                            <div class="options-grid">
+                                <div class="option-card" data-value="Empty"><i class="fas fa-cube"></i><span>${t["trans-opt-empty"]}</span></div>
+                                <div class="option-card" data-value="Full"><i class="fas fa-cubes"></i><span>${t["trans-opt-full"]}</span></div>
+                            </div>
+                        </div>
+                        <!-- Step 3: Zip Codes -->
+                        <div class="buy-step" id="crane-step-route" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="status"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="trans-step3">${t["trans-step3"]}</h3>
+                            <div class="form-group" style="margin-top: 20px;">
+                                <input type="text" id="crane-zip-pickup" placeholder="${t["trans-zip-pickup"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <input type="text" id="crane-zip-delivery" placeholder="${t["trans-zip-delivery"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
+                                <button class="btn btn-primary" id="crane-btn-submit-route" style="width: 100%; margin-top: 20px;">Next</button>
+                            </div>
+                        </div>
+                        <!-- Step 4: Contact Info -->
+                        <div class="buy-step" id="crane-step-contact" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="route"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="trans-step-contact">${t["trans-step-contact"]}</h3>
+                            <div class="form-group" style="margin-top: 20px;">
+                                <input type="text" id="crane-contact-name" placeholder="${t["form-name"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <input type="email" id="crane-contact-email" placeholder="${t["form-email"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <input type="tel" id="crane-contact-phone" placeholder="Phone Number" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <button class="btn btn-primary" id="crane-btn-submit-contact" style="width: 100%;">${t["buy-btn-next"]}</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="crane-summary" style="display:none;" class="summary-view">
+                        <button class="btn-back back-btn-action" data-prev="contact"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                        <h3 data-i18n="buy-summary">${t["buy-summary"]}</h3>
+                        <div class="summary-details">
+                            <p><strong>Size:</strong> <span class="summary-size">-</span></p>
+                            <p><strong>${t["summary-status"]}:</strong> <span class="summary-status">-</span></p>
+                            <p><strong>${t["summary-route"]}:</strong> <span class="summary-route">-</span></p>
+                            <p><strong>${t["summary-contact"]}:</strong> <span class="summary-contact">-</span></p>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button class="btn btn-primary btn-get-pricing" style="flex: 1;" data-i18n="trans-btn-pricing">${t["trans-btn-pricing"]}</button>
+                            <button class="btn btn-outline btn-restart-action" style="flex: 1; color: var(--primary-color); border-color: var(--primary-color);" data-i18n="buy-btn-restart">${t["buy-btn-restart"]}</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        `;
+
+        const selections = { size: null, status: null, pickup: '', delivery: '', contact: {} };
+        const steps = ['size', 'status', 'route', 'contact'];
+        let currentIndex = 0;
+
+        craneView.querySelectorAll('.option-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const stepId = card.closest('.buy-step').id.split('-').pop();
+                selections[stepId] = card.dataset.value;
+                card.parentNode.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                setTimeout(() => {
+                    craneView.querySelector(`#crane-step-${stepId}`).style.display = 'none';
+                    currentIndex++;
+                    const nextStep = steps[currentIndex];
+                    const nextEl = craneView.querySelector(`#crane-step-${nextStep}`);
+                    nextEl.style.display = 'block';
+                    nextEl.classList.add('fade-in');
+                }, 400);
+            });
+        });
+
+        craneView.querySelector('#crane-btn-submit-route').addEventListener('click', () => {
+            selections.pickup = craneView.querySelector('#crane-zip-pickup').value;
+            selections.delivery = craneView.querySelector('#crane-zip-delivery').value;
+            if (!selections.pickup || !selections.delivery) {
+                alert(currentLang === 'en' ? 'Please enter both zip codes' : 'Por favor ingrese ambos códigos postales');
+                return;
+            }
+            craneView.querySelector('#crane-step-route').style.display = 'none';
+            currentIndex++;
+            const nextStep = steps[currentIndex];
+            const nextEl = craneView.querySelector(`#crane-step-${nextStep}`);
+            nextEl.style.display = 'block';
+            nextEl.classList.add('fade-in');
+        });
+
+        craneView.querySelector('#crane-btn-submit-contact').addEventListener('click', () => {
+            selections.contact = {
+                name: craneView.querySelector('#crane-contact-name').value,
+                email: craneView.querySelector('#crane-contact-email').value,
+                phone: craneView.querySelector('#crane-contact-phone').value
+            };
+            if (!selections.contact.name || !selections.contact.email) {
+                alert(currentLang === 'en' ? 'Please fill name and email' : 'Por favor ingrese nombre y email');
+                return;
+            }
+            craneView.querySelector('#crane-step-contact').style.display = 'none';
+            craneView.querySelector('.summary-size').textContent = selections.size;
+            craneView.querySelector('.summary-status').textContent = selections.status;
+            craneView.querySelector('.summary-route').textContent = `${selections.pickup} ➔ ${selections.delivery}`;
+            craneView.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email}) - ${selections.contact.phone}`;
+            craneView.querySelector('#crane-summary').style.display = 'block';
+            craneView.querySelector('#crane-summary').classList.add('fade-in');
+        });
+
+        craneView.querySelectorAll('.back-btn-action').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!btn.dataset.prev) { showView('home'); return; }
+                const prevStep = btn.dataset.prev;
+                const currentStepEl = btn.closest('.buy-step') || craneView.querySelector('#crane-summary');
+                currentStepEl.style.display = 'none';
+                const prevEl = craneView.querySelector(`#crane-step-${prevStep}`);
+                prevEl.style.display = 'block';
+                prevEl.classList.add('fade-in');
+                currentIndex = steps.indexOf(prevStep);
+            });
+        });
+
+        craneView.querySelector('.btn-restart-action').addEventListener('click', () => renderCraneView());
+
+        craneView.querySelector('.btn-get-pricing').addEventListener('click', (e) => {
+            const btn = e.target;
+            const originalText = btn.innerText;
+            btn.innerText = currentLang === 'en' ? 'Sending Request...' : 'Enviando Solicitud...';
+            btn.disabled = true;
+
+            const summary = `
+🏗️ CRANE SERVICE QUOTE REQUEST
+---------------------------------
+Size: ${selections.size}
+Status: ${selections.status}
+Route: ${selections.pickup} ➔ ${selections.delivery}
+
+👤 CONTACT INFORMATION
+---------------------------------
+Name: ${selections.contact.name}
+Email: ${selections.contact.email}
+Phone: ${selections.contact.phone}
+            `.trim();
+
+            const templateParams = {
+                name: selections.contact.name,
+                email: selections.contact.email,
+                service: 'Crane Service Quote',
+                message: summary
+            };
+
+            if (typeof emailjs !== 'undefined') {
+                emailjs.init("4x1rkqnQuj83tl-mh");
+                emailjs.send('service_pfwtd14', 'template_t69rpu6', templateParams)
+                    .then(() => {
+                        btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
+                        btn.style.backgroundColor = '#2ecc71';
+                        setTimeout(() => {
+                            btn.innerText = originalText;
+                            btn.style.backgroundColor = 'var(--primary-color)';
+                            btn.disabled = false;
+                            showView('home');
+                        }, 3000);
+                    })
+                    .catch((err) => {
+                        console.error('EmailJS Error:', err);
+                        btn.innerText = 'Error';
+                        btn.disabled = false;
+                    });
+            } else {
+                alert('Email service error. Please contact us directly.');
+                btn.disabled = false;
+            }
+        });
+
+        document.title = t["service-crane-h3"] + " | RP Tulipan Logistics";
     }
 
     function renderBuyView() { renderConfigurationView('buy-view', 'buy'); }

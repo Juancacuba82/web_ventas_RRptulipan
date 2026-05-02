@@ -360,6 +360,8 @@ section {
     overflow: hidden;
     box-shadow: var(--shadow);
     transition: var(--transition);
+    position: relative; /* Added for stretched link */
+    cursor: pointer; /* Added for clickability */
 }
 
 .service-card:hover {
