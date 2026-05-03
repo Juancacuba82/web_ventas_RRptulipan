@@ -72,16 +72,24 @@ document.addEventListener('DOMContentLoaded', () => {
             "gallery-p": "Explore our containers and logistics operations",
             "buy-h1": "Configure Your Container",
             "buy-p": "Select the options that best fit your needs",
-            "buy-step1": "1. Select Size",
-            "buy-step-qty": "2. Select Quantity",
-            "buy-step2": "3. Type of Service",
-            "buy-step-cond": "4. Container Condition",
-            "buy-step3": "5. Climate Control",
-            "buy-step4": "6. Delivery or Pickup",
-            "buy-step5": "7. Logistics Details",
+            "buy-step1": "1. Delivery or Pickup",
+            "buy-step-qty": "5. Select Quantity",
+            "buy-step2": "6. Type of Service",
+            "buy-step-cond": "7. Container Condition",
+            "buy-step3": "4. Climate Control",
+            "buy-step4": "1. Delivery or Pickup",
+            "buy-step5": "2. Logistics Details",
             "buy-step6": "8. Payment Method",
             "buy-step7": "9. Contact Information",
+            "buy-step-size": "3. Select Size",
             "buy-step-contact": "9. Contact Details",
+            "buy-summary-subtotal": "Container Subtotal",
+            "buy-summary-export": "Export Fee",
+            "buy-summary-shipping": "Shipping Cost",
+            "buy-summary-total": "Total Price",
+            "buy-summary-dist": "Distance",
+            "buy-calculating": "Calculating distance...",
+            "pay-note": "You can pay upon delivery with all payment methods.",
             "buy-depot-info": "Select the depot closest to your location to get the lowest shipping rates.",
             "buy-summary": "Summary",
             "buy-btn-pricing": "Place Order.",
@@ -113,10 +121,12 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-depot-tit": "Titusville (32780)",
             "buy-depot-tam": "Tampa (33619)",
             "buy-depot-mia": "Miami (33178)",
-            "rent-step-cond": "3. Container Condition",
-            "rent-step-logistics": "4. Logistics Details",
-            "rent-step-pay": "5. Payment Method",
-            "rent-step-contact": "6. Contact Information",
+            "rent-step-cond": "5. Container Condition",
+            "rent-step-logistics": "2. Logistics Details",
+            "rent-step-pay": "6. Payment Method",
+            "rent-step-contact": "7. Contact Information",
+            "rent-step-size": "3. Select Size",
+            "rent-step-qty": "4. Select Quantity",
             "rent-opt-used": "Used",
             "rent-opt-new": "New",
             "rent-h1": "Rent Your Container",
@@ -190,16 +200,24 @@ document.addEventListener('DOMContentLoaded', () => {
             "gallery-p": "Explore nuestros contenedores y operaciones logísticas",
             "buy-h1": "Configura tu Contenedor",
             "buy-p": "Selecciona las opciones que mejor se adapten a tus necesidades",
-            "buy-step1": "1. Seleccionar Tamaño",
-            "buy-step-qty": "2. Seleccionar Cantidad",
-            "buy-step2": "3. Tipo de Servicio",
-            "buy-step-cond": "4. Condición del Contenedor",
-            "buy-step3": "5. Climatización",
-            "buy-step4": "6. Entrega o Recogida",
-            "buy-step5": "7. Detalles de Logística",
+            "buy-step1": "1. Entrega o Recogida",
+            "buy-step-qty": "5. Seleccionar Cantidad",
+            "buy-step2": "6. Tipo de Servicio",
+            "buy-step-cond": "7. Condición del Contenedor",
+            "buy-step3": "4. Climatización",
+            "buy-step4": "1. Entrega o Recogida",
+            "buy-step5": "2. Detalles de Logística",
             "buy-step6": "8. Método de Pago",
             "buy-step7": "9. Información de Contacto",
+            "buy-step-size": "3. Seleccionar Tamaño",
             "buy-step-contact": "9. Datos de Contacto",
+            "buy-summary-subtotal": "Subtotal Contenedor",
+            "buy-summary-export": "Tarifa de Exportación",
+            "buy-summary-shipping": "Costo de Envío",
+            "buy-summary-total": "Precio Total",
+            "buy-summary-dist": "Distancia",
+            "buy-calculating": "Calculando distancia...",
+            "pay-note": "Puedes pagar contra entrega con todos los métodos de pago.",
             "buy-depot-info": "Seleccione el depósito más cercano a su ubicación para obtener las tarifas de envío más bajas.",
             "buy-summary": "Resumen",
             "buy-btn-pricing": "Realizar Pedido.",
@@ -231,10 +249,12 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-depot-tit": "Titusville (32780)",
             "buy-depot-tam": "Tampa (33619)",
             "buy-depot-mia": "Miami (33178)",
-            "rent-step-cond": "3. Condición del Contenedor",
-            "rent-step-logistics": "4. Detalles de Logística",
-            "rent-step-pay": "5. Método de Pago",
-            "rent-step-contact": "6. Información de Contacto",
+            "rent-step-cond": "5. Condición del Contenedor",
+            "rent-step-logistics": "2. Detalles de Logística",
+            "rent-step-pay": "6. Método de Pago",
+            "rent-step-contact": "7. Información de Contacto",
+            "rent-step-size": "3. Seleccionar Tamaño",
+            "rent-step-qty": "4. Seleccionar Cantidad",
             "rent-opt-used": "Usado",
             "rent-opt-new": "Nuevo",
             "rent-h1": "Alquila tu Contenedor",
@@ -460,6 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const t = translations[currentLang];
         const h1 = mode === 'buy' ? t["buy-h1"] : t["rent-h1"];
         const btnPricing = mode === 'buy' ? t["buy-btn-pricing"] : t["rent-btn-pricing"];
+        
         viewEl.innerHTML = `
             <header class="buy-header">
                 <div class="container">
@@ -470,20 +491,46 @@ document.addEventListener('DOMContentLoaded', () => {
             <main class="container">
                 <div class="buy-container">
                     <div id="${mode}-steps">
-                        <!-- Step 1: Size -->
-                        <div class="buy-step active" id="${mode}-step-size">
+                        <!-- Step 1: Delivery or Pickup -->
+                        <div class="buy-step ${mode === 'buy' ? 'active' : ''}" id="${mode}-step-delivery-mode" style="${mode === 'rent' ? 'display:none;' : ''}">
                             <button class="btn-back back-btn-action"><i class="fas fa-arrow-left"></i> ${t["buy-back-home"]}</button>
-                            <h3 data-i18n="buy-step1">${t["buy-step1"]}</h3>
+                            <h3 data-i18n="buy-step4">${t["buy-step4"]}</h3>
                             <div class="options-grid">
-                                <div class="option-card" data-value="20'"><i class="fas fa-box"></i><span>${t["buy-opt-20"]}</span></div>
-                                <div class="option-card" data-value="40' STD"><i class="fas fa-boxes"></i><span>${t["buy-opt-40std"]}</span></div>
-                                <div class="option-card" data-value="40' HC"><i class="fas fa-boxes"></i><span>${t["buy-opt-40"]}</span></div>
-                                <div class="option-card" data-value="45'"><i class="fas fa-boxes"></i><span>${t["buy-opt-45"]}</span></div>
+                                <div class="option-card" data-value="Delivery"><i class="fas fa-truck-fast"></i><span>${t["buy-opt-delivery"]}</span></div>
+                                <div class="option-card" data-value="Pickup"><i class="fas fa-warehouse"></i><span>${t["buy-opt-pickup"]}</span></div>
                             </div>
                         </div>
-                        <!-- Step 2: Quantity -->
-                        <div class="buy-step" id="${mode}-step-qty" style="display:none;">
+
+                        <!-- Step 2: Logistics Details -->
+                        <div class="buy-step ${mode === 'rent' ? 'active' : ''}" id="${mode}-step-logistics-details" style="${mode === 'buy' ? 'display:none;' : ''}">
+                            <button class="btn-back back-btn-action" data-prev="delivery-mode"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step5">${t["buy-step5"]}</h3>
+                            <div id="${mode}-logistics-content">
+                                <!-- JS will populate this -->
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Size -->
+                        <div class="buy-step" id="${mode}-step-size" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="logistics-details"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step-size">${t["buy-step-size"]}</h3>
+                            <div id="${mode}-size-options-container" class="options-grid">
+                                <!-- JS will populate this based on depot -->
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Climate Control -->
+                        <div class="buy-step" id="${mode}-step-type" style="display:none;">
                             <button class="btn-back back-btn-action" data-prev="size"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step3">${t["buy-step3"]}</h3>
+                            <div class="options-grid" id="${mode}-climate-options">
+                                <!-- JS populated -->
+                            </div>
+                        </div>
+
+                        <!-- Step 5: Quantity -->
+                        <div class="buy-step" id="${mode}-step-qty" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="type"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="buy-step-qty">${t["buy-step-qty"]}</h3>
                             <div class="quantity-selector">
                                 <button class="qty-btn minus"><i class="fas fa-minus"></i></button>
@@ -492,8 +539,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             <button class="btn btn-primary next-btn-action" data-next="${mode === 'buy' ? 'condition' : 'container-condition'}" style="width: 100%;">${t["buy-btn-next"]}</button>
                         </div>
-                        <!-- Step 3: Type of Service -->
-                        <div class="buy-step" id="${mode}-step-condition" style="${mode === 'rent' ? 'display:none;' : 'display:none;'}">
+
+                        <!-- Step 6: Type of Service (Buy Only) -->
+                        <div class="buy-step" id="${mode}-step-condition" style="display:none;">
                             <button class="btn-back back-btn-action" data-prev="qty"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="buy-step2">${t["buy-step2"]}</h3>
                             <div class="options-grid">
@@ -501,7 +549,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="option-card" data-value="Local"><i class="fas fa-warehouse"></i><span>${t["buy-opt-local"]}</span></div>
                             </div>
                         </div>
-                        <!-- Step 3: Container Condition (Conditional) -->
+
+                        <!-- Step 7: Container Condition -->
                         <div class="buy-step" id="${mode}-step-container-condition" style="display:none;">
                             <button class="btn-back back-btn-action" data-prev="${mode === 'buy' ? 'condition' : 'qty'}"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="${mode}-step-cond">${mode === 'buy' ? t["buy-step-cond"] : t["rent-step-cond"]}</h3>
@@ -509,36 +558,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <!-- JS will populate this -->
                             </div>
                         </div>
-                        <!-- Step 4: Type (Climatización) -->
-                        <div class="buy-step" id="${mode}-step-type" style="${mode === 'rent' ? 'display:none;' : 'display:none;'}">
-                            <button class="btn-back back-btn-action" data-prev="container-condition"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
-                            <h3 data-i18n="${mode}-step-type">${mode === 'buy' ? t["buy-step3"] : t["rent-step-type"]}</h3>
-                            <div class="options-grid">
-                                <div class="option-card" data-value="Dry"><i class="fas fa-wind"></i><span>${t["buy-opt-dry"]}</span></div>
-                                <div class="option-card" data-value="Reefer"><i class="fas fa-snowflake"></i><span>${t["buy-opt-reefer"]}</span></div>
-                            </div>
-                        </div>
-                        <!-- Step 5: Delivery or Pickup -->
-                        <div class="buy-step" id="${mode}-step-delivery-mode" style="${mode === 'rent' ? 'display:none;' : 'display:none;'}">
-                            <button class="btn-back back-btn-action" data-prev="${mode === 'buy' ? 'type' : 'container-condition'}"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
-                            <h3 data-i18n="${mode}-step-delivery">${mode === 'buy' ? t["buy-step4"] : t["rent-step-delivery"]}</h3>
-                            <div class="options-grid">
-                                <div class="option-card" data-value="Delivery"><i class="fas fa-truck-fast"></i><span>${t["buy-opt-delivery"]}</span></div>
-                                <div class="option-card" data-value="Pickup"><i class="fas fa-warehouse"></i><span>${t["buy-opt-pickup"]}</span></div>
-                            </div>
-                        </div>
-                        <!-- Step 6: Logistics Details (Conditional) -->
-                        <div class="buy-step" id="${mode}-step-logistics-details" style="display:none;">
-                            <button class="btn-back back-btn-action" data-prev="${mode === 'buy' ? 'delivery-mode' : 'container-condition'}"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
-                            <h3 data-i18n="${mode}-step-logistics">${mode === 'buy' ? t["buy-step5"] : t["rent-step-logistics"]}</h3>
-                            <div id="${mode}-logistics-content">
-                                <!-- JS will populate this -->
-                            </div>
-                        </div>
+
                         <!-- Step 8: Payment Method -->
                         <div class="buy-step" id="${mode}-step-payment-method" style="display:none;">
-                            <button class="btn-back back-btn-action" data-prev="logistics-details"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <button class="btn-back back-btn-action" data-prev="container-condition"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="${mode}-step-pay">${mode === 'buy' ? t["buy-step6"] : t["rent-step-pay"]}</h3>
+                            <div class="payment-note">
+                                <i class="fas fa-hand-holding-dollar"></i>
+                                <span data-i18n="pay-note">${t["pay-note"]}</span>
+                            </div>
                             <div class="options-grid">
                                 <div class="option-card" data-value="Cash"><i class="fas fa-money-bill-wave"></i><span>${t["buy-pay-cash"]}</span></div>
                                 <div class="option-card" data-value="Zelle"><i class="fas fa-mobile-screen-button"></i><span>${t["buy-pay-zelle"]}</span></div>
@@ -546,6 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="option-card" data-value="Check"><i class="fas fa-money-check-dollar"></i><span>${t["buy-pay-check"]}</span></div>
                             </div>
                         </div>
+
                         <!-- Step 9: Contact Info -->
                         <div class="buy-step" id="${mode}-step-contact" style="display:none;">
                             <button class="btn-back back-btn-action" data-prev="payment-method"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
@@ -562,15 +591,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="btn-back back-btn-action" data-prev="contact"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                         <h3 data-i18n="buy-summary">${t["buy-summary"]}</h3>
                         <div class="summary-details">
+                            <p><strong>Logistics:</strong> <span class="summary-delivery-mode">-</span></p>
+                            <p id="${mode}-logistics-summary-line" style="display:none;"><strong>Details:</strong> <span class="summary-logistics-detail">-</span></p>
                             <p><strong>Size:</strong> <span class="summary-size">-</span></p>
                             <p><strong>Quantity:</strong> <span class="summary-qty">-</span></p>
                             <p><strong>Type of Service:</strong> <span class="summary-service">-</span></p>
                             <p><strong>Condition:</strong> <span class="summary-container-condition">-</span></p>
                             <p><strong>Climate:</strong> <span class="summary-type">-</span></p>
-                            <p><strong>Logistics:</strong> <span class="summary-delivery-mode">-</span></p>
-                            <p id="${mode}-logistics-summary-line" style="display:none;"><strong>Zip Code:</strong> <span class="summary-logistics-detail">-</span></p>
                             <p><strong>Payment:</strong> <span class="summary-payment-method">-</span></p>
                             <p><strong>Contact:</strong> <span class="summary-contact">-</span></p>
+                            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+                            <p><strong>${t["buy-summary-subtotal"]}:</strong> <span class="summary-subtotal" style="font-weight: 700;">-</span></p>
+                            <p id="${mode}-export-line" style="display:none;"><strong>${t["buy-summary-export"]}:</strong> <span class="summary-export">$250</span></p>
+                            <p id="${mode}-shipping-line"><strong>${t["buy-summary-shipping"]}:</strong> <span class="summary-shipping">-</span> <small class="summary-dist-label" style="color: #666;"></small></p>
+                            <p style="font-size: 1.2rem; color: var(--primary-color);"><strong>${t["buy-summary-total"]}:</strong> <span class="summary-total" style="font-weight: 700;">-</span></p>
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 20px;">
                             <button class="btn btn-primary btn-get-pricing" style="flex: 1;" data-i18n="${mode}-btn-pricing">${btnPricing}</button>
@@ -579,27 +613,170 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             </main>`;
-        const selections = { size: null, quantity: 1, condition: mode === 'rent' ? 'Local' : null, 'container-condition': null, type: mode === 'rent' ? 'Dry' : null, 'delivery-mode': mode === 'rent' ? 'Delivery' : null, 'logistics-details': null, 'payment-method': null, contact: {} };
+
+        const DEPOT_INVENTORY = {
+            "Savannah (31408)": ["20'", "40' STD", "40' HC", "45'"],
+            "Atlanta (30288)": ["20'", "40' STD", "40' HC"],
+            "Jacksonville (32218)": ["20'", "40' STD", "40' HC"],
+            "Titusville (32780)": ["20'", "40' STD", "40' HC"],
+            "Tampa (33619)": ["20'", "40' STD", "40' HC"],
+            "Miami (33178)": ["20'", "40' STD", "40' HC", "45'"]
+        };
+
+        const USED_CONTAINER_PRICES = {
+            "Savannah (31408)": { "20'": 1250, "40' STD": 1600, "40' HC": 1650, "45'": 1850 },
+            "Atlanta (30288)": { "20'": 1600, "40' STD": 1900, "40' HC": 1950 },
+            "Jacksonville (32218)": { "20'": 1600, "40' STD": 1850, "40' HC": 1900 },
+            "Titusville (32780)": { "20'": 1700, "40' STD": 1950, "40' HC": 2000 },
+            "Tampa (33619)": { "20'": 1600, "40' STD": 1950, "40' HC": 2000 },
+            "Miami (33178)": { "20'": 1300, "40' STD": 1600, "40' HC": 1650, "45'": 2100 }
+        };
+
+        const NEW_CONTAINER_PRICES = {
+            "Savannah (31408)": { "20'": 2450, "40' HC": 3450 },
+            "Jacksonville (32218)": { "20'": 2950, "40' HC": 3950 },
+            "Tampa (33619)": { "20'": 2750, "40' HC": 3750 },
+            "Miami (33178)": { "20'": 2350, "40' HC": 3350 }
+        };
+
+        const REEFER_PRICES = {
+            "Miami (33178)": { "20'": 8000, "40' HC": 6500 }
+        };
+
+        const RENT_PRICES_USED = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
+        const RENT_PRICES_NEW = { "20'": 225, "40' HC": 350 };
+
+        const SHIPPING_RATES = [
+            { max: 30, price: 350 },
+            { max: 60, price: 450 },
+            { max: 80, price: 500 },
+            { max: 100, price: 550 }
+        ];
+        const FLAT_RATE_OVER_100 = 4.5;
+
+        const selections = { size: null, quantity: 1, condition: mode === 'rent' ? 'Local' : null, 'container-condition': null, type: mode === 'rent' ? 'Dry' : null, 'delivery-mode': mode === 'rent' ? 'Delivery' : null, 'logistics-details': null, 'payment-method': null, contact: {}, distance: 0, shippingCost: 0, pricePerUnit: 0 };
         const steps = mode === 'buy' 
-            ? ['size', 'qty', 'condition', 'container-condition', 'type', 'delivery-mode', 'logistics-details', 'payment-method', 'contact']
-            : ['size', 'qty', 'container-condition', 'logistics-details', 'payment-method', 'contact'];
+            ? ['delivery-mode', 'logistics-details', 'size', 'type', 'qty', 'condition', 'container-condition', 'payment-method', 'contact']
+            : ['logistics-details', 'size', 'type', 'qty', 'container-condition', 'payment-method', 'contact'];
         let currentIndex = 0;
+
+        const calculateShippingCost = (miles) => {
+            if (miles <= 100) {
+                const rate = SHIPPING_RATES.find(r => miles <= r.max);
+                return rate ? rate.price : 550;
+            }
+            return miles * FLAT_RATE_OVER_100;
+        };
+
+        const getDistance = (origin, destination) => {
+            const originAddr = origin.includes(',') ? origin : `${origin}, USA`;
+            const destAddr = destination.includes(',') ? destination : `${destination}, USA`;
+            return new Promise((resolve, reject) => {
+                const service = new google.maps.DistanceMatrixService();
+                service.getDistanceMatrix({
+                    origins: [originAddr],
+                    destinations: [destAddr],
+                    travelMode: google.maps.TravelMode.DRIVING,
+                    unitSystem: google.maps.UnitSystem.IMPERIAL
+                }, (response, status) => {
+                    if (status === 'OK' && response.rows[0].elements[0].status === 'OK') {
+                        const meters = response.rows[0].elements[0].distance.value;
+                        const miles = meters / 1609.344; // Precise conversion from meters to miles
+                        resolve(miles);
+                    } else {
+                        reject('Could not calculate distance');
+                    }
+                });
+            });
+        };
+
+        const getSelectedDepot = () => {
+            return selections['logistics-details'] && selections['logistics-details'].includes('|') 
+                ? selections['logistics-details'].split('|')[1].trim() 
+                : selections['logistics-details'];
+        };
+
+        const updateSizeOptions = () => {
+            const container = viewEl.querySelector(`#${mode}-size-options-container`);
+            const selectedDepot = getSelectedDepot();
+            const availableSizes = DEPOT_INVENTORY[selectedDepot] || ["20'", "40' STD", "40' HC"];
+            const sizeIcons = { "20'": "fa-box", "40' STD": "fa-boxes", "40' HC": "fa-boxes", "45'": "fa-boxes" };
+            const sizeLabels = { "20'": t["buy-opt-20"], "40' STD": t["buy-opt-40std"], "40' HC": t["buy-opt-40"], "45'": t["buy-opt-45"] };
+
+            container.innerHTML = availableSizes.map(size => `
+                <div class="option-card size-option" data-value="${size}">
+                    <i class="fas ${sizeIcons[size]}"></i>
+                    <span>${sizeLabels[size]}</span>
+                </div>
+            `).join('');
+
+            container.querySelectorAll('.size-option').forEach(card => {
+                card.addEventListener('click', () => {
+                    selections.size = card.dataset.value;
+                    container.querySelectorAll('.size-option').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    setTimeout(() => {
+                        viewEl.querySelector(`#${mode}-step-size`).style.display = 'none';
+                        currentIndex++;
+                        const nextStep = steps[currentIndex];
+                        prepareStep(nextStep);
+                        const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
+                        nextEl.style.display = 'block';
+                        nextEl.classList.add('fade-in');
+                    }, 400);
+                });
+            });
+        };
+
+        const updateClimateOptions = () => {
+            const container = viewEl.querySelector(`#${mode}-climate-options`);
+            const selectedDepot = getSelectedDepot();
+            const hasReefer = selectedDepot === "Miami (33178)" && (selections.size === "20'" || selections.size === "40' HC");
+            
+            container.innerHTML = `
+                <div class="option-card" data-value="Dry"><i class="fas fa-wind"></i><span>${t["buy-opt-dry"]}</span></div>
+                ${hasReefer ? `<div class="option-card" data-value="Reefer"><i class="fas fa-snowflake"></i><span>${t["buy-opt-reefer"]}</span></div>` : ''}
+            `;
+
+            container.querySelectorAll('.option-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    selections.type = card.dataset.value;
+                    container.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    setTimeout(() => {
+                        viewEl.querySelector(`#${mode}-step-type`).style.display = 'none';
+                        currentIndex++;
+                        const nextStep = steps[currentIndex];
+                        prepareStep(nextStep);
+                        const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
+                        nextEl.style.display = 'block';
+                        nextEl.classList.add('fade-in');
+                    }, 400);
+                });
+            });
+        };
 
         const updateConditionOptions = (serviceType) => {
             const container = viewEl.querySelector(`#${mode}-cond-options`);
+            const selectedDepot = getSelectedDepot();
+            const hasNew = mode === 'buy' && NEW_CONTAINER_PRICES[selectedDepot] && NEW_CONTAINER_PRICES[selectedDepot][selections.size] && selections.type !== 'Reefer';
+            
             let html = '';
             if (mode === 'rent') {
-                html = `
-                    <div class="option-card" data-value="Used"><i class="fas fa-check-circle"></i><span>${t["rent-opt-used"]}</span></div>
-                    <div class="option-card" data-value="New"><i class="fas fa-star"></i><span>${t["rent-opt-new"]}</span></div>
-                `;
+                const hasNewRent = RENT_PRICES_NEW[selections.size];
+                html = `<div class="option-card" data-value="Used"><i class="fas fa-check-circle"></i><span>${t["rent-opt-used"]}</span></div>`;
+                if (hasNewRent) {
+                    html += `<div class="option-card" data-value="New"><i class="fas fa-star"></i><span>${t["rent-opt-new"]}</span></div>`;
+                }
             } else {
-                html = `
-                    <div class="option-card" data-value="CW"><i class="fas fa-check-circle"></i><span>${t["buy-opt-cw"]}</span></div>
-                    <div class="option-card" data-value="New"><i class="fas fa-star"></i><span>${t["buy-opt-new-cond"]}</span></div>
-                `;
-                if (serviceType === 'Local') {
-                    html += `<div class="option-card" data-value="WWT"><i class="fas fa-water"></i><span>${t["buy-opt-wwt"]}</span></div>`;
+                if (serviceType === 'International') {
+                    html = `<div class="option-card" data-value="CW"><i class="fas fa-check-circle"></i><span>${t["buy-opt-cw"]}</span></div>`;
+                } else {
+                    html = `<div class="option-card" data-value="WWT"><i class="fas fa-water"></i><span>${t["buy-opt-wwt"]}</span></div>`;
+                }
+
+                if (hasNew) {
+                    html += `<div class="option-card" data-value="New"><i class="fas fa-star"></i><span>${t["buy-opt-new-cond"]}</span></div>`;
                 }
             }
             container.innerHTML = html;
@@ -613,6 +790,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         viewEl.querySelector(`#${mode}-step-container-condition`).style.display = 'none';
                         currentIndex++;
                         const nextStep = steps[currentIndex];
+                        prepareStep(nextStep);
                         const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
                         nextEl.style.display = 'block';
                         nextEl.classList.add('fade-in');
@@ -621,52 +799,99 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
 
-
-
-
-
         const updateLogisticsDetails = (modeType) => {
             const container = viewEl.querySelector(`#${mode}-logistics-content`);
+            const depots = [
+                { id: 'sav', label: t["buy-depot-sav"], zip: '31408' },
+                { id: 'atl', label: t["buy-depot-atl"], zip: '30288' },
+                { id: 'jax', label: t["buy-depot-jax"], zip: '32218' },
+                { id: 'tit', label: t["buy-depot-tit"], zip: '32780' },
+                { id: 'tam', label: t["buy-depot-tam"], zip: '33619' },
+                { id: 'mia', label: t["buy-depot-mia"], zip: '33178' }
+            ];
+
+            let filteredDepots = depots;
+            if (mode === 'rent') {
+                const allowedRentZips = ['32218', '32780', '33619', '33178'];
+                filteredDepots = depots.filter(d => allowedRentZips.includes(d.zip));
+            }
+
             if (modeType === 'Delivery') {
                 container.innerHTML = `
                     <div class="form-group" style="margin-top: 20px;">
-                        <input type="text" id="${mode}-zip-input" placeholder="${t["buy-zip-placeholder"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
-                        <button class="btn btn-primary" id="${mode}-btn-zip-next" style="width: 100%;">${t["buy-btn-next"]}</button>
+                        <input type="text" id="${mode}-zip-input" placeholder="${t["buy-zip-placeholder"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 25px;">
+                        <p style="margin-bottom: 20px; text-align: center; color: var(--primary-color); font-weight: 600; font-size: 1.1rem;">${t["buy-depot-info"]}</p>
+                        <div class="options-grid delivery-depots-grid" style="margin-bottom: 25px;">
+                            ${filteredDepots.map(d => `<div class="option-card delivery-depot-option" data-value="${d.label}" data-zip="${d.zip}"><i class="fas fa-location-dot"></i><span>${d.label}</span></div>`).join('')}
+                        </div>
+                        <button class="btn btn-primary" id="${mode}-btn-zip-next" style="width: 100%;" disabled>${t["buy-btn-next"]}</button>
                     </div>
                 `;
-                viewEl.querySelector(`#${mode}-btn-zip-next`).addEventListener('click', () => {
-                    const zip = viewEl.querySelector(`#${mode}-zip-input`).value;
-                    if (!zip) { alert(currentLang === 'en' ? 'Please enter zip code' : 'Por favor ingrese código postal'); return; }
-                    selections['logistics-details'] = zip;
+
+                let selectedDepotLabel = null;
+                let selectedDepotZip = null;
+                const zipInput = viewEl.querySelector(`#${mode}-zip-input`);
+                const nextBtn = viewEl.querySelector(`#${mode}-btn-zip-next`);
+
+                container.querySelectorAll('.delivery-depot-option').forEach(card => {
+                    card.addEventListener('click', () => {
+                        selectedDepotLabel = card.dataset.value;
+                        selectedDepotZip = card.dataset.zip;
+                        container.querySelectorAll('.delivery-depot-option').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        if (zipInput.value) nextBtn.disabled = false;
+                    });
+                });
+
+                zipInput.addEventListener('input', () => {
+                    if (zipInput.value && selectedDepotLabel) nextBtn.disabled = false;
+                    else nextBtn.disabled = true;
+                });
+
+                nextBtn.addEventListener('click', async () => {
+                    const zip = zipInput.value;
+                    if (!zip || !selectedDepotLabel) return;
+                    
+                    nextBtn.disabled = true;
+                    nextBtn.innerText = t["buy-calculating"];
+                    
+                    try {
+                        const miles = await getDistance(selectedDepotZip, zip);
+                        selections.distance = miles;
+                        selections.shippingCost = calculateShippingCost(miles);
+                    } catch (err) {
+                        console.error(err);
+                        selections.distance = 0;
+                        selections.shippingCost = 0;
+                    }
+                    
+                    selections['logistics-details'] = `Zip: ${zip} | ${selectedDepotLabel}`;
                     viewEl.querySelector(`#${mode}-step-logistics-details`).style.display = 'none';
                     currentIndex++;
                     const nextStep = steps[currentIndex];
+                    prepareStep(nextStep);
                     const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
                     nextEl.style.display = 'block';
                     nextEl.classList.add('fade-in');
+                    nextBtn.innerText = t["buy-btn-next"];
                 });
             } else {
-                const depots = [
-                    { id: 'sav', label: t["buy-depot-sav"] },
-                    { id: 'atl', label: t["buy-depot-atl"] },
-                    { id: 'jax', label: t["buy-depot-jax"] },
-                    { id: 'tit', label: t["buy-depot-tit"] },
-                    { id: 'tam', label: t["buy-depot-tam"] },
-                    { id: 'mia', label: t["buy-depot-mia"] }
-                ];
                 container.innerHTML = `
                     <p style="margin-bottom: 25px; text-align: center; color: var(--primary-color); font-weight: 600; font-size: 1.1rem;">${t["buy-depot-info"]}</p>
-                    <div class="options-grid">${depots.map(d => `<div class="option-card" data-value="${d.label}"><i class="fas fa-location-dot"></i><span>${d.label}</span></div>`).join('')}</div>
+                    <div class="options-grid">${filteredDepots.map(d => `<div class="option-card" data-value="${d.label}"><i class="fas fa-location-dot"></i><span>${d.label}</span></div>`).join('')}</div>
                 `;
                 container.querySelectorAll('.option-card').forEach(card => {
                     card.addEventListener('click', () => {
                         selections['logistics-details'] = card.dataset.value;
+                        selections.distance = 0;
+                        selections.shippingCost = 0;
                         container.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
                         card.classList.add('selected');
                         setTimeout(() => {
                             viewEl.querySelector(`#${mode}-step-logistics-details`).style.display = 'none';
                             currentIndex++;
                             const nextStep = steps[currentIndex];
+                            prepareStep(nextStep);
                             const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
                             nextEl.style.display = 'block';
                             nextEl.classList.add('fade-in');
@@ -676,33 +901,75 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        if (mode === 'rent') {
-            updateConditionOptions('Local');
-            updateLogisticsDetails('Delivery');
-        }
-
         const showSummary = () => {
+            const selectedDepot = getSelectedDepot();
+            let price = 0;
+            
+            if (mode === 'buy') {
+                if (selections.type === 'Reefer') price = REEFER_PRICES[selectedDepot] ? REEFER_PRICES[selectedDepot][selections.size] : 0;
+                else if (selections['container-condition'] === 'New') price = NEW_CONTAINER_PRICES[selectedDepot] ? NEW_CONTAINER_PRICES[selectedDepot][selections.size] : 0;
+                else price = USED_CONTAINER_PRICES[selectedDepot] ? USED_CONTAINER_PRICES[selectedDepot][selections.size] : 0;
+            } else {
+                if (selections['container-condition'] === 'New') price = RENT_PRICES_NEW[selections.size] || 0;
+                else price = RENT_PRICES_USED[selections.size] || 0;
+            }
+
+            selections.pricePerUnit = price;
+            const subtotal = price * selections.quantity;
+            const exportFee = (mode === 'buy' && selections.condition === 'International') ? 250 : 0;
+            const shippingMultiplier = mode === 'rent' ? 2 : 1;
+            const shippingTotal = selections.shippingCost * shippingMultiplier;
+            const total = subtotal + shippingTotal + exportFee;
+
             viewEl.querySelector('.summary-size').textContent = selections.size;
             viewEl.querySelector('.summary-qty').textContent = selections.quantity;
-            viewEl.querySelector('.summary-service').textContent = selections.condition;
-            viewEl.querySelector('.summary-container-condition').textContent = selections['container-condition'];
-            viewEl.querySelector('.summary-type').textContent = selections.type;
+            viewEl.querySelector('.summary-service').textContent = selections.condition || '-';
+            viewEl.querySelector('.summary-container-condition').textContent = selections['container-condition'] || '-';
+            viewEl.querySelector('.summary-type').textContent = selections.type || 'Dry';
             viewEl.querySelector('.summary-delivery-mode').textContent = selections['delivery-mode'];
+            viewEl.querySelector('.summary-payment-method').textContent = selections['payment-method'];
             viewEl.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email}) - ${selections.contact.phone}`;
             
             const detailLine = viewEl.querySelector(`#${mode}-logistics-summary-line`);
             if (selections['logistics-details']) {
                 detailLine.style.display = 'block';
                 viewEl.querySelector('.summary-logistics-detail').textContent = selections['logistics-details'];
-            } else {
-                detailLine.style.display = 'none';
             }
 
-            viewEl.querySelector('.summary-payment-method').textContent = selections['payment-method'];
+            viewEl.querySelector('.summary-subtotal').textContent = `$${subtotal.toLocaleString()}`;
+            
+            const exportLine = viewEl.querySelector(`#${mode}-export-line`);
+            if (exportFee > 0) {
+                exportLine.style.display = 'block';
+                viewEl.querySelector('.summary-export').textContent = `$${exportFee.toLocaleString()}`;
+            } else if (exportLine) {
+                exportLine.style.display = 'none';
+            }
+
+            if (selections['delivery-mode'] === 'Delivery') {
+                viewEl.querySelector(`#${mode}-shipping-line`).style.display = 'block';
+                const shippingLabel = viewEl.querySelector(`#${mode}-shipping-line strong`);
+                if (mode === 'rent') {
+                    shippingLabel.textContent = (currentLang === 'en' ? "Shipping (Delivery & Pickup)" : "Envío (Entrega y Recogida)") + ":";
+                } else {
+                    shippingLabel.textContent = t["buy-summary-shipping"] + ":";
+                }
+                viewEl.querySelector('.summary-shipping').textContent = `$${shippingTotal.toLocaleString()}`;
+                viewEl.querySelector('.summary-dist-label').textContent = `(${selections.distance.toFixed(1)} miles)`;
+            } else {
+                viewEl.querySelector(`#${mode}-shipping-line`).style.display = 'none';
+            }
+            viewEl.querySelector('.summary-total').textContent = `$${total.toLocaleString()}`;
 
             viewEl.querySelector('.summary-view').style.display = 'block';
             viewEl.querySelector('.summary-view').classList.add('fade-in');
             currentIndex = steps.length;
+        };
+
+        const prepareStep = (stepId) => {
+            if (stepId === 'size') updateSizeOptions();
+            if (stepId === 'type') updateClimateOptions();
+            if (stepId === 'container-condition') updateConditionOptions(selections.condition);
         };
 
         viewEl.querySelectorAll('.qty-btn').forEach(btn => {
@@ -721,7 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const stepEl = card.closest('.buy-step');
                 if (!stepEl) return;
                 const stepId = stepEl.id.replace(`${mode}-step-`, '');
-                if (stepId === 'container-condition' || stepId === 'logistics-details') return; 
+                if (stepId === 'logistics-details' || stepId === 'size') return; 
 
                 selections[stepId] = card.dataset.value;
                 card.parentNode.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
@@ -739,6 +1006,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentIndex++;
                     if (currentIndex < steps.length) {
                         const nextStep = steps[currentIndex];
+                        prepareStep(nextStep);
                         const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
                         nextEl.style.display = 'block';
                         nextEl.classList.add('fade-in');
@@ -748,6 +1016,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 400);
             });
         });
+
         viewEl.querySelectorAll('.back-btn-action').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (!btn.dataset.prev) { showView('home'); return; }
@@ -758,8 +1027,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 prevEl.style.display = 'block';
                 prevEl.classList.add('fade-in');
                 currentIndex = steps.indexOf(prevStep);
+                prepareStep(prevStep);
             });
         });
+        
         viewEl.querySelector('.btn-get-pricing').addEventListener('click', (e) => {
             const btn = e.target;
             const originalText = btn.innerText;
@@ -769,13 +1040,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const summary = `
 📦 CONFIGURATION SUMMARY
 ---------------------------------
+Logistics: ${selections['delivery-mode']}
+Details: ${selections['logistics-details']}
 Size: ${selections.size}
 Quantity: ${selections.quantity}
 Type of Service: ${selections.condition}
 Condition: ${selections['container-condition']}
 Climate: ${selections.type}
-Logistics: ${selections['delivery-mode']}
-${selections['logistics-details'] ? `Location/Zip: ${selections['logistics-details']}` : ''}
 Payment: ${selections['payment-method']}
 
 👤 CONTACT INFORMATION
@@ -838,13 +1109,16 @@ Phone: ${selections.contact.phone}
                 const stepId = stepEl.id.replace(`${mode}-step-`, '');
                 stepEl.style.display = 'none';
                 currentIndex++;
-                const nextEl = viewEl.querySelector(`#${mode}-step-${steps[currentIndex]}`);
+                const nextStepName = steps[currentIndex];
+                prepareStep(nextStepName);
+                const nextEl = viewEl.querySelector(`#${mode}-step-${nextStepName}`);
                 nextEl.style.display = 'block';
                 nextEl.classList.add('fade-in');
             });
         });
 
         viewEl.querySelector('.btn-restart-action').addEventListener('click', () => renderConfigurationView(viewId, mode));
+        if (mode === 'rent') updateLogisticsDetails('Delivery');
         document.title = (mode === 'buy' ? t["service-sales-h3"] : t["service-rent-h3"]) + " | RP Tulipan Logistics";
     }
 

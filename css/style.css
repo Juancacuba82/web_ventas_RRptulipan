@@ -829,6 +829,26 @@ footer {
     margin-top: 20px;
 }
 
+.payment-note {
+    background-color: #fff5f5;
+    border-left: 4px solid var(--primary-color);
+    padding: 20px;
+    margin-bottom: 30px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(217, 4, 41, 0.08);
+}
+
+.payment-note i {
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+
 .summary-details {
     margin: 20px 0 30px;
     text-align: left;
