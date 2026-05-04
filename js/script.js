@@ -650,8 +650,8 @@ document.addEventListener('DOMContentLoaded', () => {
             "Miami (33178)": { "20'": 8200, "40' STD": 6700, "40' HC": 6700, "45'": 6700 }
         };
 
-        const RENT_PRICES_USED = { "20'": 350, "40' STD": 425, "40' HC": 450, "45'": 500 };
-        const RENT_PRICES_NEW = { "20'": 425, "40' HC": 550 };
+        const RENT_PRICES_USED = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
+        const RENT_PRICES_NEW = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
 
         const SHIPPING_RATES = [
             { max: 30, price: 350 },
@@ -821,9 +821,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             container.innerHTML = `
                 <div class="form-group" style="margin-top: 20px;">
+                    ${mode === 'buy' ? `
                     <div class="promo-badge" style="background: var(--primary-color); color: white; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-weight: 700; animation: pulse 2s infinite;">
                         <i class="fas fa-gift"></i> GRAND OPENING: $200 OFF!
                     </div>
+                    ` : ''}
                     <input type="text" id="${mode}-zip-input" placeholder="${t["buy-zip-placeholder"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 25px;">
                     <button class="btn btn-primary" id="${mode}-btn-zip-next" style="width: 100%;" disabled>${t["buy-btn-next"]}</button>
                 </div>
@@ -927,12 +929,21 @@ document.addEventListener('DOMContentLoaded', () => {
             selections.shippingCost = bestShip;
             selections.pricePerUnit = bestPrice;
 
-            const subtotal = bestPrice * selections.quantity;
+            const baseSubtotal = bestPrice * selections.quantity;
             const exportFee = (mode === 'buy' && selections.condition === 'International') ? 250 : 0;
+            const subtotal = baseSubtotal + exportFee;
+            
             const shippingMultiplier = mode === 'rent' ? 2 : 1;
             const shippingTotal = bestShip * shippingMultiplier;
-            const totalBeforeDiscount = subtotal + shippingTotal + exportFee;
-            const total = totalBeforeDiscount - PROMO_DISCOUNT;
+            const totalBeforeDiscount = subtotal + shippingTotal;
+            const discount = mode === 'buy' ? PROMO_DISCOUNT : 0;
+            const total = totalBeforeDiscount - discount;
+
+            selections.subtotal = subtotal;
+            selections.total = total;
+            selections.discount = discount;
+            selections.exportFee = exportFee; // Store but will be bundled in display
+            selections.shippingTotal = shippingTotal;
 
             let html = `
                 <div class="summary-item"><strong>Logistics:</strong> <span>${selections['delivery-mode'] || '-'}</span></div>
@@ -951,12 +962,11 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `
                 <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
                 <div class="summary-item"><strong>${t["buy-summary-subtotal"]}:</strong> <span style="font-weight: 700;">$${subtotal.toLocaleString()}</span></div>
-                ${exportFee > 0 ? `<div class="summary-item"><strong>${t["buy-summary-export"]}:</strong> <span>$${exportFee.toLocaleString()}</span></div>` : ''}
                 ${selections['delivery-mode'] === 'Delivery' ? `
                     <div class="summary-item"><strong>${mode === 'rent' ? (currentLang === 'en' ? "Shipping (Delivery & Pickup)" : "Envío (Entrega y Recogida)") : (selections.condition === 'Local' ? t["buy-summary-delivery"] : t["buy-summary-shipping"])}:</strong> 
                     <span>$${shippingTotal.toLocaleString()}</span> <small style="color: #666;">(${selections.distance.toFixed(1)} miles)</small></div>
                 ` : ''}
-                <div class="summary-item" style="color: #27ae60; font-weight: 700;"><strong>Grand Opening Discount:</strong> <span>-$${PROMO_DISCOUNT}</span></div>
+                ${mode === 'buy' ? `<div class="summary-item" style="color: #27ae60; font-weight: 700;"><strong>Grand Opening Discount:</strong> <span>-$${PROMO_DISCOUNT}</span></div>` : ''}
                 <div class="summary-item total-line" style="font-size: 1.25rem; color: var(--primary-color); margin-top: 10px;"><strong>${t["buy-summary-total"]}:</strong> <span style="font-weight: 700;">$${Math.max(0, total).toLocaleString()}</span></div>
             `;
             container.innerHTML = html;
@@ -1084,7 +1094,13 @@ Type of Service: ${selections.condition}
 Condition: ${selections['container-condition']}
 Climate: ${selections.type}
 Payment: ${selections['payment-method']}
-Promo: $${PROMO_DISCOUNT} Off
+
+💰 PRICING DETAILS
+---------------------------------
+Unit Price: $${selections.pricePerUnit.toLocaleString()}
+Subtotal${selections.exportFee > 0 ? ' (Includes Export Documents)' : ''}: $${selections.subtotal.toLocaleString()}
+Shipping Total: $${selections.shippingTotal.toLocaleString()}
+${selections.discount > 0 ? `Promo Discount: -$${selections.discount}\n` : ''}TOTAL PRICE: $${selections.total.toLocaleString()}
 
 👤 CONTACT INFORMATION
 ---------------------------------
