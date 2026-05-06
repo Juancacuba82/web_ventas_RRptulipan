@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "contact-address": "9804 NW 80th Ave, Hialeah Gardens FL 33016, United States",
             "form-name": "Your Name",
             "form-email": "Your Email",
+            "form-phone": "Phone Number",
             "form-service-placeholder": "Select Service",
             "form-service-sales": "Container Sales",
             "form-service-rent": "Container Rentals",
@@ -186,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "contact-address": "9804 NW 80th Ave, Hialeah Gardens FL 33016, Estados Unidos",
             "form-name": "Tu nombre",
             "form-email": "Tu correo electrónico",
+            "form-phone": "Número de teléfono",
             "form-service-placeholder": "Seleccionar servicio",
             "form-service-sales": "Venta de contenedores",
             "form-service-rent": "Alquiler de contenedores",
@@ -437,6 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const templateParams = {
                 name: document.getElementById('name').value,
                 email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
                 service: document.getElementById('service').value,
                 message: document.getElementById('message').value
             };
@@ -565,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="form-group" style="margin-top: 20px;">
                                 <input type="text" id="${mode}-contact-name" placeholder="${t["form-name"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <input type="email" id="${mode}-contact-email" placeholder="${t["form-email"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
-                                <input type="tel" id="${mode}-contact-phone" placeholder="Phone Number" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <input type="tel" id="${mode}-contact-phone" placeholder="${t["form-phone"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <button class="btn btn-primary next-btn-action" data-next="summary" style="width: 100%;">${t["buy-btn-next"]}</button>
                             </div>
                         </div>
@@ -1225,7 +1228,7 @@ Phone: ${selections.contact.phone}
                             <div class="form-group" style="margin-top: 20px;">
                                 <input type="text" id="trans-contact-name" placeholder="${t["form-name"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <input type="email" id="trans-contact-email" placeholder="${t["form-email"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
-                                <input type="tel" id="trans-contact-phone" placeholder="Phone Number" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <input type="tel" id="trans-contact-phone" placeholder="${t["form-phone"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <button class="btn btn-primary" id="btn-submit-contact" style="width: 100%;">${t["buy-btn-next"]}</button>
                             </div>
                         </div>
@@ -1422,7 +1425,7 @@ Phone: ${selections.contact.phone}
                             <div class="form-group" style="margin-top: 20px;">
                                 <input type="text" id="crane-contact-name" placeholder="${t["form-name"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <input type="email" id="crane-contact-email" placeholder="${t["form-email"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
-                                <input type="tel" id="crane-contact-phone" placeholder="Phone Number" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
+                                <input type="tel" id="crane-contact-phone" placeholder="${t["form-phone"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <button class="btn btn-primary" id="crane-btn-submit-contact" style="width: 100%;">${t["buy-btn-next"]}</button>
                             </div>
                         </div>
