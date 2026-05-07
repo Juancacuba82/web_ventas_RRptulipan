@@ -150,7 +150,14 @@ document.addEventListener('DOMContentLoaded', () => {
             "summary-quantity": "Quantity",
             "summary-contact": "Contact",
             "promo-label": "GRAND OPENING DISCOUNT",
-            "promo-sub": "WEBSITE LAUNCH SPECIAL"
+            "promo-only": "PURCHASE ONLY",
+            "promo-sub": "WEBSITE LAUNCH SPECIAL",
+            "countdown-text": "GRAND OPENING DISCOUNT ends in:",
+            "timer-days": "Days",
+            "timer-hours": "Hours",
+            "timer-minutes": "Minutes",
+            "timer-seconds": "Seconds",
+            "sizes-title": "Container Dimensions"
         },
         es: {
             "nav-home": "Inicio",
@@ -281,7 +288,14 @@ document.addEventListener('DOMContentLoaded', () => {
             "summary-quantity": "Cantidad",
             "summary-contact": "Contacto",
             "promo-label": "DESCUENTO DE APERTURA",
-            "promo-sub": "POR LANZAMIENTO DE LA WEB"
+            "promo-only": "SOLO COMPRA",
+            "promo-sub": "POR LANZAMIENTO DE LA WEB",
+            "countdown-text": "EL DESCUENTO DE APERTURA TERMINA EN:",
+            "timer-days": "Días",
+            "timer-hours": "Horas",
+            "timer-minutes": "Minutos",
+            "timer-seconds": "Segundos",
+            "sizes-title": "Dimensiones de Contenedores"
         }
     };
 
@@ -346,6 +360,18 @@ document.addEventListener('DOMContentLoaded', () => {
         rentView.style.display = viewName === 'rent' ? 'block' : 'none';
         transView.style.display = viewName === 'trans' ? 'block' : 'none';
         craneView.style.display = viewName === 'crane' ? 'block' : 'none';
+        
+        // Show countdown only in "home" and "buy" views
+        const countdownBanner = document.getElementById('countdown-banner');
+        if (countdownBanner) {
+            if (viewName === 'home' || viewName === 'buy') {
+                countdownBanner.style.display = 'block';
+                document.body.classList.add('with-countdown');
+            } else {
+                countdownBanner.style.display = 'none';
+                document.body.classList.remove('with-countdown');
+            }
+        }
 
         if (viewName === 'gallery') renderGallery();
         if (viewName === 'buy') renderBuyView();
@@ -473,6 +499,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         });
     }
+
+    // Countdown Timer Logic
+    const targetDate = new Date('June 1, 2026 00:00:00').getTime();
+
+    const updateCountdown = () => {
+        const now = new Date().getTime();
+        const distance = targetDate - now;
+
+        if (distance < 0) {
+            document.getElementById('countdown-banner').style.display = 'none';
+            return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        document.getElementById('days').innerText = days.toString().padStart(2, '0');
+        document.getElementById('hours').innerText = hours.toString().padStart(2, '0');
+        document.getElementById('minutes').innerText = minutes.toString().padStart(2, '0');
+        document.getElementById('seconds').innerText = seconds.toString().padStart(2, '0');
+    };
+
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
 
     function renderGallery() {
         const images = ['imgi_10_58-169x300.jpg', 'imgi_110_Diseno-sin-titulo-5-300x300.png', 'imgi_116_Diseno-sin-titulo-10-300x300.png', 'imgi_117_Diseno-sin-titulo-8-169x300.png', 'imgi_119_Diseno-sin-titulo-6-300x300.png', 'imgi_11_57-169x300.jpg', 'imgi_12_56-169x300.jpg', 'imgi_13_55-169x300.jpg', 'imgi_14_54-169x300.jpg', 'imgi_15_53-169x300.jpg', 'imgi_16_52-169x300.jpg', 'imgi_17_51-169x300.jpg', 'imgi_18_50-169x300.jpg', 'imgi_19_49-169x300.jpg', 'imgi_20_48-169x300.jpg', 'imgi_21_47-169x300.jpg', 'imgi_22_46-169x300.jpg', 'imgi_23_45-169x300.jpg', 'imgi_24_44-169x300.jpg', 'imgi_25_43-169x300.jpg', 'imgi_26_42-169x300.jpg', 'imgi_27_41-169x300.jpg', 'imgi_28_40-169x300.jpg', 'imgi_29_39-169x300.jpg', 'imgi_30_38-169x300.jpg', 'imgi_31_37-169x300.jpg', 'imgi_32_36-169x300.jpg', 'imgi_33_35-169x300.jpg', 'imgi_34_34-169x300.jpg', 'imgi_35_33-169x300.jpg', 'imgi_36_32-169x300.jpg', 'imgi_37_31-169x300.jpg', 'imgi_38_30-169x300.jpg', 'imgi_39_29-169x300.jpg', 'imgi_40_28-169x300.jpg', 'imgi_41_27-169x300.jpg', 'imgi_42_26-169x300.jpg', 'imgi_43_25-169x300.jpg', 'imgi_44_24-169x300.jpg', 'imgi_45_23-169x300.jpg', 'imgi_46_22-169x300.jpg', 'imgi_47_21-169x300.jpg', 'imgi_48_20-169x300.jpg', 'imgi_49_19-169x300.jpg', 'imgi_4_64-169x300.jpg', 'imgi_50_18-1-169x300.jpg', 'imgi_51_17-1-169x300.jpg', 'imgi_52_16-1-169x300.jpg', 'imgi_53_15-1-169x300.jpg', 'imgi_54_14-1-169x300.jpg', 'imgi_55_13-1-169x300.jpg', 'imgi_56_12-1-169x300.jpg', 'imgi_57_11-1-169x300.jpg', 'imgi_58_10-1-169x300.jpg', 'imgi_59_9-1-169x300.jpg', 'imgi_5_63-169x300.jpg', 'imgi_60_8-1-169x300.jpg', 'imgi_61_7-1-169x300.jpg', 'imgi_62_6-1-169x300.jpg', 'imgi_63_5-1-169x300.jpg', 'imgi_64_4-1-169x300.jpg', 'imgi_65_3-1-169x300.jpg', 'imgi_66_2-1-169x300.jpg', 'imgi_67_1-1-169x300.jpg', 'imgi_68_18-300x300.jpg', 'imgi_69_17-300x300.jpg', 'imgi_6_62-169x300.jpg', 'imgi_70_16-300x300.jpg', 'imgi_71_15-300x300.jpg', 'imgi_72_14-300x300.jpg', 'imgi_73_13-300x300.jpg', 'imgi_74_12-300x300.jpg', 'imgi_75_11-300x300.jpg', 'imgi_76_10-300x300.jpg', 'imgi_77_9-300x300.jpg', 'imgi_78_8-300x300.jpg', 'imgi_79_7-300x300.jpg', 'imgi_7_61-169x300.jpg', 'imgi_80_6-300x300.jpg', 'imgi_81_5-300x300.jpg', 'imgi_82_4-300x300.jpg', 'imgi_83_3-300x300.jpg', 'imgi_84_2-300x300.jpg', 'imgi_85_1-300x300.jpg', 'imgi_86_Diseno-sin-titulo-24-300x300.png', 'imgi_87_Diseno-sin-titulo-25-300x300.png', 'imgi_88_Diseno-sin-titulo-29-300x300.png', 'imgi_89_services-fullfill-300x185.jpg', 'imgi_8_60-169x300.jpg', 'imgi_90_services-finalmile-300x185.jpg', 'imgi_93_Diseno-sin-titulo-22-300x300.png', 'imgi_94_Diseno-sin-titulo-23-300x300.png', 'imgi_95_Diseno-sin-titulo-26-300x300.png', 'imgi_98_Diseno-sin-titulo-19-300x300.png', 'imgi_9_59-169x300.jpg'];
@@ -822,6 +874,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateLogisticsDetails = (modeType) => {
             const container = viewEl.querySelector(`#${mode}-logistics-content`);
             
+            if (mode === 'buy') {
+                document.body.classList.add('with-countdown');
+            } else {
+                document.body.classList.remove('with-countdown');
+            }
+
             container.innerHTML = `
                 <div class="form-group" style="margin-top: 20px;">
                     ${mode === 'buy' ? `
@@ -1575,6 +1633,83 @@ Phone: ${selections.contact.phone}
     function renderBuyView() { renderConfigurationView('buy-view', 'buy'); }
     function renderRentView() { renderConfigurationView('rent-view', 'rent'); }
 
+    // Container Dimensions Carousel Logic
+    const track = document.querySelector('.carousel-track');
+    const slides = Array.from(document.querySelectorAll('.carousel-slide'));
+    const nextButton = document.getElementById('dims-next');
+    const prevButton = document.getElementById('dims-prev');
+    const indicatorContainer = document.querySelector('.carousel-indicators');
+    const indicators = Array.from(document.querySelectorAll('.indicator'));
+
+    let currentSlideIndex = 0;
+
+    const moveToSlide = (index) => {
+        if (index < 0) index = slides.length - 1;
+        if (index >= slides.length) index = 0;
+        
+        track.style.transform = `translateX(-${index * 100}%)`;
+        slides.forEach(s => s.classList.remove('active'));
+        indicators.forEach(i => i.classList.remove('active'));
+        
+        slides[index].classList.add('active');
+        indicators[index].classList.add('active');
+        currentSlideIndex = index;
+    };
+
+    if (nextButton && prevButton) {
+        nextButton.addEventListener('click', () => {
+            moveToSlide(currentSlideIndex + 1);
+        });
+
+        prevButton.addEventListener('click', () => {
+            moveToSlide(currentSlideIndex - 1);
+        });
+
+        indicators.forEach((indicator, index) => {
+            indicator.addEventListener('click', () => {
+                moveToSlide(index);
+            });
+        });
+
+        // Auto-play (Optional, every 5 seconds)
+        setInterval(() => {
+            moveToSlide(currentSlideIndex + 1);
+        }, 5000);
+    }
+
+    // Image Zoom Modal Logic
+    const modal = document.getElementById('image-modal');
+    const modalImg = document.getElementById('zoomed-image');
+    const captionText = document.getElementById('modal-caption');
+    const closeBtn = document.querySelector('.close-modal');
+
+    document.querySelectorAll('.carousel-slide img').forEach(img => {
+        img.addEventListener('click', () => {
+            modal.style.display = 'block';
+            modalImg.src = img.src;
+            captionText.innerHTML = img.alt;
+            document.body.style.overflow = 'hidden'; // Prevent scroll
+        });
+    });
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scroll
+        });
+    }
+
+    // Close modal on click outside image
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        });
+    }
+
     // Initial language sync and view setup
     updateLanguage(currentLang);
+    showView('home');
 });

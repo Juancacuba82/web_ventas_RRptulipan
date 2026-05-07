@@ -110,6 +110,88 @@ span {
     box-shadow: var(--shadow);
 }
 
+/* Countdown Banner */
+#countdown-banner {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2c3e50 100%);
+    color: var(--white);
+    padding: 10px 0;
+    position: fixed;
+    top: 80px;
+    width: 100%;
+    z-index: 999;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.countdown-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.countdown-text {
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #ffd166;
+}
+
+#countdown-timer {
+    display: flex;
+    gap: 20px;
+}
+
+.timer-segment {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+}
+
+.timer-segment span {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--white);
+}
+
+.timer-segment label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    opacity: 0.8;
+    margin-top: 5px;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    #countdown-banner {
+        top: 80px;
+        padding: 8px 0;
+    }
+    
+    .countdown-content {
+        gap: 10px;
+        flex-direction: column;
+    }
+    
+    .countdown-text {
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+    }
+    
+    #countdown-timer {
+        gap: 15px;
+    }
+    
+    .timer-segment span {
+        font-size: 1.2rem;
+    }
+}
+
+
 #main-nav .container {
     display: flex;
     justify-content: space-between;
@@ -237,6 +319,10 @@ span {
         padding-top: 50px;
         box-shadow: -10px 0 20px rgba(0,0,0,0.1);
     }
+    
+    body.with-countdown .nav-links {
+        top: 135px; /* Offset for navbar + banner */
+    }
 
     .nav-links li {
         opacity: 0;
@@ -301,6 +387,17 @@ span {
     margin-top: 0;
 }
 
+body.with-countdown .hero {
+    margin-top: 65px; /* Offset for the fixed countdown banner */
+}
+
+@media (max-width: 768px) {
+    body.with-countdown .hero {
+        margin-top: 100px; /* Larger offset for mobile stacked banner */
+    }
+}
+
+
 .hero-overlay {
     position: absolute;
     top: 0;
@@ -358,6 +455,14 @@ span {
     font-weight: 900;
     line-height: 1;
     text-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.promo-only {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #ffd166;
+    letter-spacing: 1px;
+    margin: 2px 0;
 }
 
 .promo-sub {
@@ -620,6 +725,124 @@ section {
     border-color: var(--primary-color);
 }
 
+/* Dimensions Carousel */
+.dimensions-carousel {
+    background-color: var(--white);
+    padding: 80px 0;
+}
+
+.carousel-container {
+    position: relative;
+    max-width: 900px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.carousel-track-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+}
+
+.carousel-track {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+
+.carousel-slide {
+    min-width: 100%;
+    position: relative;
+}
+
+.carousel-slide img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.carousel-slide img:hover {
+    opacity: 0.9;
+}
+
+.slide-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    color: var(--white);
+    padding: 15px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: var(--white);
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: var(--transition);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.carousel-btn:hover {
+    background: var(--secondary-color);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-btn.prev { left: 20px; }
+.carousel-btn.next { right: 20px; }
+
+.carousel-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 30px;
+}
+
+.indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ddd;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.indicator.active {
+    background: var(--primary-color);
+    width: 30px;
+    border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+    .carousel-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .carousel-btn.prev { left: 10px; }
+    .carousel-btn.next { right: 10px; }
+}
+
+
 /* Footer */
 footer {
     background-color: var(--dark-bg);
@@ -773,6 +996,10 @@ footer {
     color: var(--white);
 }
 
+body.with-countdown .gallery-header {
+    padding: 180px 0 60px; /* Increased padding to clear navbar + banner */
+}
+
 .gallery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -828,6 +1055,10 @@ footer {
     padding: 120px 0 60px;
     text-align: center;
     color: var(--white);
+}
+
+body.with-countdown .buy-header {
+    padding: 180px 0 60px; /* Increased padding to clear navbar + banner */
 }
 
 .buy-container {
@@ -971,3 +1202,71 @@ footer {
         grid-template-columns: 1fr;
     }
 }
+
+/* Modal / Image Zoom */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    padding-top: 50px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.9);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    margin: auto;
+    display: block;
+    width: 90%;
+    max-width: 1200px;
+    border-radius: 10px;
+    box-shadow: 0 0 30px rgba(255,255,255,0.1);
+    animation: zoom 0.6s;
+    background-color: white;
+}
+
+@keyframes zoom {
+    from {transform: scale(0)} 
+    to {transform: scale(1)}
+}
+
+.close-modal {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 50px;
+    font-weight: bold;
+    transition: 0.3s;
+    cursor: pointer;
+    z-index: 10000;
+}
+
+.close-modal:hover,
+.close-modal:focus {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+#modal-caption {
+    margin: auto;
+    display: block;
+    width: 80%;
+    max-width: 700px;
+    text-align: center;
+    color: #ccc;
+    padding: 20px 0;
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+@media only screen and (max-width: 700px){
+    .modal-content {
+        width: 100%;
+    }
+}
+

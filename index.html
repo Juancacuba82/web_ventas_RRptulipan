@@ -62,6 +62,31 @@
             </div>
         </div>
     </nav>
+    <div id="countdown-banner" style="display: none;">
+        <div class="container">
+            <div class="countdown-content">
+                <p class="countdown-text" data-i18n="countdown-text">GRAND OPENING DISCOUNT end in:</p>
+                <div id="countdown-timer">
+                    <div class="timer-segment">
+                        <span id="days">00</span>
+                        <label data-i18n="timer-days">Days</label>
+                    </div>
+                    <div class="timer-segment">
+                        <span id="hours">00</span>
+                        <label data-i18n="timer-hours">Hours</label>
+                    </div>
+                    <div class="timer-segment">
+                        <span id="minutes">00</span>
+                        <label data-i18n="timer-minutes">Minutes</label>
+                    </div>
+                    <div class="timer-segment">
+                        <span id="seconds">00</span>
+                        <label data-i18n="timer-seconds">Seconds</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content Wrapper -->
     <div id="home-view">
@@ -73,6 +98,7 @@
                     <div class="promo-content">
                         <span class="promo-label" data-i18n="promo-label">GRAND OPENING DISCOUNT</span>
                         <span class="promo-price">$200 OFF</span>
+                        <span class="promo-only" data-i18n="promo-only">PURCHASE ONLY</span>
                         <span class="promo-sub" data-i18n="promo-sub">WEBSITE LAUNCH SPECIAL</span>
                     </div>
                 </div>
@@ -161,6 +187,41 @@
                     <div class="about-image reveal">
                         <img src="assets/hero.png" alt="About RP Tulipan">
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Container Dimensions Section -->
+        <section id="container-dimensions" class="dimensions-carousel">
+            <div class="container">
+                <div class="section-title">
+                    <h2 data-i18n="sizes-title">Container Dimensions</h2>
+                    <div class="underline"></div>
+                </div>
+                <div class="carousel-container">
+                    <button class="carousel-btn prev" id="dims-prev"><i class="fas fa-chevron-left"></i></button>
+                    <div class="carousel-track-container">
+                        <div class="carousel-track">
+                            <div class="carousel-slide active">
+                                <img src="assets/containers/size-20.jpg" alt="20ft Container Dimensions">
+                                <div class="slide-caption">20' Standard Container</div>
+                            </div>
+                            <div class="carousel-slide">
+                                <img src="assets/containers/size-40.jpg" alt="40ft Container Dimensions">
+                                <div class="slide-caption">40' High Cube Container</div>
+                            </div>
+                            <div class="carousel-slide">
+                                <img src="assets/containers/size-45.jpg" alt="45ft Container Dimensions">
+                                <div class="slide-caption">45' High Cube Container</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="carousel-btn next" id="dims-next"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="carousel-indicators">
+                    <span class="indicator active" data-index="0"></span>
+                    <span class="indicator" data-index="1"></span>
+                    <span class="indicator" data-index="2"></span>
                 </div>
             </div>
         </section>
@@ -287,5 +348,12 @@
     <script src="js/script.js"></script>
     <!-- EmailJS SDK (Local) -->
     <script type="text/javascript" src="js/emailjs.min.js"></script>
+
+    <!-- Image Zoom Modal -->
+    <div id="image-modal" class="modal">
+        <span class="close-modal">&times;</span>
+        <img class="modal-content" id="zoomed-image">
+        <div id="modal-caption"></div>
+    </div>
 </body>
 </html>
