@@ -465,9 +465,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const templateParams = {
                 name: document.getElementById('name').value,
                 email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value,
+                phone_number: document.getElementById('phone').value,
                 service: document.getElementById('service').value,
-                message: document.getElementById('message').value
+                message: document.getElementById('message').value,
+                title: currentLang === 'en' ? 'Contact Message' : 'Mensaje de Contacto'
             };
 
             if (typeof emailjs === 'undefined') {
@@ -1173,8 +1174,10 @@ Phone: ${selections.contact.phone}
             const templateParams = {
                 name: selections.contact.name,
                 email: selections.contact.email,
+                phone_number: selections.contact.phone,
                 service: mode === 'buy' ? 'Container Purchase' : 'Container Rental',
-                message: summary
+                message: summary,
+                title: mode === 'buy' ? 'New Purchase Request' : 'New Rental Request'
             };
 
             if (typeof emailjs !== 'undefined') {
@@ -1402,8 +1405,10 @@ Phone: ${selections.contact.phone}
             const templateParams = {
                 name: selections.contact.name,
                 email: selections.contact.email,
+                phone_number: selections.contact.phone,
                 service: 'Transportation Quote',
-                message: summary
+                message: summary,
+                title: 'New Transportation Quote Request'
             };
 
             if (typeof emailjs !== 'undefined') {
@@ -1599,8 +1604,10 @@ Phone: ${selections.contact.phone}
             const templateParams = {
                 name: selections.contact.name,
                 email: selections.contact.email,
+                phone_number: selections.contact.phone,
                 service: 'Crane Service Quote',
-                message: summary
+                message: summary,
+                title: 'New Crane Service Request'
             };
 
             if (typeof emailjs !== 'undefined') {
