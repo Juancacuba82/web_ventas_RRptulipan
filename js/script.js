@@ -1,4 +1,62 @@
+// Supabase Configuration
+const SUPABASE_URL = 'https://xtrceqpuwqetzslwxxux.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Wt5TmlxBw3FOtZ_L_oWt0Q_RoMMVuni';
+let supabaseClient = null;
+
+async function sendLeadToSupabase(leadData) {
+    if (!supabaseClient) return;
+    try {
+        // Round Robin: Isabella & Anthony
+        let assignedTo = 'rptulipantransport@gmail.com'; // Default Isabella
+        
+        // Fetch the very last lead that came from the website
+        const { data: lastLeads } = await supabaseClient
+            .from('call_logs')
+            .select('created_by')
+            .eq('source', 'website')
+            .order('id', { ascending: false })
+            .limit(1);
+
+        if (lastLeads && lastLeads.length > 0) {
+            const lastEmail = lastLeads[0].created_by;
+            // If the last one was Isabella, now it's Anthony's turn
+            if (lastEmail === 'rptulipantransport@gmail.com') {
+                assignedTo = 'anthonyps06@icloud.com';
+            } else {
+                // Otherwise (if it was Anthony or any other), back to Isabella
+                assignedTo = 'rptulipantransport@gmail.com';
+            }
+        }
+
+        await supabaseClient.from('call_logs').insert([{
+            customer: leadData.name || 'Unknown',
+            phone: leadData.phone || '---',
+            service_type: leadData.service || 'Sales',
+            city: (leadData.city || '---').toUpperCase(),
+            description: leadData.message || '---',
+            created_by: assignedTo,
+            source: 'website',
+            status: 'PENDING',
+            date: new Date().toISOString().split('T')[0]
+        }]);
+    } catch (err) {
+        console.error("Supabase Error:", err);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Supabase safely
+    if (typeof window.supabase !== 'undefined') {
+        try {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        } catch(e) { console.error("Supabase Init Error:", e); }
+    }
+    
+    // Initialize EmailJS once
+    if (typeof emailjs !== 'undefined') {
+        emailjs.init("4x1rkqnQuj83tl-mh");
+    }
+
     // Mobile Menu Toggle
     const burger = document.querySelector('.burger');
     const nav = document.querySelector('.nav-links');
@@ -479,7 +537,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            emailjs.init("4x1rkqnQuj83tl-mh");
+            // Send to Supabase (Safe call)
+            sendLeadToSupabase({
+                name: templateParams.name,
+                phone: templateParams.phone_number,
+                service: templateParams.service,
+                message: templateParams.message
+            }).catch(e => console.error("DB Error:", e));
+
             emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
                 .then(() => {
                     submitBtn.innerText = currentLang === 'en' ? 'Message Sent!' : '¡Mensaje Enviado!';
@@ -1189,7 +1254,13 @@ Phone: ${selections.contact.phone}
             };
 
             if (typeof emailjs !== 'undefined') {
-                emailjs.init("4x1rkqnQuj83tl-mh");
+                // Send to Supabase (Safe call)
+                sendLeadToSupabase({
+                    name: templateParams.name,
+                    phone: templateParams.phone_number,
+                    service: templateParams.service,
+                    message: templateParams.message
+                }).catch(e => console.error("DB Error:", e));
                 emailjs.send('service_pfwtd14', 'template_t69rpu6', templateParams)
                     .then(() => {
                         btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
@@ -1420,7 +1491,13 @@ Phone: ${selections.contact.phone}
             };
 
             if (typeof emailjs !== 'undefined') {
-                emailjs.init("4x1rkqnQuj83tl-mh");
+                // Send to Supabase (Safe call)
+                sendLeadToSupabase({
+                    name: templateParams.name,
+                    phone: templateParams.phone_number,
+                    service: templateParams.service,
+                    message: templateParams.message
+                }).catch(e => console.error("DB Error:", e));
                 emailjs.send('service_pfwtd14', 'template_t69rpu6', templateParams)
                     .then(() => {
                         btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
@@ -1619,7 +1696,13 @@ Phone: ${selections.contact.phone}
             };
 
             if (typeof emailjs !== 'undefined') {
-                emailjs.init("4x1rkqnQuj83tl-mh");
+                // Send to Supabase (Safe call)
+                sendLeadToSupabase({
+                    name: templateParams.name,
+                    phone: templateParams.phone_number,
+                    service: templateParams.service,
+                    message: templateParams.message
+                }).catch(e => console.error("DB Error:", e));
                 emailjs.send('service_pfwtd14', 'template_t69rpu6', templateParams)
                     .then(() => {
                         btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
