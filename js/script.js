@@ -157,7 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
             "timer-hours": "Hours",
             "timer-minutes": "Minutes",
             "timer-seconds": "Seconds",
-            "sizes-title": "Container Dimensions"
+            "sizes-title": "Container Dimensions",
+            "tax-warning": "* Taxes may apply depending on your tax status."
         },
         es: {
             "nav-home": "Inicio",
@@ -295,7 +296,8 @@ document.addEventListener('DOMContentLoaded', () => {
             "timer-hours": "Horas",
             "timer-minutes": "Minutos",
             "timer-seconds": "Segundos",
-            "sizes-title": "Dimensiones de Contenedores"
+            "sizes-title": "Dimensiones de Contenedores",
+            "tax-warning": "* Pueden aplicarse impuestos según su estatus fiscal."
         }
     };
 
@@ -730,7 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const selections = { size: null, quantity: 1, condition: mode === 'rent' ? 'Local' : null, 'container-condition': null, type: mode === 'rent' ? 'Dry' : null, 'delivery-mode': mode === 'rent' ? 'Delivery' : null, 'logistics-details': null, 'payment-method': null, contact: {}, distance: 0, shippingCost: 0, pricePerUnit: 0, bestDepot: null, allDistances: {} };
         let steps = mode === 'buy' 
             ? ['condition'] 
-            : ['logistics-details', 'size', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
+            : ['logistics-details', 'size', 'qty', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
         let currentIndex = 0;
 
         const calculateShippingCost = (miles) => {
@@ -1031,6 +1033,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${mode === 'buy' ? `<div class="summary-item" style="color: #27ae60; font-weight: 700;"><strong>Grand Opening Discount:</strong> <span>-$${PROMO_DISCOUNT}</span></div>` : ''}
                 <div class="summary-item total-line" style="font-size: 1.25rem; color: var(--primary-color); margin-top: 10px;"><strong>${t["buy-summary-total"]}:</strong> <span style="font-weight: 700;">$${Math.max(0, total).toLocaleString()}</span></div>
             `;
+
+            const taxWarningMethods = ["Zelle", "Card", "Check"];
+            if (taxWarningMethods.includes(selections['payment-method'])) {
+                html += `<div class="tax-notice" style="font-size: 0.85rem; color: #666; margin-top: 10px; font-style: italic; border-top: 1px dashed #ddd; padding-top: 10px;">${t["tax-warning"]}</div>`;
+            }
+
             container.innerHTML = html;
         };
 
@@ -1091,11 +1099,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (stepId === 'condition') {
                     if (card.dataset.value === 'International') {
-                        steps = ['condition', 'logistics-details', 'size', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
+                        steps = ['condition', 'logistics-details', 'size', 'qty', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
                         selections['delivery-mode'] = 'Pickup';
                     } else {
                         // Storage sequence
-                        steps = ['condition', 'delivery-mode', 'logistics-details', 'size', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
+                        steps = ['condition', 'delivery-mode', 'logistics-details', 'size', 'qty', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
                     }
                 }
 
