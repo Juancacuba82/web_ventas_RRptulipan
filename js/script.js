@@ -216,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "timer-minutes": "Minutes",
             "timer-seconds": "Seconds",
             "sizes-title": "Container Dimensions",
+            "whatsapp-tooltip": "Chat with us!",
             "tax-warning": "* Taxes may apply depending on your tax status."
         },
         es: {
@@ -355,6 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "timer-minutes": "Minutos",
             "timer-seconds": "Segundos",
             "sizes-title": "Dimensiones de Contenedores",
+            "whatsapp-tooltip": "¡Chatea con nosotros!",
             "tax-warning": "* Pueden aplicarse impuestos según su estatus fiscal."
         }
     };
