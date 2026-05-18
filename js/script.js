@@ -1263,7 +1263,7 @@ Phone: ${selections.contact.phone}
                     service: templateParams.service,
                     message: templateParams.message
                 }).catch(e => console.error("DB Error:", e));
-                emailjs.send('service_pfwtd14', 'template_t69rpu6', templateParams)
+                emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
                     .then(() => {
                         btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
                         btn.style.backgroundColor = '#2ecc71';
@@ -1500,7 +1500,7 @@ Phone: ${selections.contact.phone}
                     service: templateParams.service,
                     message: templateParams.message
                 }).catch(e => console.error("DB Error:", e));
-                emailjs.send('service_pfwtd14', 'template_t69rpu6', templateParams)
+                emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
                     .then(() => {
                         btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
                         btn.style.backgroundColor = '#2ecc71';
@@ -1705,7 +1705,7 @@ Phone: ${selections.contact.phone}
                     service: templateParams.service,
                     message: templateParams.message
                 }).catch(e => console.error("DB Error:", e));
-                emailjs.send('service_pfwtd14', 'template_t69rpu6', templateParams)
+                emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
                     .then(() => {
                         btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
                         btn.style.backgroundColor = '#2ecc71';

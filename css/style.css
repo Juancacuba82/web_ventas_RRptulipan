@@ -1317,14 +1317,14 @@ body.with-countdown .buy-header {
 }
 
 .whatsapp-tooltip::after {
-    content: " \;
- position: absolute;
- top: 50%;
- left: 100%;
- margin-top: -5px;
- border-width: 5px;
- border-style: solid;
- border-color: transparent transparent transparent #333;
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    margin-top: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent transparent #333;
 }
 
 .whatsapp-float:hover .whatsapp-tooltip {
