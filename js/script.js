@@ -1065,7 +1065,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const subtotal = baseSubtotal + exportFee;
             
             const shippingMultiplier = mode === 'rent' ? 2 : 1;
-            const shippingTotal = bestShip * shippingMultiplier;
+            const shippingTotal = bestShip * shippingMultiplier * selections.quantity;
             const totalBeforeDiscount = subtotal + shippingTotal;
             const discount = mode === 'buy' ? PROMO_DISCOUNT : 0;
             const total = totalBeforeDiscount - discount;
@@ -1076,10 +1076,37 @@ document.addEventListener('DOMContentLoaded', () => {
             selections.exportFee = exportFee; // Store but will be bundled in display
             selections.shippingTotal = shippingTotal;
 
+            let subtotalDetailText = '';
+            if (selections.quantity > 1) {
+                subtotalDetailText = ` <small style="color: #666; font-weight: normal;">($${bestPrice.toLocaleString()} x ${selections.quantity}${exportFee > 0 ? ` + $${exportFee} export` : ''})</small>`;
+            }
+
+            let shippingDetailText = '';
+            if (selections['delivery-mode'] === 'Delivery') {
+                if (selections.quantity > 1) {
+                    if (mode === 'rent') {
+                        shippingDetailText = currentLang === 'en' 
+                            ? `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Multiple containers: requires ${selections.quantity} delivery trips & ${selections.quantity} pickup trips (1 container per trip) at $${(bestShip * 2).toLocaleString()} per container.</div>`
+                            : `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Múltiples contenedores: requiere ${selections.quantity} entregas y ${selections.quantity} retiros (1 contenedor por viaje) a $${(bestShip * 2).toLocaleString()} por contenedor.</div>`;
+                    } else {
+                        shippingDetailText = currentLang === 'en'
+                            ? `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Multiple containers: requires ${selections.quantity} separate shipping trips (1 container per trip) at $${bestShip.toLocaleString()} each.</div>`
+                            : `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Múltiples contenedores: requiere ${selections.quantity} viajes independientes (1 contenedor por viaje) a $${bestShip.toLocaleString()} c/u.</div>`;
+                    }
+                } else {
+                    if (mode === 'rent') {
+                        shippingDetailText = `<small style="color: #666;">(${selections.distance.toFixed(1)} miles / ${currentLang === 'en' ? 'Delivery & Pickup' : 'Entrega y Recogida'})</small>`;
+                    } else {
+                        shippingDetailText = `<small style="color: #666;">(${selections.distance.toFixed(1)} miles)</small>`;
+                    }
+                }
+            }
+
             let html = `
                 <div class="summary-item"><strong>Logistics:</strong> <span>${selections['delivery-mode'] || '-'}</span></div>
                 ${selections['logistics-details'] ? `<div class="summary-item"><strong>Details:</strong> <span>${selections['logistics-details']}</span></div>` : ''}
                 <div class="summary-item"><strong>Size:</strong> <span>${selections.size}</span></div>
+                <div class="summary-item"><strong>${t["summary-quantity"] || 'Quantity'}:</strong> <span style="font-weight: 700; color: var(--primary-color);">${selections.quantity}</span></div>
                 <div class="summary-item"><strong>Type of Service:</strong> <span>${selections.condition || '-'}</span></div>
                 <div class="summary-item"><strong>Condition:</strong> <span>${selections['container-condition'] || '-'}</span></div>
                 <div class="summary-item"><strong>Climate:</strong> <span>${selections.type || 'Dry'}</span></div>
@@ -1092,10 +1119,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             html += `
                 <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-                <div class="summary-item"><strong>${t["buy-summary-subtotal"]}:</strong> <span style="font-weight: 700;">$${subtotal.toLocaleString()}</span></div>
+                <div class="summary-item"><strong>${t["buy-summary-subtotal"]}:</strong> <span style="font-weight: 700;">$${subtotal.toLocaleString()}${subtotalDetailText}</span></div>
                 ${selections['delivery-mode'] === 'Delivery' ? `
-                    <div class="summary-item"><strong>${mode === 'rent' ? (currentLang === 'en' ? "Shipping (Delivery & Pickup)" : "Envío (Entrega y Recogida)") : (selections.condition === 'Local' ? t["buy-summary-delivery"] : t["buy-summary-shipping"])}:</strong> 
-                    <span>$${shippingTotal.toLocaleString()}</span> <small style="color: #666;">(${selections.distance.toFixed(1)} miles)</small></div>
+                    <div class="summary-item" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                        <strong>${mode === 'rent' ? (currentLang === 'en' ? "Shipping (Delivery & Pickup)" : "Envío (Entrega y Recogida)") : (selections.condition === 'Local' ? t["buy-summary-delivery"] : t["buy-summary-shipping"])}:</strong> 
+                        <span>$${shippingTotal.toLocaleString()} ${selections.quantity === 1 ? shippingDetailText : ''}</span>
+                    </div>
+                    ${selections.quantity > 1 ? shippingDetailText : ''}
                 ` : ''}
                 ${mode === 'buy' ? `<div class="summary-item" style="color: #27ae60; font-weight: 700;"><strong>Grand Opening Discount:</strong> <span>-$${PROMO_DISCOUNT}</span></div>` : ''}
                 <div class="summary-item total-line" style="font-size: 1.25rem; color: var(--primary-color); margin-top: 10px;"><strong>${t["buy-summary-total"]}:</strong> <span style="font-weight: 700;">$${Math.max(0, total).toLocaleString()}</span></div>
