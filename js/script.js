@@ -3,6 +3,124 @@ const SUPABASE_URL = 'https://xtrceqpuwqetzslwxxux.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Wt5TmlxBw3FOtZ_L_oWt0Q_RoMMVuni';
 let supabaseClient = null;
 
+// ─── Dynamic Price Config (loaded from Supabase 'licencias') ─────────────────
+const LS_PRICE_KEY = 'tulipan_prices_v1';
+let DYNAMIC_PRICES = null; // Will be populated on page load
+
+/**
+ * Maps the hub JSON structure from Supabase into the price dictionaries
+ * expected by the calculators:
+ *   USED_CONTAINER_PRICES, NEW_CONTAINER_PRICES, REEFER_PRICES,
+ *   RENT_PRICES_USED, RENT_PRICES_NEW, DEPOTS
+ *
+ * Size key mapping:
+ *   "20std"  → "20'"
+ *   "40std"  → "40' STD"
+ *   "40hc"   → "40' HC"
+ *   "45hc"   → "45'"
+ * Reefer key mapping:
+ *   "20func" → "20'"
+ *   "40func" → "40' STD" and "40' HC"   (same price for both 40-foot variants)
+ */
+function buildPricesFromHubs(hubs) {
+    const sizeMap = {
+        '20std': "20'",
+        '40std': "40' STD",
+        '40hc':  "40' HC",
+        '45hc':  "45'"
+    };
+
+    const usedPrices  = {};
+    const newPrices   = {};
+    const reeferPrices = {};
+    const depots      = [];
+
+    hubs.forEach(hub => {
+        if (!hub.active) return; // Skip inactive hubs
+
+        const hubName = `${hub.name} (${hub.zip})`;
+        depots.push({ label: hubName, zip: hub.zip });
+
+        // --- USED ---
+        const usedEntry = {};
+        Object.entries(hub.used || {}).forEach(([rawKey, price]) => {
+            const sizeLabel = sizeMap[rawKey];
+            if (sizeLabel && price > 0) usedEntry[sizeLabel] = price;
+        });
+        if (Object.keys(usedEntry).length) usedPrices[hubName] = usedEntry;
+
+        // --- NEW ---
+        const newEntry = {};
+        Object.entries(hub.new || {}).forEach(([rawKey, price]) => {
+            const sizeLabel = sizeMap[rawKey];
+            if (sizeLabel && price > 0) newEntry[sizeLabel] = price;
+        });
+        if (Object.keys(newEntry).length) newPrices[hubName] = newEntry;
+
+        // --- REEFER ---
+        const reeferEntry = {};
+        const r = hub.reefer || {};
+        if (r['20func']  > 0) reeferEntry["20'"]      = r['20func'];
+        if (r['40func']  > 0) { reeferEntry["40' STD"] = r['40func']; reeferEntry["40' HC"] = r['40func']; }
+        if (r['20nofunc'] > 0) reeferEntry["20'"]      = reeferEntry["20'"]      || r['20nofunc'];
+        if (r['40nofunc'] > 0) { reeferEntry["40' STD"] = reeferEntry["40' STD"] || r['40nofunc']; reeferEntry["40' HC"] = reeferEntry["40' HC"] || r['40nofunc']; }
+        if (r['45hc']    > 0) reeferEntry["45'"]       = r['45hc'];
+        if (Object.keys(reeferEntry).length) reeferPrices[hubName] = reeferEntry;
+    });
+
+    // Rental prices: derive from the first active hub that has non-zero values
+    // (or keep a global flat rate if the hub data doesn't carry rent prices)
+    // For now we keep the rent prices as-is; they can be added to the JSON later.
+    return { usedPrices, newPrices, reeferPrices, depots };
+}
+
+/**
+ * Fetches price config from Supabase, caches it in localStorage.
+ * Falls back to cached version if fetch fails.
+ */
+async function loadDynamicPrices() {
+    if (!supabaseClient) return false;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('licencias')
+            .select('config')
+            .eq('clave', 'ROL26_#kR8t!v2M')
+            .single();
+
+        if (error || !data || !data.config) throw new Error(error?.message || 'No config data');
+
+        const hubs = data.config.hubs;
+        if (!Array.isArray(hubs) || hubs.length === 0) throw new Error('Empty hubs array');
+
+        DYNAMIC_PRICES = buildPricesFromHubs(hubs);
+
+        // Cache a fresh copy for offline fallback
+        try { localStorage.setItem(LS_PRICE_KEY, JSON.stringify(hubs)); } catch (_) {}
+
+        console.log('[Prices] Loaded from Supabase ✓', DYNAMIC_PRICES);
+        return true;
+
+    } catch (err) {
+        console.warn('[Prices] Supabase fetch failed, trying localStorage cache...', err);
+
+        try {
+            const cached = localStorage.getItem(LS_PRICE_KEY);
+            if (cached) {
+                const hubs = JSON.parse(cached);
+                DYNAMIC_PRICES = buildPricesFromHubs(hubs);
+                console.log('[Prices] Loaded from localStorage cache ✓');
+                return true;
+            }
+        } catch (_) {}
+
+        console.warn('[Prices] No cache found, falling back to hardcoded prices.');
+        return false; // Hardcoded prices remain as final fallback
+    }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+
 async function sendLeadToSupabase(leadData) {
     if (!supabaseClient) return;
     try {
@@ -51,6 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } catch(e) { console.error("Supabase Init Error:", e); }
     }
+
+    // Load dynamic prices from Supabase (async, with localStorage fallback)
+    loadDynamicPrices();
     
     // Initialize EmailJS once
     if (typeof emailjs !== 'undefined') {
@@ -127,20 +248,21 @@ document.addEventListener('DOMContentLoaded', () => {
             "footer-social-h4": "Follow Us",
             "footer-bottom": "&copy; 2026 RP Tulipan Logistics. All rights reserved.",
             "gallery-h1": "Our Photo Gallery",
+            "sales-badge": "Win $100 Off!",
             "gallery-p": "Explore our containers and logistics operations",
             "buy-h1": "Configure Your Container",
             "buy-p": "Select the options that best fit your needs",
-            "buy-step1": "1. Delivery or Pickup",
-            "buy-step-qty": "5. Select Quantity",
-            "buy-step2": "6. Type of Service",
-            "buy-step-cond": "7. Container Condition",
-            "buy-step3": "4. Climate Control",
-            "buy-step4": "1. Delivery or Pickup",
-            "buy-step5": "2. Logistics Details",
-            "buy-step6": "8. Payment Method",
-            "buy-step7": "9. Contact Information",
-            "buy-step-size": "3. Select Size",
-            "buy-step-contact": "9. Contact Details",
+            "buy-step1": "Delivery or Pickup",
+            "buy-step-qty": "Select Quantity",
+            "buy-step2": "Type of Service",
+            "buy-step-cond": "Container Condition",
+            "buy-step3": "Climate Control",
+            "buy-step4": "Delivery or Pickup",
+            "buy-step5": "Logistics Details",
+            "buy-step6": "Payment Method",
+            "buy-step7": "Contact Information",
+            "buy-step-size": "Select Size",
+            "buy-step-contact": "Contact Details",
             "buy-summary-subtotal": "Container Subtotal",
             "buy-summary-export": "Export Fee",
             "buy-summary-shipping": "Shipping Cost",
@@ -270,17 +392,17 @@ document.addEventListener('DOMContentLoaded', () => {
             "gallery-p": "Explore nuestros contenedores y operaciones logísticas",
             "buy-h1": "Configura tu Contenedor",
             "buy-p": "Selecciona las opciones que mejor se adapten a tus necesidades",
-            "buy-step1": "1. Entrega o Recogida",
-            "buy-step-qty": "5. Seleccionar Cantidad",
-            "buy-step2": "6. Tipo de Servicio",
-            "buy-step-cond": "7. Condición del Contenedor",
-            "buy-step3": "4. Climatización",
-            "buy-step4": "1. Entrega o Recogida",
-            "buy-step5": "2. Detalles de Logística",
-            "buy-step6": "8. Método de Pago",
-            "buy-step7": "9. Información de Contacto",
-            "buy-step-size": "3. Seleccionar Tamaño",
-            "buy-step-contact": "9. Datos de Contacto",
+            "buy-step1": "Entrega o Recogida",
+            "buy-step-qty": "Seleccionar Cantidad",
+            "buy-step2": "Tipo de Servicio",
+            "buy-step-cond": "Condición del Contenedor",
+            "buy-step3": "Climatización",
+            "buy-step4": "Entrega o Recogida",
+            "buy-step5": "Detalles de Logística",
+            "buy-step6": "Método de Pago",
+            "buy-step7": "Información de Contacto",
+            "buy-step-size": "Seleccionar Tamaño",
+            "buy-step-contact": "Datos de Contacto",
             "buy-summary-subtotal": "Subtotal Contenedor",
             "buy-summary-export": "Tarifa de Exportación",
             "buy-summary-shipping": "Costo de Envío",
@@ -327,6 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "rent-step-size": "3. Seleccionar Tamaño",
             "rent-step-qty": "4. Seleccionar Cantidad",
             "rent-opt-used": "Usado",
+            "sales-badge": "¡Gana $100 de Descuento!",
             "rent-opt-new": "Nuevo",
             "rent-h1": "Alquila tu Contenedor",
             "rent-btn-pricing": "Realizar Pedido.",
@@ -570,31 +693,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Countdown Timer Logic
-    const targetDate = new Date('June 1, 2026 00:00:00').getTime();
-
-    const updateCountdown = () => {
-        const now = new Date().getTime();
-        const distance = targetDate - now;
-
-        if (distance < 0) {
-            document.getElementById('countdown-banner').style.display = 'none';
-            return;
-        }
-
-        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-        document.getElementById('days').innerText = days.toString().padStart(2, '0');
-        document.getElementById('hours').innerText = hours.toString().padStart(2, '0');
-        document.getElementById('minutes').innerText = minutes.toString().padStart(2, '0');
-        document.getElementById('seconds').innerText = seconds.toString().padStart(2, '0');
-    };
-
-    setInterval(updateCountdown, 1000);
-    updateCountdown();
 
     function renderGallery() {
         const images = ['imgi_10_58-169x300.jpg', 'imgi_110_Diseno-sin-titulo-5-300x300.png', 'imgi_116_Diseno-sin-titulo-10-300x300.png', 'imgi_117_Diseno-sin-titulo-8-169x300.png', 'imgi_119_Diseno-sin-titulo-6-300x300.png', 'imgi_11_57-169x300.jpg', 'imgi_12_56-169x300.jpg', 'imgi_13_55-169x300.jpg', 'imgi_14_54-169x300.jpg', 'imgi_15_53-169x300.jpg', 'imgi_16_52-169x300.jpg', 'imgi_17_51-169x300.jpg', 'imgi_18_50-169x300.jpg', 'imgi_19_49-169x300.jpg', 'imgi_20_48-169x300.jpg', 'imgi_21_47-169x300.jpg', 'imgi_22_46-169x300.jpg', 'imgi_23_45-169x300.jpg', 'imgi_24_44-169x300.jpg', 'imgi_25_43-169x300.jpg', 'imgi_26_42-169x300.jpg', 'imgi_27_41-169x300.jpg', 'imgi_28_40-169x300.jpg', 'imgi_29_39-169x300.jpg', 'imgi_30_38-169x300.jpg', 'imgi_31_37-169x300.jpg', 'imgi_32_36-169x300.jpg', 'imgi_33_35-169x300.jpg', 'imgi_34_34-169x300.jpg', 'imgi_35_33-169x300.jpg', 'imgi_36_32-169x300.jpg', 'imgi_37_31-169x300.jpg', 'imgi_38_30-169x300.jpg', 'imgi_39_29-169x300.jpg', 'imgi_40_28-169x300.jpg', 'imgi_41_27-169x300.jpg', 'imgi_42_26-169x300.jpg', 'imgi_43_25-169x300.jpg', 'imgi_44_24-169x300.jpg', 'imgi_45_23-169x300.jpg', 'imgi_46_22-169x300.jpg', 'imgi_47_21-169x300.jpg', 'imgi_48_20-169x300.jpg', 'imgi_49_19-169x300.jpg', 'imgi_4_64-169x300.jpg', 'imgi_50_18-1-169x300.jpg', 'imgi_51_17-1-169x300.jpg', 'imgi_52_16-1-169x300.jpg', 'imgi_53_15-1-169x300.jpg', 'imgi_54_14-1-169x300.jpg', 'imgi_55_13-1-169x300.jpg', 'imgi_56_12-1-169x300.jpg', 'imgi_57_11-1-169x300.jpg', 'imgi_58_10-1-169x300.jpg', 'imgi_59_9-1-169x300.jpg', 'imgi_5_63-169x300.jpg', 'imgi_60_8-1-169x300.jpg', 'imgi_61_7-1-169x300.jpg', 'imgi_62_6-1-169x300.jpg', 'imgi_63_5-1-169x300.jpg', 'imgi_64_4-1-169x300.jpg', 'imgi_65_3-1-169x300.jpg', 'imgi_66_2-1-169x300.jpg', 'imgi_67_1-1-169x300.jpg', 'imgi_68_18-300x300.jpg', 'imgi_69_17-300x300.jpg', 'imgi_6_62-169x300.jpg', 'imgi_70_16-300x300.jpg', 'imgi_71_15-300x300.jpg', 'imgi_72_14-300x300.jpg', 'imgi_73_13-300x300.jpg', 'imgi_74_12-300x300.jpg', 'imgi_75_11-300x300.jpg', 'imgi_76_10-300x300.jpg', 'imgi_77_9-300x300.jpg', 'imgi_78_8-300x300.jpg', 'imgi_79_7-300x300.jpg', 'imgi_7_61-169x300.jpg', 'imgi_80_6-300x300.jpg', 'imgi_81_5-300x300.jpg', 'imgi_82_4-300x300.jpg', 'imgi_83_3-300x300.jpg', 'imgi_84_2-300x300.jpg', 'imgi_85_1-300x300.jpg', 'imgi_86_Diseno-sin-titulo-24-300x300.png', 'imgi_87_Diseno-sin-titulo-25-300x300.png', 'imgi_88_Diseno-sin-titulo-29-300x300.png', 'imgi_89_services-fullfill-300x185.jpg', 'imgi_8_60-169x300.jpg', 'imgi_90_services-finalmile-300x185.jpg', 'imgi_93_Diseno-sin-titulo-22-300x300.png', 'imgi_94_Diseno-sin-titulo-23-300x300.png', 'imgi_95_Diseno-sin-titulo-26-300x300.png', 'imgi_98_Diseno-sin-titulo-19-300x300.png', 'imgi_9_59-169x300.jpg'];
@@ -657,9 +755,39 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
 
-                        <!-- Step 5: Payment Method -->
-                        <div class="buy-step" id="${mode}-step-payment-method" style="display:none;">
+                        <!-- Step 5: Lucky Box Game -->
+                        <div class="buy-step" id="${mode}-step-game" style="display:none;">
                             <button class="btn-back back-btn-action" data-prev="type"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3>${currentLang === 'en' ? '🎁 Your Lucky Moment!' : '🎁 ¡Tu Momento de Suerte!'}</h3>
+                            <div class="game-step-wrapper">
+                                <p class="game-subtitle">${currentLang === 'en' ? 'Pick one container and reveal your exclusive prize!' : '¡Elige un contenedor y revela tu premio exclusivo!'}</p>
+                                <div class="mystery-boxes" id="${mode}-mystery-boxes">
+                                    <div class="mystery-box" data-box="0">
+                                        <i class="fas fa-box"></i>
+                                        <span>${currentLang === 'en' ? 'Container A' : 'Contenedor A'}</span>
+                                    </div>
+                                    <div class="mystery-box" data-box="1">
+                                        <i class="fas fa-box"></i>
+                                        <span>${currentLang === 'en' ? 'Container B' : 'Contenedor B'}</span>
+                                    </div>
+                                    <div class="mystery-box" data-box="2">
+                                        <i class="fas fa-box"></i>
+                                        <span>${currentLang === 'en' ? 'Container C' : 'Contenedor C'}</span>
+                                    </div>
+                                </div>
+                                <div class="prize-reveal" id="${mode}-prize-reveal">
+                                    <span class="prize-icon" id="${mode}-prize-icon"></span>
+                                    <div class="prize-title" id="${mode}-prize-title"></div>
+                                    <div class="prize-desc" id="${mode}-prize-desc"></div>
+                                    <div class="prize-code" id="${mode}-prize-code" style="display:none;"></div>
+                                    <button class="btn btn-primary prize-continue-btn" id="${mode}-prize-continue">${currentLang === 'en' ? 'Continue to Payment →' : 'Continuar al Pago →'}</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 6: Payment Method -->
+                        <div class="buy-step" id="${mode}-step-payment-method" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="game"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="${mode}-step-pay">${mode === 'buy' ? t["buy-step6"] : t["rent-step-pay"]}</h3>
                             <div class="payment-note">
                                 <i class="fas fa-hand-holding-dollar"></i>
@@ -680,6 +808,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="summary-details price-preview-details">
                                 <!-- JS will populate summary details here -->
                             </div>
+                            
+                            <div class="promo-code-container" style="margin: 15px 0; display: flex; gap: 10px; max-width: 400px; margin-left: auto; margin-right: auto;">
+                                <input type="text" id="${mode}-promo-input" class="promo-input" placeholder="${currentLang === 'en' ? 'Promo Code' : 'Código Promocional'}" style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; text-transform: uppercase;">
+                                <button class="btn btn-secondary apply-promo-btn" id="${mode}-apply-promo" style="padding: 12px 20px; min-width: 100px;">${currentLang === 'en' ? 'Apply' : 'Aplicar'}</button>
+                            </div>
+                            <div id="${mode}-promo-message" style="margin-top: 5px; font-size: 0.9rem; font-weight: 600; text-align: center;"></div>
+
                             <button class="btn btn-primary next-btn-action" data-next="contact" style="width: 100%; margin-top: 20px;">${t["buy-btn-next"]}</button>
                         </div>
 
@@ -741,16 +876,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </main>`;
 
-        const DEPOT_INVENTORY = {
-            "Savannah (31408)": ["20'", "40' STD", "40' HC", "45'"],
-            "Atlanta (30288)": ["20'", "40' STD", "40' HC"],
-            "Jacksonville (32218)": ["20'", "40' STD", "40' HC"],
-            "Titusville (32780)": ["20'", "40' STD", "40' HC"],
-            "Tampa (33619)": ["20'", "40' STD", "40' HC"],
-            "Miami (33178)": ["20'", "40' STD", "40' HC", "45'"]
-        };
-
-        const USED_CONTAINER_PRICES = {
+        // ── Price Data: use Supabase dynamic prices if loaded, else fall back to hardcoded ──
+        const USED_CONTAINER_PRICES = (DYNAMIC_PRICES && DYNAMIC_PRICES.usedPrices) ? DYNAMIC_PRICES.usedPrices : {
             "Savannah (31408)": { "20'": 1450, "40' STD": 1800, "40' HC": 1850, "45'": 2050 },
             "Atlanta (30288)": { "20'": 1800, "40' STD": 2100, "40' HC": 2150 },
             "Jacksonville (32218)": { "20'": 1800, "40' STD": 2050, "40' HC": 2100 },
@@ -759,14 +886,14 @@ document.addEventListener('DOMContentLoaded', () => {
             "Miami (33178)": { "20'": 1500, "40' STD": 1800, "40' HC": 1850, "45'": 2300 }
         };
 
-        const NEW_CONTAINER_PRICES = {
+        const NEW_CONTAINER_PRICES = (DYNAMIC_PRICES && DYNAMIC_PRICES.newPrices) ? DYNAMIC_PRICES.newPrices : {
             "Savannah (31408)": { "20'": 2650, "40' HC": 3650 },
             "Jacksonville (32218)": { "20'": 3150, "40' HC": 4150 },
             "Tampa (33619)": { "20'": 2950, "40' HC": 3950 },
             "Miami (33178)": { "20'": 2550, "40' HC": 3550 }
         };
 
-        const REEFER_PRICES = {
+        const REEFER_PRICES = (DYNAMIC_PRICES && DYNAMIC_PRICES.reeferPrices) ? DYNAMIC_PRICES.reeferPrices : {
             "Savannah (31408)": { "20'": 8200, "40' STD": 6700, "40' HC": 6700, "45'": 6700 },
             "Atlanta (30288)": { "20'": 8200, "40' STD": 6700, "40' HC": 6700 },
             "Jacksonville (32218)": { "20'": 8200, "40' STD": 6700, "40' HC": 6700 },
@@ -776,7 +903,39 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const RENT_PRICES_USED = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
-        const RENT_PRICES_NEW = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
+        const RENT_PRICES_NEW  = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
+
+        const DEPOTS = (DYNAMIC_PRICES && DYNAMIC_PRICES.depots && DYNAMIC_PRICES.depots.length > 0)
+            ? DYNAMIC_PRICES.depots
+            : [
+                { label: "Savannah (31408)",    zip: "31408" },
+                { label: "Atlanta (30288)",      zip: "30288" },
+                { label: "Jacksonville (32218)", zip: "32218" },
+                { label: "Titusville (32780)",   zip: "32780" },
+                { label: "Tampa (33619)",         zip: "33619" },
+                { label: "Miami (33178)",         zip: "33178" }
+            ];
+
+        // Helper: returns all unique sizes that have at least one non-zero price
+        const getAvailableSizes = (depotName = null, currentMode = 'buy') => {
+            const allSizes = ["20'", "40' STD", "40' HC", "45'"];
+            return allSizes.filter(size => {
+                if (currentMode === 'rent') {
+                    const hasRentUsed = (RENT_PRICES_USED[size] || 0) > 0;
+                    const hasRentNew  = (RENT_PRICES_NEW[size]  || 0) > 0;
+                    return hasRentUsed || hasRentNew;
+                }
+                
+                const depotsToCheck = depotName ? [{label: depotName}] : DEPOTS;
+                return depotsToCheck.some(d => {
+                    const dl = d.label;
+                    const hasUsed   = USED_CONTAINER_PRICES[dl]  && (USED_CONTAINER_PRICES[dl][size]  || 0) > 0;
+                    const hasNew    = NEW_CONTAINER_PRICES[dl]   && (NEW_CONTAINER_PRICES[dl][size]   || 0) > 0;
+                    const hasReefer = REEFER_PRICES[dl]          && (REEFER_PRICES[dl][size]          || 0) > 0;
+                    return hasUsed || hasNew || hasReefer;
+                });
+            });
+        };
 
         const SHIPPING_RATES = [
             { max: 30, price: 350 },
@@ -785,21 +944,12 @@ document.addEventListener('DOMContentLoaded', () => {
             { max: 100, price: 550 }
         ];
         const FLAT_RATE_OVER_100 = 5.5;
-        const PROMO_DISCOUNT = 200;
+        const PROMO_DISCOUNT = 0;
 
-        const DEPOTS = [
-            { label: "Savannah (31408)", zip: "31408" },
-            { label: "Atlanta (30288)", zip: "30288" },
-            { label: "Jacksonville (32218)", zip: "32218" },
-            { label: "Titusville (32780)", zip: "32780" },
-            { label: "Tampa (33619)", zip: "33619" },
-            { label: "Miami (33178)", zip: "33178" }
-        ];
-
-        const selections = { size: null, quantity: 1, condition: mode === 'rent' ? 'Local' : null, 'container-condition': null, type: mode === 'rent' ? 'Dry' : null, 'delivery-mode': mode === 'rent' ? 'Delivery' : null, 'logistics-details': null, 'payment-method': null, contact: {}, distance: 0, shippingCost: 0, pricePerUnit: 0, bestDepot: null, allDistances: {} };
+        const selections = { size: null, quantity: 1, condition: mode === 'rent' ? 'Local' : null, 'container-condition': null, type: mode === 'rent' ? 'Dry' : null, 'delivery-mode': mode === 'rent' ? 'Delivery' : null, 'logistics-details': null, 'payment-method': null, contact: {}, distance: 0, shippingCost: 0, pricePerUnit: 0, bestDepot: null, allDistances: {}, gamePrize: null, validPromoCode: null };
         let steps = mode === 'buy' 
             ? ['condition'] 
-            : ['logistics-details', 'size', 'qty', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
+            : ['logistics-details', 'size', 'qty', 'container-condition', 'type', 'game', 'payment-method', 'price', 'contact'];
         let currentIndex = 0;
 
         const calculateShippingCost = (miles) => {
@@ -840,11 +990,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const updateSizeOptions = () => {
             const container = viewEl.querySelector(`#${mode}-size-options-container`);
-            const allSizes = ["20'", "40' STD", "40' HC", "45'"];
-            const sizeIcons = { "20'": "fa-box", "40' STD": "fa-boxes", "40' HC": "fa-boxes", "45'": "fa-boxes" };
+            // Show sizes that have a price in the selected depot (or any depot if none selected)
+            const availableSizes = getAvailableSizes(selections.bestDepot, mode);
+            const sizeIcons  = { "20'": "fa-box", "40' STD": "fa-boxes", "40' HC": "fa-boxes", "45'": "fa-boxes" };
             const sizeLabels = { "20'": t["buy-opt-20"], "40' STD": t["buy-opt-40std"], "40' HC": t["buy-opt-40"], "45'": t["buy-opt-45"] };
 
-            container.innerHTML = allSizes.map(size => `
+            container.innerHTML = availableSizes.map(size => `
                 <div class="option-card size-option" data-value="${size}">
                     <i class="fas ${sizeIcons[size]}"></i>
                     <span>${sizeLabels[size]}</span>
@@ -871,11 +1022,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const updateClimateOptions = () => {
             const container = viewEl.querySelector(`#${mode}-climate-options`);
+            const size = selections.size;
             
-            container.innerHTML = `
-                <div class="option-card" data-value="Dry"><i class="fas fa-wind"></i><span>${t["buy-opt-dry"]}</span></div>
-                <div class="option-card" data-value="Reefer"><i class="fas fa-snowflake"></i><span>${t["buy-opt-reefer"]}</span></div>
-            `;
+            let html = '';
+            let hasDry = false;
+            let hasReefer = false;
+            
+            if (mode === 'rent') {
+                hasDry = (RENT_PRICES_USED[size] || 0) > 0 || (RENT_PRICES_NEW[size] || 0) > 0;
+                hasReefer = false;
+            } else {
+                const usedAvailable = DEPOTS.some(d => USED_CONTAINER_PRICES[d.label] && (USED_CONTAINER_PRICES[d.label][size] || 0) > 0);
+                const newAvailable  = DEPOTS.some(d => NEW_CONTAINER_PRICES[d.label] && (NEW_CONTAINER_PRICES[d.label][size] || 0) > 0);
+                const reeferAvailable = DEPOTS.some(d => REEFER_PRICES[d.label] && (REEFER_PRICES[d.label][size] || 0) > 0);
+                
+                hasDry = (usedAvailable || newAvailable);
+                hasReefer = reeferAvailable;
+            }
+            
+            if (hasDry) {
+                html += `<div class="option-card" data-value="Dry"><i class="fas fa-wind"></i><span>${t["buy-opt-dry"]}</span></div>`;
+            }
+            if (hasReefer) {
+                html += `<div class="option-card" data-value="Reefer"><i class="fas fa-snowflake"></i><span>${t["buy-opt-reefer"]}</span></div>`;
+            }
+
+            container.innerHTML = html;
 
             container.querySelectorAll('.option-card').forEach(card => {
                 card.addEventListener('click', () => {
@@ -897,27 +1069,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const updateConditionOptions = (serviceType) => {
             const container = viewEl.querySelector(`#${mode}-cond-options`);
-            const hasNew = mode === 'buy';
+            const size = selections.size;
             
             let html = '';
             if (mode === 'rent') {
-                const hasNewRent = RENT_PRICES_NEW[selections.size];
-                html = `<div class="option-card" data-value="Used"><i class="fas fa-check-circle"></i><span>${t["rent-opt-used"]}</span></div>`;
+                const hasUsedRent = (RENT_PRICES_USED[size] || 0) > 0;
+                const hasNewRent  = (RENT_PRICES_NEW[size] || 0) > 0;
+                
+                if (hasUsedRent) {
+                    html += `<div class="option-card" data-value="Used"><i class="fas fa-check-circle"></i><span>${t["rent-opt-used"]}</span></div>`;
+                }
                 if (hasNewRent) {
                     html += `<div class="option-card" data-value="New"><i class="fas fa-star"></i><span>${t["rent-opt-new"]}</span></div>`;
                 }
             } else {
-                if (serviceType === 'International') {
-                    html = `<div class="option-card" data-value="CW"><i class="fas fa-check-circle"></i><span>${t["buy-opt-cw"]}</span></div>`;
-                } else {
-                    // Storage (Local) shows both WWT and CW
-                    html = `
-                        <div class="option-card" data-value="WWT"><i class="fas fa-water"></i><span>${t["buy-opt-wwt"]}</span></div>
-                        <div class="option-card" data-value="CW"><i class="fas fa-check-circle"></i><span>${t["buy-opt-cw"]}</span></div>
-                    `;
+                const hasUsedPrice = DEPOTS.some(d => USED_CONTAINER_PRICES[d.label] && (USED_CONTAINER_PRICES[d.label][size] || 0) > 0);
+                const hasNewPrice  = DEPOTS.some(d => NEW_CONTAINER_PRICES[d.label] && (NEW_CONTAINER_PRICES[d.label][size] || 0) > 0);
+
+                if (hasUsedPrice) {
+                    if (serviceType === 'International') {
+                        html += `<div class="option-card" data-value="CW"><i class="fas fa-check-circle"></i><span>${t["buy-opt-cw"]}</span></div>`;
+                    } else {
+                        // Storage (Local) shows both WWT and CW
+                        html += `
+                            <div class="option-card" data-value="WWT"><i class="fas fa-water"></i><span>${t["buy-opt-wwt"]}</span></div>
+                            <div class="option-card" data-value="CW"><i class="fas fa-check-circle"></i><span>${t["buy-opt-cw"]}</span></div>
+                        `;
+                    }
                 }
 
-                if (hasNew) {
+                if (hasNewPrice) {
                     html += `<div class="option-card" data-value="New"><i class="fas fa-star"></i><span>${t["buy-opt-new-cond"]}</span></div>`;
                 }
             }
@@ -952,11 +1133,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             container.innerHTML = `
                 <div class="form-group" style="margin-top: 20px;">
-                    ${mode === 'buy' ? `
-                    <div class="promo-badge" style="background: var(--primary-color); color: white; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-weight: 700; animation: pulse 2s infinite;">
-                        <i class="fas fa-gift"></i> GRAND OPENING: $200 OFF!
-                    </div>
-                    ` : ''}
+
                     <input type="text" id="${mode}-zip-input" placeholder="${t["buy-zip-placeholder"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 25px;">
                     <button class="btn btn-primary" id="${mode}-btn-zip-next" style="width: 100%;" disabled>${t["buy-btn-next"]}</button>
                 </div>
@@ -1067,12 +1244,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const shippingMultiplier = mode === 'rent' ? 2 : 1;
             const shippingTotal = bestShip * shippingMultiplier * selections.quantity;
             const totalBeforeDiscount = subtotal + shippingTotal;
-            const discount = mode === 'buy' ? PROMO_DISCOUNT : 0;
+
+            // Apply game prize discount
+            let gameDiscount = 0;
+            let gameDiscountLabel = '';
+            if (selections.gamePrize === '2x1shipping' && selections['delivery-mode'] === 'Delivery') {
+                gameDiscount = bestShip; // One trip free
+                gameDiscountLabel = currentLang === 'en' ? 'Prize: 2-for-1 Shipping 🚚' : 'Premio: 2x1 en Envío 🚚';
+            } else if (selections.gamePrize === '$50off') {
+                gameDiscount = 50;
+                gameDiscountLabel = currentLang === 'en' ? 'Prize: $50 Discount 🎉' : 'Premio: $50 Descuento 🎉';
+            }
+            // code100 prize doesn't apply to current order, only future orders
+
+            // Apply manual promo code
+            let manualPromoDiscount = 0;
+            if (selections.validPromoCode) {
+                manualPromoDiscount = selections.validPromoCode.discount;
+            }
+
+            const discount = (mode === 'buy' ? PROMO_DISCOUNT : 0) + gameDiscount + manualPromoDiscount;
             const total = totalBeforeDiscount - discount;
 
             selections.subtotal = subtotal;
             selections.total = total;
             selections.discount = discount;
+            selections.gameDiscount = gameDiscount;
+            selections.gameDiscountLabel = gameDiscountLabel;
+            selections.manualPromoDiscount = manualPromoDiscount;
             selections.exportFee = exportFee; // Store but will be bundled in display
             selections.shippingTotal = shippingTotal;
 
@@ -1127,7 +1326,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     ${selections.quantity > 1 ? shippingDetailText : ''}
                 ` : ''}
-                ${mode === 'buy' ? `<div class="summary-item" style="color: #27ae60; font-weight: 700;"><strong>Grand Opening Discount:</strong> <span>-$${PROMO_DISCOUNT}</span></div>` : ''}
+
+                ${selections.gameDiscount > 0 ? `
+                    <div class="summary-item" style="color: #2ecc71; font-weight: 700;">
+                        <strong>${selections.gameDiscountLabel}:</strong>
+                        <span>-$${selections.gameDiscount.toLocaleString()}</span>
+                    </div>
+                ` : ''}
+
+                ${selections.manualPromoDiscount > 0 ? `
+                    <div class="summary-item" style="color: #2ecc71; font-weight: 700;">
+                        <strong>${currentLang === 'en' ? 'Promo Code Applied:' : 'Código Promo Aplicado:'}</strong>
+                        <span>-$${selections.manualPromoDiscount.toLocaleString()}</span>
+                    </div>
+                ` : ''}
+
+                ${selections.gamePrize === 'code100' ? `
+                    <div class="summary-item" style="background: #fff9e6; border-radius: 8px; padding: 10px 14px; margin-top: 8px; border: 1px dashed #f4c430; flex-direction: column; align-items: flex-start; gap: 4px;">
+                        <strong style="color: #b8860b;">${currentLang === 'en' ? '🏷️ Your Promo Code for Next Purchase:' : '🏷️ Tu Código Promo para la Próxima Compra:'}</strong>
+                        <span style="font-family: monospace; font-size: 1.1rem; font-weight: 800; letter-spacing: 2px; color: var(--primary-color);">${selections.generatedPromoCode}</span>
+                    </div>
+                ` : ''}
+
                 <div class="summary-item total-line" style="font-size: 1.25rem; color: var(--primary-color); margin-top: 10px;"><strong>${t["buy-summary-total"]}:</strong> <span style="font-weight: 700;">$${Math.max(0, total).toLocaleString()}</span></div>
             `;
 
@@ -1138,6 +1358,68 @@ document.addEventListener('DOMContentLoaded', () => {
 
             container.innerHTML = html;
         };
+
+        // Promo code apply logic
+        viewEl.querySelectorAll('.apply-promo-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const stepEl = btn.closest('.buy-step');
+                const input = stepEl.querySelector('.promo-input');
+                const msgEl = stepEl.querySelector(`#${mode}-promo-message`);
+                const code = input.value.trim().toUpperCase();
+
+                if (!code) {
+                    msgEl.textContent = currentLang === 'en' ? 'Please enter a code.' : 'Por favor ingresa un código.';
+                    msgEl.style.color = '#e74c3c';
+                    return;
+                }
+
+                if (selections.generatedPromoCode && code === selections.generatedPromoCode) {
+                    msgEl.textContent = currentLang === 'en' ? 'This code is valid for your NEXT purchase only.' : 'Este código es válido solo para tu PRÓXIMA compra.';
+                    msgEl.style.color = '#e74c3c';
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = '...';
+
+                try {
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/promo_codes?code=eq.${code}&select=*`, {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    });
+                    const data = await response.json();
+
+                    if (data && data.length > 0) {
+                        const promo = data[0];
+
+                        if (promo.is_used) {
+                            msgEl.textContent = currentLang === 'en' ? 'This code has already been used.' : 'Este código ya ha sido usado.';
+                            msgEl.style.color = '#e74c3c';
+                        } else if (!promo.is_active) {
+                            msgEl.textContent = currentLang === 'en' ? 'Pending activation. It will activate when you complete the purchase that generated it.' : 'Pendiente de activación. Se activará al completar la compra que lo generó.';
+                            msgEl.style.color = '#e74c3c';
+                        } else {
+                            msgEl.textContent = currentLang === 'en' ? 'Promo code applied successfully!' : '¡Código promo aplicado con éxito!';
+                            msgEl.style.color = '#2ecc71';
+                            selections.validPromoCode = { code: promo.code, discount: promo.discount };
+                            showPricePreview(); // Re-render summary with discount
+                        }
+                    } else {
+                        msgEl.textContent = currentLang === 'en' ? 'Invalid code.' : 'Código inválido.';
+                        msgEl.style.color = '#e74c3c';
+                    }
+                } catch (error) {
+                    console.error('Error validating promo code:', error);
+                    msgEl.textContent = 'Error validating code.';
+                    msgEl.style.color = '#e74c3c';
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = currentLang === 'en' ? 'Apply' : 'Aplicar';
+                }
+            });
+        });
 
         const showSummary = () => {
             const finalContainer = viewEl.querySelector('.final-summary-details');
@@ -1169,7 +1451,148 @@ document.addEventListener('DOMContentLoaded', () => {
             if (stepId === 'size') updateSizeOptions();
             if (stepId === 'type') updateClimateOptions();
             if (stepId === 'container-condition') updateConditionOptions(selections.condition);
+            if (stepId === 'game') initGameStep();
             if (stepId === 'price') showPricePreview();
+        };
+
+        const launchConfetti = () => {
+            let canvas = document.getElementById('confetti-canvas');
+            if (!canvas) {
+                canvas = document.createElement('canvas');
+                canvas.id = 'confetti-canvas';
+                document.body.appendChild(canvas);
+            }
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const pieces = Array.from({length: 120}, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                r: Math.random() * 8 + 4,
+                d: Math.random() * 80 + 20,
+                color: ['#d90429','#f4c430','#2ecc71','#3498db','#e74c3c','#9b59b6'][Math.floor(Math.random()*6)],
+                tilt: Math.floor(Math.random() * 10) - 10,
+                tiltAngle: 0,
+                tiltAngleIncrement: (Math.random() * 0.07) + 0.05
+            }));
+            let frame = 0;
+            const draw = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                pieces.forEach(p => {
+                    ctx.beginPath();
+                    ctx.lineWidth = p.r / 2;
+                    ctx.strokeStyle = p.color;
+                    ctx.moveTo(p.x + p.tilt + p.r / 4, p.y);
+                    ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 4);
+                    ctx.stroke();
+                    p.tiltAngle += p.tiltAngleIncrement;
+                    p.y += (Math.cos(frame / 20) + 1 + p.r / 2) / 2;
+                    p.x += Math.sin(frame / 60) * 2;
+                    p.tilt = Math.sin(p.tiltAngle) * 15;
+                    if (p.y > canvas.height) { p.y = -p.r * 2; p.x = Math.random() * canvas.width; }
+                });
+                frame++;
+                if (frame < 200) requestAnimationFrame(draw);
+                else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.remove(); }
+            };
+            draw();
+        };
+
+        const initGameStep = () => {
+            const boxesEl = viewEl.querySelector(`#${mode}-mystery-boxes`);
+            const revealEl = viewEl.querySelector(`#${mode}-prize-reveal`);
+            const prizeIcon = viewEl.querySelector(`#${mode}-prize-icon`);
+            const prizeTitle = viewEl.querySelector(`#${mode}-prize-title`);
+            const prizeDesc = viewEl.querySelector(`#${mode}-prize-desc`);
+            const prizeCode = viewEl.querySelector(`#${mode}-prize-code`);
+            const continueBtn = viewEl.querySelector(`#${mode}-prize-continue`);
+
+            // Reset state each time step is shown
+            revealEl.style.display = 'none';
+            boxesEl.querySelectorAll('.mystery-box').forEach(b => {
+                b.classList.remove('opened', 'winner');
+                b.style.pointerEvents = 'auto';
+            });
+
+            // Determine prize based on selection
+            const is2x1Winner = (selections.size === "20'" && parseInt(selections.quantity) === 2);
+            // 20% chance for $50off, 80% chance for code100
+            const randomPrize = Math.random() < 0.2 ? '$50off' : 'code100';
+
+            boxesEl.querySelectorAll('.mystery-box').forEach(box => {
+                box.addEventListener('click', () => {
+                    // Mark all as opened, winner as winner
+                    boxesEl.querySelectorAll('.mystery-box').forEach(b => {
+                        b.classList.add('opened');
+                        b.querySelector('i').className = 'fas fa-box-open';
+                    });
+                    box.classList.remove('opened');
+                    box.classList.add('winner');
+                    box.querySelector('i').className = 'fas fa-trophy';
+
+                    // Show prize
+                    if (is2x1Winner) {
+                        selections.gamePrize = '2x1shipping';
+                        prizeIcon.textContent = '🎉';
+                        prizeTitle.textContent = currentLang === 'en' ? '🎊 You Won FREE Shipping (2-for-1)!' : '🎊 ¡Ganaste Envío GRATIS (2x1)!';
+                        prizeDesc.innerHTML = currentLang === 'en'
+                            ? 'Congratulations! You have won a <strong>2-for-1 shipping deal</strong>. One of your shipping fees is completely on us!'
+                            : '¡Felicidades! Has ganado un <strong>envío 2x1</strong>. ¡El costo de uno de tus envíos corre completamente por nuestra cuenta!';
+                        prizeCode.style.display = 'none';
+                        launchConfetti();
+                    } else if (randomPrize === '$50off') {
+                        selections.gamePrize = '$50off';
+                        prizeIcon.textContent = '🎉';
+                        prizeTitle.textContent = currentLang === 'en' ? '$50 Discount!' : '¡$50 de Descuento!';
+                        prizeDesc.textContent = currentLang === 'en'
+                            ? 'Congratulations! You have won a $50 discount applied directly to your order.'
+                            : '¡Felicidades! Has ganado un descuento de $50 aplicado directamente a tu pedido.';
+                        prizeCode.style.display = 'none';
+                        launchConfetti();
+                    } else {
+                        selections.gamePrize = 'code100';
+                        // Generate random unique code
+                        const randomCode = 'RP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                        selections.generatedPromoCode = randomCode;
+
+                        // Save to Supabase
+                        fetch(`${SUPABASE_URL}/rest/v1/promo_codes`, {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_KEY,
+                                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=minimal'
+                            },
+                            body: JSON.stringify({ code: randomCode, discount: 100, is_used: false, is_active: false })
+                        }).catch(e => console.error('Error saving promo code:', e));
+
+                        prizeIcon.textContent = '🏷️';
+                        prizeTitle.textContent = currentLang === 'en' ? 'Promo Code for $100 Off!' : '¡Código Promo $100 Off!';
+                        prizeDesc.textContent = currentLang === 'en'
+                            ? 'Apply this code on your NEXT purchase to save $100!'
+                            : '¡Aplica este código en tu PRÓXIMA compra y ahorra $100!';
+                        prizeCode.style.display = 'inline-block';
+                        prizeCode.textContent = randomCode;
+                        launchConfetti();
+                    }
+
+                    // Show reveal panel
+                    revealEl.style.display = 'block';
+
+                    // Continue button advances to next step
+                    continueBtn.onclick = () => {
+                        revealEl.style.display = 'none';
+                        viewEl.querySelector(`#${mode}-step-game`).style.display = 'none';
+                        currentIndex++;
+                        const nextStep = steps[currentIndex];
+                        prepareStep(nextStep);
+                        const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
+                        nextEl.style.display = 'block';
+                        nextEl.classList.add('fade-in');
+                    };
+                }, { once: true });
+            });
         };
 
         viewEl.querySelectorAll('.qty-btn').forEach(btn => {
@@ -1196,11 +1619,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (stepId === 'condition') {
                     if (card.dataset.value === 'International') {
-                        steps = ['condition', 'logistics-details', 'size', 'qty', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
+                        steps = ['condition', 'logistics-details', 'size', 'qty', 'container-condition', 'type', 'game', 'payment-method', 'price', 'contact'];
                         selections['delivery-mode'] = 'Pickup';
                     } else {
                         // Storage sequence
-                        steps = ['condition', 'delivery-mode', 'logistics-details', 'size', 'qty', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
+                        steps = ['condition', 'delivery-mode', 'logistics-details', 'size', 'qty', 'container-condition', 'type', 'game', 'payment-method', 'price', 'contact'];
                     }
                 }
 
@@ -1284,6 +1707,34 @@ Phone: ${selections.contact.phone}
                 message: summary,
                 title: mode === 'buy' ? 'New Purchase Request' : 'New Rental Request'
             };
+
+            // Background task: burn promo code if used
+            if (selections.validPromoCode) {
+                fetch(`${SUPABASE_URL}/rest/v1/promo_codes?code=eq.${selections.validPromoCode.code}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ is_used: true })
+                }).catch(e => console.error('Failed to burn promo code', e));
+            }
+
+            // Background task: activate the promo code they just won
+            if (selections.generatedPromoCode) {
+                fetch(`${SUPABASE_URL}/rest/v1/promo_codes?code=eq.${selections.generatedPromoCode}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ is_active: true })
+                }).catch(e => console.error('Failed to activate promo code', e));
+            }
 
             if (typeof emailjs !== 'undefined') {
                 // Send to Supabase (Safe call)

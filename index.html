@@ -62,31 +62,7 @@
             </div>
         </div>
     </nav>
-    <div id="countdown-banner" style="display: none;">
-        <div class="container">
-            <div class="countdown-content">
-                <p class="countdown-text" data-i18n="countdown-text">GRAND OPENING DISCOUNT end in:</p>
-                <div id="countdown-timer">
-                    <div class="timer-segment">
-                        <span id="days">00</span>
-                        <label data-i18n="timer-days">Days</label>
-                    </div>
-                    <div class="timer-segment">
-                        <span id="hours">00</span>
-                        <label data-i18n="timer-hours">Hours</label>
-                    </div>
-                    <div class="timer-segment">
-                        <span id="minutes">00</span>
-                        <label data-i18n="timer-minutes">Minutes</label>
-                    </div>
-                    <div class="timer-segment">
-                        <span id="seconds">00</span>
-                        <label data-i18n="timer-seconds">Seconds</label>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- Main Content Wrapper -->
     <div id="home-view">
@@ -94,14 +70,7 @@
         <header id="home" class="hero">
             <div class="hero-overlay"></div>
             <div class="container hero-content">
-                <div class="side-promo-flap fade-in">
-                    <div class="promo-content">
-                        <span class="promo-label" data-i18n="promo-label">GRAND OPENING DISCOUNT</span>
-                        <span class="promo-price">$200 OFF</span>
-                        <span class="promo-only" data-i18n="promo-only">PURCHASE ONLY</span>
-                        <span class="promo-sub" data-i18n="promo-sub">WEBSITE LAUNCH SPECIAL</span>
-                    </div>
-                </div>
+
                 <h1 class="fade-in" data-i18n="hero-title">Modern Container <span>Solutions</span></h1>
                 <p class="fade-in delay-1" data-i18n="hero-p">Global logistics made simple. We sell, rent, and transport high-quality containers tailored to your business needs.</p>
                 <div class="hero-btns fade-in delay-2">
@@ -119,7 +88,11 @@
                 </div>
                 <div class="services-grid">
                     <!-- Sales -->
-                    <div class="service-card reveal">
+                    <div class="service-card reveal" style="position: relative;">
+                        <!-- Promo Badge -->
+                        <div class="prize-badge" style="position: absolute; top: 12px; right: 12px; background: linear-gradient(135deg, #f1c40f, #e67e22); color: white; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; z-index: 10; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); animation: pulse 2s infinite; transform: rotate(3deg);">
+                            <i class="fas fa-gift"></i> <span data-i18n="sales-badge">Win $100 Off!</span>
+                        </div>
                         <div class="card-img">
                             <img src="assets/sales.png" alt="Container Sales">
                         </div>
