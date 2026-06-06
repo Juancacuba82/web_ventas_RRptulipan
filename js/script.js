@@ -248,7 +248,6 @@ document.addEventListener('DOMContentLoaded', () => {
             "footer-social-h4": "Follow Us",
             "footer-bottom": "&copy; 2026 RP Tulipan Logistics. All rights reserved.",
             "gallery-h1": "Our Photo Gallery",
-            "sales-badge": "Win $100 Off!",
             "gallery-p": "Explore our containers and logistics operations",
             "buy-h1": "Configure Your Container",
             "buy-p": "Select the options that best fit your needs",
@@ -449,7 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
             "rent-step-size": "3. Seleccionar Tamaño",
             "rent-step-qty": "4. Seleccionar Cantidad",
             "rent-opt-used": "Usado",
-            "sales-badge": "¡Gana $100 de Descuento!",
             "rent-opt-new": "Nuevo",
             "rent-h1": "Alquila tu Contenedor",
             "rent-btn-pricing": "Realizar Pedido.",
@@ -755,39 +753,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
 
-                        <!-- Step 5: Lucky Box Game -->
-                        <div class="buy-step" id="${mode}-step-game" style="display:none;">
-                            <button class="btn-back back-btn-action" data-prev="type"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
-                            <h3>${currentLang === 'en' ? '🎁 Your Lucky Moment!' : '🎁 ¡Tu Momento de Suerte!'}</h3>
-                            <div class="game-step-wrapper">
-                                <p class="game-subtitle">${currentLang === 'en' ? 'Pick one container and reveal your exclusive prize!' : '¡Elige un contenedor y revela tu premio exclusivo!'}</p>
-                                <div class="mystery-boxes" id="${mode}-mystery-boxes">
-                                    <div class="mystery-box" data-box="0">
-                                        <i class="fas fa-box"></i>
-                                        <span>${currentLang === 'en' ? 'Container A' : 'Contenedor A'}</span>
-                                    </div>
-                                    <div class="mystery-box" data-box="1">
-                                        <i class="fas fa-box"></i>
-                                        <span>${currentLang === 'en' ? 'Container B' : 'Contenedor B'}</span>
-                                    </div>
-                                    <div class="mystery-box" data-box="2">
-                                        <i class="fas fa-box"></i>
-                                        <span>${currentLang === 'en' ? 'Container C' : 'Contenedor C'}</span>
-                                    </div>
-                                </div>
-                                <div class="prize-reveal" id="${mode}-prize-reveal">
-                                    <span class="prize-icon" id="${mode}-prize-icon"></span>
-                                    <div class="prize-title" id="${mode}-prize-title"></div>
-                                    <div class="prize-desc" id="${mode}-prize-desc"></div>
-                                    <div class="prize-code" id="${mode}-prize-code" style="display:none;"></div>
-                                    <button class="btn btn-primary prize-continue-btn" id="${mode}-prize-continue">${currentLang === 'en' ? 'Continue to Payment →' : 'Continuar al Pago →'}</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 6: Payment Method -->
+                        <!-- Step 5: Payment Method -->
                         <div class="buy-step" id="${mode}-step-payment-method" style="display:none;">
-                            <button class="btn-back back-btn-action" data-prev="game"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <button class="btn-back back-btn-action" data-prev="type"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="${mode}-step-pay">${mode === 'buy' ? t["buy-step6"] : t["rent-step-pay"]}</h3>
                             <div class="payment-note">
                                 <i class="fas fa-hand-holding-dollar"></i>
@@ -809,11 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <!-- JS will populate summary details here -->
                             </div>
                             
-                            <div class="promo-code-container" style="margin: 15px 0; display: flex; gap: 10px; max-width: 400px; margin-left: auto; margin-right: auto;">
-                                <input type="text" id="${mode}-promo-input" class="promo-input" placeholder="${currentLang === 'en' ? 'Promo Code' : 'Código Promocional'}" style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px; text-transform: uppercase;">
-                                <button class="btn btn-secondary apply-promo-btn" id="${mode}-apply-promo" style="padding: 12px 20px; min-width: 100px;">${currentLang === 'en' ? 'Apply' : 'Aplicar'}</button>
-                            </div>
-                            <div id="${mode}-promo-message" style="margin-top: 5px; font-size: 0.9rem; font-weight: 600; text-align: center;"></div>
+
 
                             <button class="btn btn-primary next-btn-action" data-next="contact" style="width: 100%; margin-top: 20px;">${t["buy-btn-next"]}</button>
                         </div>
@@ -946,10 +910,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const FLAT_RATE_OVER_100 = 5.5;
         const PROMO_DISCOUNT = 0;
 
-        const selections = { size: null, quantity: 1, condition: mode === 'rent' ? 'Local' : null, 'container-condition': null, type: mode === 'rent' ? 'Dry' : null, 'delivery-mode': mode === 'rent' ? 'Delivery' : null, 'logistics-details': null, 'payment-method': null, contact: {}, distance: 0, shippingCost: 0, pricePerUnit: 0, bestDepot: null, allDistances: {}, gamePrize: null, validPromoCode: null };
+        const selections = { size: null, quantity: 1, condition: mode === 'rent' ? 'Local' : null, 'container-condition': null, type: mode === 'rent' ? 'Dry' : null, 'delivery-mode': mode === 'rent' ? 'Delivery' : null, 'logistics-details': null, 'payment-method': null, contact: {}, distance: 0, shippingCost: 0, pricePerUnit: 0, bestDepot: null, allDistances: {} };
         let steps = mode === 'buy' 
             ? ['condition'] 
-            : ['logistics-details', 'size', 'qty', 'container-condition', 'type', 'game', 'payment-method', 'price', 'contact'];
+            : ['logistics-details', 'size', 'qty', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
         let currentIndex = 0;
 
         const calculateShippingCost = (miles) => {
@@ -1245,33 +1209,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const shippingTotal = bestShip * shippingMultiplier * selections.quantity;
             const totalBeforeDiscount = subtotal + shippingTotal;
 
-            // Apply game prize discount
-            let gameDiscount = 0;
-            let gameDiscountLabel = '';
-            if (selections.gamePrize === '2x1shipping' && selections['delivery-mode'] === 'Delivery') {
-                gameDiscount = bestShip; // One trip free
-                gameDiscountLabel = currentLang === 'en' ? 'Prize: 2-for-1 Shipping 🚚' : 'Premio: 2x1 en Envío 🚚';
-            } else if (selections.gamePrize === '$50off') {
-                gameDiscount = 50;
-                gameDiscountLabel = currentLang === 'en' ? 'Prize: $50 Discount 🎉' : 'Premio: $50 Descuento 🎉';
-            }
-            // code100 prize doesn't apply to current order, only future orders
-
-            // Apply manual promo code
-            let manualPromoDiscount = 0;
-            if (selections.validPromoCode) {
-                manualPromoDiscount = selections.validPromoCode.discount;
-            }
-
-            const discount = (mode === 'buy' ? PROMO_DISCOUNT : 0) + gameDiscount + manualPromoDiscount;
+            const discount = (mode === 'buy' ? PROMO_DISCOUNT : 0);
             const total = totalBeforeDiscount - discount;
 
             selections.subtotal = subtotal;
             selections.total = total;
             selections.discount = discount;
-            selections.gameDiscount = gameDiscount;
-            selections.gameDiscountLabel = gameDiscountLabel;
-            selections.manualPromoDiscount = manualPromoDiscount;
             selections.exportFee = exportFee; // Store but will be bundled in display
             selections.shippingTotal = shippingTotal;
 
@@ -1327,26 +1270,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${selections.quantity > 1 ? shippingDetailText : ''}
                 ` : ''}
 
-                ${selections.gameDiscount > 0 ? `
-                    <div class="summary-item" style="color: #2ecc71; font-weight: 700;">
-                        <strong>${selections.gameDiscountLabel}:</strong>
-                        <span>-$${selections.gameDiscount.toLocaleString()}</span>
-                    </div>
-                ` : ''}
 
-                ${selections.manualPromoDiscount > 0 ? `
-                    <div class="summary-item" style="color: #2ecc71; font-weight: 700;">
-                        <strong>${currentLang === 'en' ? 'Promo Code Applied:' : 'Código Promo Aplicado:'}</strong>
-                        <span>-$${selections.manualPromoDiscount.toLocaleString()}</span>
-                    </div>
-                ` : ''}
-
-                ${selections.gamePrize === 'code100' ? `
-                    <div class="summary-item" style="background: #fff9e6; border-radius: 8px; padding: 10px 14px; margin-top: 8px; border: 1px dashed #f4c430; flex-direction: column; align-items: flex-start; gap: 4px;">
-                        <strong style="color: #b8860b;">${currentLang === 'en' ? '🏷️ Your Promo Code for Next Purchase:' : '🏷️ Tu Código Promo para la Próxima Compra:'}</strong>
-                        <span style="font-family: monospace; font-size: 1.1rem; font-weight: 800; letter-spacing: 2px; color: var(--primary-color);">${selections.generatedPromoCode}</span>
-                    </div>
-                ` : ''}
 
                 <div class="summary-item total-line" style="font-size: 1.25rem; color: var(--primary-color); margin-top: 10px;"><strong>${t["buy-summary-total"]}:</strong> <span style="font-weight: 700;">$${Math.max(0, total).toLocaleString()}</span></div>
             `;
@@ -1359,67 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = html;
         };
 
-        // Promo code apply logic
-        viewEl.querySelectorAll('.apply-promo-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const stepEl = btn.closest('.buy-step');
-                const input = stepEl.querySelector('.promo-input');
-                const msgEl = stepEl.querySelector(`#${mode}-promo-message`);
-                const code = input.value.trim().toUpperCase();
 
-                if (!code) {
-                    msgEl.textContent = currentLang === 'en' ? 'Please enter a code.' : 'Por favor ingresa un código.';
-                    msgEl.style.color = '#e74c3c';
-                    return;
-                }
-
-                if (selections.generatedPromoCode && code === selections.generatedPromoCode) {
-                    msgEl.textContent = currentLang === 'en' ? 'This code is valid for your NEXT purchase only.' : 'Este código es válido solo para tu PRÓXIMA compra.';
-                    msgEl.style.color = '#e74c3c';
-                    return;
-                }
-
-                btn.disabled = true;
-                btn.textContent = '...';
-
-                try {
-                    const response = await fetch(`${SUPABASE_URL}/rest/v1/promo_codes?code=eq.${code}&select=*`, {
-                        headers: {
-                            'apikey': SUPABASE_KEY,
-                            'Authorization': `Bearer ${SUPABASE_KEY}`
-                        }
-                    });
-                    const data = await response.json();
-
-                    if (data && data.length > 0) {
-                        const promo = data[0];
-
-                        if (promo.is_used) {
-                            msgEl.textContent = currentLang === 'en' ? 'This code has already been used.' : 'Este código ya ha sido usado.';
-                            msgEl.style.color = '#e74c3c';
-                        } else if (!promo.is_active) {
-                            msgEl.textContent = currentLang === 'en' ? 'Pending activation. It will activate when you complete the purchase that generated it.' : 'Pendiente de activación. Se activará al completar la compra que lo generó.';
-                            msgEl.style.color = '#e74c3c';
-                        } else {
-                            msgEl.textContent = currentLang === 'en' ? 'Promo code applied successfully!' : '¡Código promo aplicado con éxito!';
-                            msgEl.style.color = '#2ecc71';
-                            selections.validPromoCode = { code: promo.code, discount: promo.discount };
-                            showPricePreview(); // Re-render summary with discount
-                        }
-                    } else {
-                        msgEl.textContent = currentLang === 'en' ? 'Invalid code.' : 'Código inválido.';
-                        msgEl.style.color = '#e74c3c';
-                    }
-                } catch (error) {
-                    console.error('Error validating promo code:', error);
-                    msgEl.textContent = 'Error validating code.';
-                    msgEl.style.color = '#e74c3c';
-                } finally {
-                    btn.disabled = false;
-                    btn.textContent = currentLang === 'en' ? 'Apply' : 'Aplicar';
-                }
-            });
-        });
 
         const showSummary = () => {
             const finalContainer = viewEl.querySelector('.final-summary-details');
@@ -1451,148 +1315,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (stepId === 'size') updateSizeOptions();
             if (stepId === 'type') updateClimateOptions();
             if (stepId === 'container-condition') updateConditionOptions(selections.condition);
-            if (stepId === 'game') initGameStep();
             if (stepId === 'price') showPricePreview();
-        };
-
-        const launchConfetti = () => {
-            let canvas = document.getElementById('confetti-canvas');
-            if (!canvas) {
-                canvas = document.createElement('canvas');
-                canvas.id = 'confetti-canvas';
-                document.body.appendChild(canvas);
-            }
-            const ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            const pieces = Array.from({length: 120}, () => ({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height - canvas.height,
-                r: Math.random() * 8 + 4,
-                d: Math.random() * 80 + 20,
-                color: ['#d90429','#f4c430','#2ecc71','#3498db','#e74c3c','#9b59b6'][Math.floor(Math.random()*6)],
-                tilt: Math.floor(Math.random() * 10) - 10,
-                tiltAngle: 0,
-                tiltAngleIncrement: (Math.random() * 0.07) + 0.05
-            }));
-            let frame = 0;
-            const draw = () => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                pieces.forEach(p => {
-                    ctx.beginPath();
-                    ctx.lineWidth = p.r / 2;
-                    ctx.strokeStyle = p.color;
-                    ctx.moveTo(p.x + p.tilt + p.r / 4, p.y);
-                    ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 4);
-                    ctx.stroke();
-                    p.tiltAngle += p.tiltAngleIncrement;
-                    p.y += (Math.cos(frame / 20) + 1 + p.r / 2) / 2;
-                    p.x += Math.sin(frame / 60) * 2;
-                    p.tilt = Math.sin(p.tiltAngle) * 15;
-                    if (p.y > canvas.height) { p.y = -p.r * 2; p.x = Math.random() * canvas.width; }
-                });
-                frame++;
-                if (frame < 200) requestAnimationFrame(draw);
-                else { ctx.clearRect(0, 0, canvas.width, canvas.height); canvas.remove(); }
-            };
-            draw();
-        };
-
-        const initGameStep = () => {
-            const boxesEl = viewEl.querySelector(`#${mode}-mystery-boxes`);
-            const revealEl = viewEl.querySelector(`#${mode}-prize-reveal`);
-            const prizeIcon = viewEl.querySelector(`#${mode}-prize-icon`);
-            const prizeTitle = viewEl.querySelector(`#${mode}-prize-title`);
-            const prizeDesc = viewEl.querySelector(`#${mode}-prize-desc`);
-            const prizeCode = viewEl.querySelector(`#${mode}-prize-code`);
-            const continueBtn = viewEl.querySelector(`#${mode}-prize-continue`);
-
-            // Reset state each time step is shown
-            revealEl.style.display = 'none';
-            boxesEl.querySelectorAll('.mystery-box').forEach(b => {
-                b.classList.remove('opened', 'winner');
-                b.style.pointerEvents = 'auto';
-            });
-
-            // Determine prize based on selection
-            const is2x1Winner = (selections.size === "20'" && parseInt(selections.quantity) === 2);
-            // 20% chance for $50off, 80% chance for code100
-            const randomPrize = Math.random() < 0.2 ? '$50off' : 'code100';
-
-            boxesEl.querySelectorAll('.mystery-box').forEach(box => {
-                box.addEventListener('click', () => {
-                    // Mark all as opened, winner as winner
-                    boxesEl.querySelectorAll('.mystery-box').forEach(b => {
-                        b.classList.add('opened');
-                        b.querySelector('i').className = 'fas fa-box-open';
-                    });
-                    box.classList.remove('opened');
-                    box.classList.add('winner');
-                    box.querySelector('i').className = 'fas fa-trophy';
-
-                    // Show prize
-                    if (is2x1Winner) {
-                        selections.gamePrize = '2x1shipping';
-                        prizeIcon.textContent = '🎉';
-                        prizeTitle.textContent = currentLang === 'en' ? '🎊 You Won FREE Shipping (2-for-1)!' : '🎊 ¡Ganaste Envío GRATIS (2x1)!';
-                        prizeDesc.innerHTML = currentLang === 'en'
-                            ? 'Congratulations! You have won a <strong>2-for-1 shipping deal</strong>. One of your shipping fees is completely on us!'
-                            : '¡Felicidades! Has ganado un <strong>envío 2x1</strong>. ¡El costo de uno de tus envíos corre completamente por nuestra cuenta!';
-                        prizeCode.style.display = 'none';
-                        launchConfetti();
-                    } else if (randomPrize === '$50off') {
-                        selections.gamePrize = '$50off';
-                        prizeIcon.textContent = '🎉';
-                        prizeTitle.textContent = currentLang === 'en' ? '$50 Discount!' : '¡$50 de Descuento!';
-                        prizeDesc.textContent = currentLang === 'en'
-                            ? 'Congratulations! You have won a $50 discount applied directly to your order.'
-                            : '¡Felicidades! Has ganado un descuento de $50 aplicado directamente a tu pedido.';
-                        prizeCode.style.display = 'none';
-                        launchConfetti();
-                    } else {
-                        selections.gamePrize = 'code100';
-                        // Generate random unique code
-                        const randomCode = 'RP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-                        selections.generatedPromoCode = randomCode;
-
-                        // Save to Supabase
-                        fetch(`${SUPABASE_URL}/rest/v1/promo_codes`, {
-                            method: 'POST',
-                            headers: {
-                                'apikey': SUPABASE_KEY,
-                                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                                'Content-Type': 'application/json',
-                                'Prefer': 'return=minimal'
-                            },
-                            body: JSON.stringify({ code: randomCode, discount: 100, is_used: false, is_active: false })
-                        }).catch(e => console.error('Error saving promo code:', e));
-
-                        prizeIcon.textContent = '🏷️';
-                        prizeTitle.textContent = currentLang === 'en' ? 'Promo Code for $100 Off!' : '¡Código Promo $100 Off!';
-                        prizeDesc.textContent = currentLang === 'en'
-                            ? 'Apply this code on your NEXT purchase to save $100!'
-                            : '¡Aplica este código en tu PRÓXIMA compra y ahorra $100!';
-                        prizeCode.style.display = 'inline-block';
-                        prizeCode.textContent = randomCode;
-                        launchConfetti();
-                    }
-
-                    // Show reveal panel
-                    revealEl.style.display = 'block';
-
-                    // Continue button advances to next step
-                    continueBtn.onclick = () => {
-                        revealEl.style.display = 'none';
-                        viewEl.querySelector(`#${mode}-step-game`).style.display = 'none';
-                        currentIndex++;
-                        const nextStep = steps[currentIndex];
-                        prepareStep(nextStep);
-                        const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
-                        nextEl.style.display = 'block';
-                        nextEl.classList.add('fade-in');
-                    };
-                }, { once: true });
-            });
         };
 
         viewEl.querySelectorAll('.qty-btn').forEach(btn => {
@@ -1619,11 +1342,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (stepId === 'condition') {
                     if (card.dataset.value === 'International') {
-                        steps = ['condition', 'logistics-details', 'size', 'qty', 'container-condition', 'type', 'game', 'payment-method', 'price', 'contact'];
+                        steps = ['condition', 'logistics-details', 'size', 'qty', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
                         selections['delivery-mode'] = 'Pickup';
                     } else {
                         // Storage sequence
-                        steps = ['condition', 'delivery-mode', 'logistics-details', 'size', 'qty', 'container-condition', 'type', 'game', 'payment-method', 'price', 'contact'];
+                        steps = ['condition', 'delivery-mode', 'logistics-details', 'size', 'qty', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
                     }
                 }
 
