@@ -320,7 +320,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAK88H0MbwOv1o8M4oSaylsS66t5V8KIfM&libraries=places"></script>
     <script src="js/script.js"></script>
     <!-- EmailJS SDK (Local) -->
     <script type="text/javascript" src="js/emailjs.min.js"></script>
@@ -336,6 +335,45 @@
         <i class="fab fa-whatsapp"></i>
         <span class="whatsapp-tooltip" data-i18n="whatsapp-tooltip">Chat with us!</span>
     </a>
+
+    <!-- AI Chat Widget -->
+    <button class="ai-chat-btn" id="ai-chat-btn">
+        <i class="fas fa-user-tie"></i>
+        <span class="ai-chat-tooltip" data-i18n="ai-chat-tooltip">Chatea con Roly</span>
+    </button>
+
+    <div class="ai-chat-window" id="ai-chat-window">
+        <div class="ai-chat-header">
+            <div class="ai-chat-header-info">
+                <div class="ai-chat-avatar">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div>
+                    <h3 class="ai-chat-title" data-i18n="ai-chat-title">Roly</h3>
+                    <p class="ai-chat-subtitle" data-i18n="ai-chat-subtitle">RP Tulipan Transport</p>
+                </div>
+            </div>
+            <button class="ai-chat-close" id="ai-chat-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="ai-chat-messages" id="ai-chat-messages">
+            <div class="chat-message bot" data-i18n="ai-chat-welcome">
+                ¡Hola! ¿En qué te puedo ayudar hoy con contenedores, rentas o transporte?
+            </div>
+            <div class="typing-indicator" id="ai-typing-indicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+        <div class="ai-chat-input-area">
+            <input type="text" id="ai-chat-input" placeholder="Type your message..." data-i18n-placeholder="ai-chat-placeholder">
+            <button class="ai-chat-send" id="ai-chat-send">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
 
 </body>
 

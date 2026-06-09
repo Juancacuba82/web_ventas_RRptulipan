@@ -94,9 +94,12 @@ async function loadDynamicPrices() {
         if (!Array.isArray(hubs) || hubs.length === 0) throw new Error('Empty hubs array');
 
         DYNAMIC_PRICES = buildPricesFromHubs(hubs);
+        if (data.config.deliveryRates) {
+            DYNAMIC_PRICES.deliveryRates = data.config.deliveryRates;
+        }
 
         // Cache a fresh copy for offline fallback
-        try { localStorage.setItem(LS_PRICE_KEY, JSON.stringify(hubs)); } catch (_) {}
+        try { localStorage.setItem(LS_PRICE_KEY, JSON.stringify(data.config)); } catch (_) {}
 
         console.log('[Prices] Loaded from Supabase ✓', DYNAMIC_PRICES);
         return true;
@@ -107,8 +110,15 @@ async function loadDynamicPrices() {
         try {
             const cached = localStorage.getItem(LS_PRICE_KEY);
             if (cached) {
-                const hubs = JSON.parse(cached);
-                DYNAMIC_PRICES = buildPricesFromHubs(hubs);
+                const configCache = JSON.parse(cached);
+                if (Array.isArray(configCache)) {
+                    DYNAMIC_PRICES = buildPricesFromHubs(configCache);
+                } else {
+                    DYNAMIC_PRICES = buildPricesFromHubs(configCache.hubs);
+                    if (configCache.deliveryRates) {
+                        DYNAMIC_PRICES.deliveryRates = configCache.deliveryRates;
+                    }
+                }
                 console.log('[Prices] Loaded from localStorage cache ✓');
                 return true;
             }
@@ -901,13 +911,25 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
 
-        const SHIPPING_RATES = [
+        let SHIPPING_RATES = [
             { max: 30, price: 350 },
             { max: 60, price: 450 },
             { max: 80, price: 500 },
             { max: 100, price: 550 }
         ];
-        const FLAT_RATE_OVER_100 = 5.5;
+        let FLAT_RATE_OVER_100 = 5.5;
+
+        if (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.deliveryRates) {
+            const dr = DYNAMIC_PRICES.deliveryRates;
+            SHIPPING_RATES = [
+                { max: 30, price: dr["0-30"] !== undefined ? dr["0-30"] : 350 },
+                { max: 60, price: dr["31-60"] !== undefined ? dr["31-60"] : 450 },
+                { max: 80, price: dr["61-80"] !== undefined ? dr["61-80"] : 500 },
+                { max: 100, price: dr["81-100"] !== undefined ? dr["81-100"] : 550 }
+            ];
+            if (dr["over 100"] !== undefined) FLAT_RATE_OVER_100 = dr["over 100"];
+        }
+
         const PROMO_DISCOUNT = 0;
 
         const selections = { size: null, quantity: 1, condition: mode === 'rent' ? 'Local' : null, 'container-condition': null, type: mode === 'rent' ? 'Dry' : null, 'delivery-mode': mode === 'rent' ? 'Delivery' : null, 'logistics-details': null, 'payment-method': null, contact: {}, distance: 0, shippingCost: 0, pricePerUnit: 0, bestDepot: null, allDistances: {} };
@@ -919,31 +941,47 @@ document.addEventListener('DOMContentLoaded', () => {
         const calculateShippingCost = (miles) => {
             if (miles <= 100) {
                 const rate = SHIPPING_RATES.find(r => miles <= r.max);
-                return rate ? rate.price : 550;
+                return rate ? rate.price : SHIPPING_RATES[3].price;
             }
             return miles * FLAT_RATE_OVER_100;
         };
 
-        const getDistance = (origin, destination) => {
-            const originAddr = origin.includes(',') ? origin : `${origin}, USA`;
-            const destAddr = destination.includes(',') ? destination : `${destination}, USA`;
-            return new Promise((resolve, reject) => {
-                const service = new google.maps.DistanceMatrixService();
-                service.getDistanceMatrix({
-                    origins: [originAddr],
-                    destinations: [destAddr],
-                    travelMode: google.maps.TravelMode.DRIVING,
-                    unitSystem: google.maps.UnitSystem.IMPERIAL
-                }, (response, status) => {
-                    if (status === 'OK' && response.rows[0].elements[0].status === 'OK') {
-                        const meters = response.rows[0].elements[0].distance.value;
-                        const miles = meters / 1609.344; // Precise conversion from meters to miles
-                        resolve(miles);
-                    } else {
-                        reject('Could not calculate distance');
-                    }
-                });
-            });
+        const getCoordinates = async (zip) => {
+            if (window.coordCache && window.coordCache[zip]) return window.coordCache[zip];
+            const cleanZip = zip.replace(/\D/g, '').substring(0, 5); // Extract just the 5-digit zip
+            const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${cleanZip}&countrycodes=us`;
+            try {
+                const response = await fetch(url, { headers: { 'User-Agent': 'RPTulipan-Web/1.0' } });
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+                    if (!window.coordCache) window.coordCache = {};
+                    window.coordCache[zip] = coords;
+                    return coords;
+                }
+                throw new Error('Coordinates not found for ' + zip);
+            } catch (e) {
+                console.error("Geocoding Error:", e);
+                throw e;
+            }
+        };
+
+        const getDistance = async (origin, destination) => {
+            try {
+                const originCoords = await getCoordinates(origin);
+                const destCoords = await getCoordinates(destination);
+                const url = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?overview=false`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                    const distanceMeters = data.routes[0].distance;
+                    return distanceMeters / 1609.344;
+                }
+                throw new Error('Could not calculate distance from OSRM');
+            } catch (e) {
+                console.error("Routing Error:", e);
+                throw e;
+            }
         };
 
         const getSelectedDepot = () => {
@@ -2016,4 +2054,283 @@ Phone: ${selections.contact.phone}
     // Initial language sync and view setup
     updateLanguage(currentLang);
     showView('home');
+
+    // AI Chat Logic
+    const aiChatBtn = document.getElementById('ai-chat-btn');
+    const aiChatWindow = document.getElementById('ai-chat-window');
+    const aiChatClose = document.getElementById('ai-chat-close');
+    const aiChatSend = document.getElementById('ai-chat-send');
+    const aiChatInput = document.getElementById('ai-chat-input');
+    const aiChatMessages = document.getElementById('ai-chat-messages');
+    const typingIndicator = document.getElementById('ai-typing-indicator');
+
+    let chatHistory = []; // Mantener memoria de la conversación
+    let globalShippingCosts = null; // Guardar mapa de costos de envío por depot
+
+    if (aiChatBtn && aiChatWindow) {
+        aiChatBtn.addEventListener('click', () => {
+            aiChatWindow.classList.add('active');
+            aiChatBtn.style.display = 'none';
+        });
+
+        aiChatClose.addEventListener('click', () => {
+            aiChatWindow.classList.remove('active');
+            setTimeout(() => {
+                aiChatBtn.style.display = 'flex';
+            }, 300);
+        });
+
+        const appendMessage = (text, sender) => {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('chat-message', sender);
+            msgDiv.textContent = text;
+            aiChatMessages.insertBefore(msgDiv, typingIndicator);
+            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+        };
+
+        // Helper to calculate shipping cost for all depots
+        const calculateShippingForZip = async (zip) => {
+            const depots = (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.depots && DYNAMIC_PRICES.depots.length > 0)
+                ? DYNAMIC_PRICES.depots
+                : [
+                    { label: "Savannah (31408)", zip: "31408" },
+                    { label: "Atlanta (30288)", zip: "30288" },
+                    { label: "Jacksonville (32218)", zip: "32218" },
+                    { label: "Titusville (32780)", zip: "32780" },
+                    { label: "Tampa (33619)", zip: "33619" },
+                    { label: "Miami (33178)", zip: "33178" }
+                ];
+            
+            const getCoordinatesBot = async (z) => {
+                if (window.coordCache && window.coordCache[z]) return window.coordCache[z];
+                const cleanZ = z.replace(/\D/g, '').substring(0, 5);
+                const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${cleanZ}&countrycodes=us`;
+                const response = await fetch(url, { headers: { 'User-Agent': 'RPTulipan-Web/1.0' } });
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+                    if (!window.coordCache) window.coordCache = {};
+                    window.coordCache[z] = coords;
+                    return coords;
+                }
+                throw new Error('Coords not found');
+            };
+
+            const getDist = async (origin, destination) => {
+                try {
+                    const originCoords = await getCoordinatesBot(origin);
+                    const destCoords = await getCoordinatesBot(destination);
+                    const url = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?overview=false`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                        return data.routes[0].distance / 1609.344;
+                    }
+                    throw new Error('OSRM Error');
+                } catch (e) {
+                    throw new Error('Error');
+                }
+            };
+
+            try {
+                const distances = await Promise.all(depots.map(d => getDist(d.zip, zip).catch(() => 9999)));
+                const depotCosts = {};
+                let SHIPPING_RATES = [
+                    { max: 30, price: 350 },
+                    { max: 60, price: 450 },
+                    { max: 80, price: 500 },
+                    { max: 100, price: 550 }
+                ];
+                let flatRate = 5.5;
+
+                if (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.deliveryRates) {
+                    const dr = DYNAMIC_PRICES.deliveryRates;
+                    SHIPPING_RATES = [
+                        { max: 30, price: dr["0-30"] !== undefined ? dr["0-30"] : 350 },
+                        { max: 60, price: dr["31-60"] !== undefined ? dr["31-60"] : 450 },
+                        { max: 80, price: dr["61-80"] !== undefined ? dr["61-80"] : 500 },
+                        { max: 100, price: dr["81-100"] !== undefined ? dr["81-100"] : 550 }
+                    ];
+                    if (dr["over 100"] !== undefined) flatRate = dr["over 100"];
+                }
+                
+                depots.forEach((d, idx) => {
+                    const dist = distances[idx];
+                    if (dist === 9999) return;
+                    let cost = 0;
+                    if (dist <= 100) {
+                        const rate = SHIPPING_RATES.find(r => dist <= r.max);
+                        cost = rate ? rate.price : SHIPPING_RATES[3].price;
+                    } else {
+                        cost = dist * flatRate;
+                    }
+                    depotCosts[d.label] = cost;
+                });
+                return depotCosts;
+            } catch(e) {
+                return null;
+            }
+        };
+
+        const addShippingToPrices = (pricesObj, depotCostsMap) => {
+            if (!pricesObj || !depotCostsMap) return {};
+            const newObj = JSON.parse(JSON.stringify(pricesObj));
+            for (const depot in newObj) {
+                const shippingFee = depotCostsMap[depot];
+                if (shippingFee === undefined) {
+                    delete newObj[depot]; // Remover si no hay ruta válida
+                    continue;
+                }
+                for (const size in newObj[depot]) {
+                    newObj[depot][size] += shippingFee;
+                }
+            }
+            return newObj;
+        };
+
+        const flattenBestPrices = (pricesObj) => {
+            if (!pricesObj) return {};
+            const best = {};
+            for (const depot in pricesObj) {
+                for (const size in pricesObj[depot]) {
+                    if (!best[size] || pricesObj[depot][size] < best[size]) {
+                        best[size] = pricesObj[depot][size];
+                    }
+                }
+            }
+            return best;
+        };
+
+        const sendMessage = async () => {
+            const text = aiChatInput.value.trim();
+            if (!text) return;
+
+            appendMessage(text, 'user');
+            aiChatInput.value = '';
+            
+            // Guardar en la historia local
+            chatHistory.push({ role: 'user', parts: [{ text: text }] });
+            
+            // Show typing indicator
+            typingIndicator.classList.add('active');
+            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+
+            try {
+                if (!supabaseClient) {
+                    throw new Error("Supabase is not initialized.");
+                }
+
+                // Obtener precios base
+                const baseUsed = (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.usedPrices) ? DYNAMIC_PRICES.usedPrices : USED_CONTAINER_PRICES;
+                const baseNew = (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.newPrices) ? DYNAMIC_PRICES.newPrices : NEW_CONTAINER_PRICES;
+
+                // Detect if user sent a zip code and calculate shipping automatically
+                const zipMatch = text.match(/\b\d{5}\b/);
+                if (zipMatch) {
+                    const zip = zipMatch[0];
+                    const shippingCosts = await calculateShippingForZip(zip);
+                    if (shippingCosts) {
+                        globalShippingCosts = shippingCosts;
+                    }
+                }
+                
+                // Generar contexto de precios para la IA
+                let priceContext = "";
+                if (globalShippingCosts) {
+                    // Magia: Sumar el costo de envío a todos los precios ANTES de enviarlos a la IA
+                    const finalUsed = addShippingToPrices(baseUsed, globalShippingCosts);
+                    const finalNew = addShippingToPrices(baseNew, globalShippingCosts);
+                    
+                    // Solo enviamos el mejor precio por tamaño (sin nombres de ciudad)
+                    const bestUsed = flattenBestPrices(finalUsed);
+                    const bestNew = flattenBestPrices(finalNew);
+                    
+                    const bestBaseUsed = flattenBestPrices(baseUsed);
+                    const bestBaseNew = flattenBestPrices(baseNew);
+                    
+                    // Calcular el costo de envío más barato desde los almacenes permitidos para renta
+                    const allowedRentDepots = ["Jacksonville (32218)", "Titusville (32780)", "Tampa (33619)", "Miami (33178)"];
+                    let bestRentShipping = null;
+                    for (const depot of allowedRentDepots) {
+                        if (globalShippingCosts[depot] !== undefined) {
+                            if (bestRentShipping === null || globalShippingCosts[depot] < bestRentShipping) {
+                                bestRentShipping = globalShippingCosts[depot];
+                            }
+                        }
+                    }
+                    
+                    // En renta se cobra envío de ida y vuelta (Delivery & Pickup)
+                    const rentShippingTotal = bestRentShipping !== null ? bestRentShipping * 2 : null;
+                    
+                    const rentPricesUsed = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
+                    const rentPricesNew  = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
+                    
+                    priceContext = `¡ATENCIÓN! EL CLIENTE YA PROPORCIONÓ SU CÓDIGO POSTAL.
+SI EL CLIENTE QUIERE COMPRAR CON ENVÍO A DOMICILIO (DELIVERY), DALE ESTOS PRECIOS (Ya tienen el envío sumado):
+- Compra Delivery Usados: ${JSON.stringify(bestUsed)}
+- Compra Delivery Nuevos: ${JSON.stringify(bestNew)}
+
+SI EL CLIENTE PREGUNTA PARA COMPRAR Y RETIRARLO ÉL MISMO (LOCAL PICKUP), DALE ESTOS PRECIOS BASE:
+- Compra Pickup Usados: ${JSON.stringify(bestBaseUsed)}
+- Compra Pickup Nuevos: ${JSON.stringify(bestBaseNew)}
+
+SI EL CLIENTE QUIERE ALQUILAR / RENTAR, ESTOS SON LOS PRECIOS:
+- Mensualidad Usados: ${JSON.stringify(rentPricesUsed)}
+- Mensualidad Nuevos: ${JSON.stringify(rentPricesNew)}
+- Costo de Logística (Delivery & Pickup - Ida y vuelta): $${rentShippingTotal !== null ? rentShippingTotal : "No disponible"} (Esto se paga una sola vez al inicio junto con el primer mes).
+
+REGLA DE ORO: Simplemente lee el precio de la tabla correspondiente según lo que quiera el cliente. No hagas ninguna suma matemática ni le expliques de qué ciudad sale.
+REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o internacional, debes sumar $250 al precio de COMPRA.`;
+                } else {
+                    const bestBaseUsed = flattenBestPrices(baseUsed);
+                    const bestBaseNew = flattenBestPrices(baseNew);
+                    const rentPricesUsed = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
+                    const rentPricesNew  = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
+
+                    priceContext = `PRECIOS BASE DE VENTA Y RENTA (SIN ENVÍO):
+- Compra Usados: ${JSON.stringify(bestBaseUsed)}
+- Compra Nuevos: ${JSON.stringify(bestBaseNew)}
+- Renta Mensual Usados: ${JSON.stringify(rentPricesUsed)}
+- Renta Mensual Nuevos: ${JSON.stringify(rentPricesNew)}
+
+EL CLIENTE AÚN NO HA DADO SU CÓDIGO POSTAL PARA DELIVERY. Para darle un precio exacto con envío (ya sea compra o renta), primero PÍDELE SU CÓDIGO POSTAL amablemente.`;
+                }
+
+                const { data, error } = await supabaseClient.functions.invoke('chat', {
+                    body: { 
+                        message: text,
+                        context: priceContext,
+                        history: chatHistory // Enviamos la memoria
+                    }
+                });
+                
+                if (error) throw error;
+                
+                // Calcular un retraso artificial basado en la longitud de la respuesta
+                // Simulando la velocidad de escritura humana (minimo 2.5 segs, maximo 8 segs, 40ms por letra)
+                const typingDelay = Math.min(8000, Math.max(2500, data.reply.length * 40));
+                
+                setTimeout(() => {
+                    typingIndicator.classList.remove('active');
+                    appendMessage(data.reply, 'bot');
+                    
+                    // Guardar la respuesta del bot en la historia
+                    chatHistory.push({ role: 'model', parts: [{ text: data.reply }] });
+                }, typingDelay);
+
+            } catch (err) {
+                console.error("Chat error:", err);
+                typingIndicator.classList.remove('active');
+                appendMessage("Sorry, I am having trouble connecting right now.", 'bot');
+                // En caso de error, removemos el último mensaje del usuario del historial para no corromper la memoria
+                chatHistory.pop();
+            }
+        };
+
+        aiChatSend.addEventListener('click', sendMessage);
+        aiChatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    }
+
 });
