@@ -1616,4 +1616,17 @@ body.with-countdown .buy-header {
     .ai-chat-window.active {
         transform: translateY(0);
     }
+    .chat-message {
+        font-size: 1.1rem;
+        padding: 14px 18px;
+    }
+    .ai-chat-input-area input {
+        font-size: 1.1rem;
+    }
+    .ai-chat-title {
+        font-size: 1.25rem;
+    }
+    .ai-chat-subtitle {
+        font-size: 1rem;
+    }
 }

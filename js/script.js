@@ -2296,6 +2296,8 @@ REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o int
 EL CLIENTE AÚN NO HA DADO SU CÓDIGO POSTAL PARA DELIVERY. Para darle un precio exacto con envío (ya sea compra o renta), primero PÍDELE SU CÓDIGO POSTAL amablemente.`;
                 }
 
+                priceContext += `\n\nREGLA DE IDIOMA: Como el primer mensaje del chat fue en inglés ofreciendo español, DEBES responder en inglés por defecto, a menos que el usuario te haya hablado en español. Si el usuario escribe en español, cambia inmediatamente a español para el resto de la conversación. Si es el primer mensaje que envías, termina preguntando (en inglés) si prefiere continuar en español.`;
+
                 const { data, error } = await supabaseClient.functions.invoke('chat', {
                     body: { 
                         message: text,
