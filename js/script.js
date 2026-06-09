@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-summary-total": "Total Price",
             "buy-summary-dist": "Distance",
             "buy-calculating": "Calculating distance...",
-            "pay-note": "You can pay upon delivery with all payment methods.",
+            "pay-note": "You can pay upon delivery with Zelle, Cash, or Check. Credit cards are not accepted for payment on delivery.",
             "buy-depot-info": "Select the depot closest to your location to get the lowest shipping rates.",
             "buy-summary": "Summary",
             "buy-btn-pricing": "Place Order.",
@@ -419,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-summary-total": "Precio Total",
             "buy-summary-dist": "Distancia",
             "buy-calculating": "Calculando distancia...",
-            "pay-note": "Puedes pagar contra entrega con todos los métodos de pago.",
+            "pay-note": "Puedes pagar contra entrega con Zelle, Cash o Check. No se aceptan tarjetas de crédito para pago contra entrega.",
             "buy-depot-info": "Seleccione el depósito más cercano a su ubicación para obtener las tarifas de envío más bajas.",
             "buy-summary": "Resumen",
             "buy-btn-pricing": "Realizar Pedido.",
@@ -2297,6 +2297,8 @@ EL CLIENTE AÚN NO HA DADO SU CÓDIGO POSTAL PARA DELIVERY. Para darle un precio
                 }
 
                 priceContext += `\n\nREGLA DE IDIOMA: Como el primer mensaje del chat fue en inglés ofreciendo español, DEBES responder en inglés por defecto, a menos que el usuario te haya hablado en español. Si el usuario escribe en español, cambia inmediatamente a español para el resto de la conversación. Si es el primer mensaje que envías, termina preguntando (en inglés) si prefiere continuar en español.`;
+
+                priceContext += `\n\nMÉTODOS DE PAGO Y CONTRA ENTREGA: Tenemos varias formas de pago: Zelle, Cash, Check y Credit Card. Todos los métodos de pago menos Credit Card pueden usarse para pagar "contra entrega" (al momento de recibir el contenedor). No se acepta Credit Card para pago contra entrega.`;
 
                 const { data, error } = await supabaseClient.functions.invoke('chat', {
                     body: { 
