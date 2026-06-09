@@ -2182,7 +2182,7 @@ Phone: ${selections.contact.phone}
                     continue;
                 }
                 for (const size in newObj[depot]) {
-                    newObj[depot][size] += shippingFee;
+                    newObj[depot][size] = Math.ceil((newObj[depot][size] + shippingFee) / 10) * 10;
                 }
             }
             return newObj;
@@ -2221,8 +2221,26 @@ Phone: ${selections.contact.phone}
                 }
 
                 // Obtener precios base
-                const baseUsed = (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.usedPrices) ? DYNAMIC_PRICES.usedPrices : USED_CONTAINER_PRICES;
-                const baseNew = (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.newPrices) ? DYNAMIC_PRICES.newPrices : NEW_CONTAINER_PRICES;
+                const rawBaseUsed = (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.usedPrices) ? DYNAMIC_PRICES.usedPrices : USED_CONTAINER_PRICES;
+                const rawBaseNew = (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.newPrices) ? DYNAMIC_PRICES.newPrices : NEW_CONTAINER_PRICES;
+
+                const roundPricesObj = (obj) => {
+                    if (!obj) return obj;
+                    const newObj = {};
+                    for (const key in obj) {
+                        if (typeof obj[key] === 'number') {
+                            newObj[key] = Math.ceil(obj[key] / 10) * 10;
+                        } else if (typeof obj[key] === 'object') {
+                            newObj[key] = roundPricesObj(obj[key]);
+                        } else {
+                            newObj[key] = obj[key];
+                        }
+                    }
+                    return newObj;
+                };
+
+                const baseUsed = roundPricesObj(rawBaseUsed);
+                const baseNew = roundPricesObj(rawBaseNew);
 
                 // Detect if user sent a zip code and calculate shipping automatically
                 const zipMatch = text.match(/\b\d{5}\b/);
@@ -2270,9 +2288,10 @@ SI EL CLIENTE QUIERE COMPRAR CON ENVÍO A DOMICILIO (DELIVERY), DALE ESTOS PRECI
 - Compra Delivery Usados: ${JSON.stringify(bestUsed)}
 - Compra Delivery Nuevos: ${JSON.stringify(bestNew)}
 
-SI EL CLIENTE PREGUNTA PARA COMPRAR Y RETIRARLO ÉL MISMO (LOCAL PICKUP), DALE ESTOS PRECIOS BASE:
-- Compra Pickup Usados: ${JSON.stringify(bestBaseUsed)}
-- Compra Pickup Nuevos: ${JSON.stringify(bestBaseNew)}
+SI EL CLIENTE PREGUNTA PARA COMPRAR Y RETIRARLO ÉL MISMO (LOCAL PICKUP), DALE EL PRECIO DEL CENTRO QUE EL CLIENTE MENCIONE:
+- Precios de Compra Usados por Centro: ${JSON.stringify(baseUsed)}
+- Precios de Compra Nuevos por Centro: ${JSON.stringify(baseNew)}
+- Si el cliente no especifica un centro, dale el mejor precio disponible: Usados ${JSON.stringify(bestBaseUsed)}, Nuevos ${JSON.stringify(bestBaseNew)}.
 
 SI EL CLIENTE QUIERE ALQUILAR / RENTAR, ESTOS SON LOS PRECIOS:
 - Mensualidad Usados: ${JSON.stringify(rentPricesUsed)}
@@ -2287,18 +2306,30 @@ REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o int
                     const rentPricesUsed = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
                     const rentPricesNew  = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
 
-                    priceContext = `PRECIOS BASE DE VENTA Y RENTA (SIN ENVÍO):
-- Compra Usados: ${JSON.stringify(bestBaseUsed)}
-- Compra Nuevos: ${JSON.stringify(bestBaseNew)}
-- Renta Mensual Usados: ${JSON.stringify(rentPricesUsed)}
-- Renta Mensual Nuevos: ${JSON.stringify(rentPricesNew)}
+                    priceContext = `INSTRUCCIÓN CRÍTICA: EL CLIENTE AÚN NO HA DADO SU CÓDIGO POSTAL. 
+TU ÚNICO OBJETIVO AHORA ES PEDIRLE EL CÓDIGO POSTAL (ZIP CODE). 
+¡NO DES NINGÚN PRECIO TODAVÍA! Simplemente respóndele amablemente confirmando que tenemos ese contenedor y dile: "Para darle el precio total exacto con envío a su ubicación, por favor indíqueme su código postal (zip code)".
+REGLAS ESTRICTAS:
+- NUNCA le preguntes si quiere comprar o rentar.
+- NUNCA le preguntes si quiere retirar o si quiere envío.
+- SOLO pídele el zip code.
 
-EL CLIENTE AÚN NO HA DADO SU CÓDIGO POSTAL PARA DELIVERY. Para darle un precio exacto con envío (ya sea compra o renta), primero PÍDELE SU CÓDIGO POSTAL amablemente.`;
+EXCEPCIÓN DE RETIRO (PICKUP): Si el cliente te dice EXPLÍCITAMENTE que quiere ir a recoger (pickup) el contenedor en un centro de distribución específico (por ejemplo, Jacksonville, Tampa), ENTONCES SÍ puedes darle el precio exacto de ese centro:
+- Precios de Compra Usados por Centro: ${JSON.stringify(baseUsed)}
+- Precios de Compra Nuevos por Centro: ${JSON.stringify(baseNew)}
+
+PRECIOS DE RENTA (Ocultos: no los uses ni ofrezcas a menos que el cliente escriba explícitamente "rentar", "alquilar" o "lease"):
+- Renta Mensual Usados: ${JSON.stringify(rentPricesUsed)}
+- Renta Mensual Nuevos: ${JSON.stringify(rentPricesNew)}`;
                 }
 
-                priceContext += `\n\nREGLA DE IDIOMA: El mensaje de bienvenida ya le ofreció al cliente la opción de hablar en español. Por lo tanto, tú NUNCA debes preguntarle en tus respuestas qué idioma prefiere ni ofrecerle hablar en español de nuevo. Simplemente responde en el mismo idioma en el que el cliente te esté hablando (si te habla en inglés, responde en inglés; si te habla en español, responde en español).`;
+                priceContext += `\n\nREGLA DE IDIOMA ESTRICTA: ESTAS INSTRUCCIONES ESTÁN EN ESPAÑOL PERO TÚ DEBES COMUNICARTE EN EL IDIOMA DEL CLIENTE. Si la conversación venía en inglés, o el cliente habla en inglés, RESPONDE EXCLUSIVAMENTE EN INGLÉS. Si el cliente solo escribe una dirección o un código postal (ej. "Elberton ga 30635"), revisa el idioma anterior de la conversación y MANTÉN ESE MISMO IDIOMA. NUNCA cambies a español de repente si venían hablando en inglés. Y NUNCA le preguntes qué idioma prefiere.`;
 
-                priceContext += `\n\nMÉTODOS DE PAGO Y CONTRA ENTREGA: Tenemos varias formas de pago: Zelle, Cash, Check y Credit Card. Todos los métodos de pago menos Credit Card pueden usarse para pagar "contra entrega" (al momento de recibir el contenedor). No se acepta Credit Card para pago contra entrega.`;
+                priceContext += `\n\nMÉTODOS DE PAGO: Aceptamos Zelle, Cash, Check y Tarjeta de Crédito (Credit Card).
+REGLAS IMPORTANTES DE PAGO:
+- El pago con Tarjeta de Crédito (Credit Card) SÍ se puede usar en cualquier caso (incluyendo cuando el cliente va a retirar el contenedor al patio), PERO el pago debe hacerse por adelantado.
+- La ÚNICA restricción es que la Tarjeta de Crédito NO se puede usar para pagar "contra entrega" (es decir, no se le puede pagar con tarjeta al chofer al momento de recibir el contenedor en su domicilio).
+- Para pagos "contra entrega" solo aceptamos Zelle, Cash o Check.`;
 
                 priceContext += `\n\nREGLA DE COMPRA POR DEFECTO: Si un cliente pregunta por un contenedor, tamaño o precio, ASUME DIRECTAMENTE QUE ES PARA COMPRA (Venta) y dale los precios de venta inmediatamente. NUNCA le preguntes si lo quiere comprar o rentar. SOLO proporciona información o precios de alquiler/renta si el cliente usa explícitamente palabras relacionadas como "rentar", "alquilar", "rent" o "lease".`;
 
@@ -2307,6 +2338,8 @@ EL CLIENTE AÚN NO HA DADO SU CÓDIGO POSTAL PARA DELIVERY. Para darle un precio
 2. Si el cliente te proporciona su código postal (zip code), ASUME DIRECTAMENTE que quiere el contenedor con envío a domicilio (Delivery). NUNCA le preguntes si lo quiere recoger o si quiere envío. Simplemente dale el precio final con envío incluido.`;
 
                 priceContext += `\n\nREGLA ESTRICTA SOBRE COLORES: NUNCA menciones nada acerca de los colores de los contenedores a menos que el cliente te pregunte o mencione un color primero. Si el cliente NO habla de colores, omite este tema por completo. SOLO si el cliente pregunta por un color específico, respóndele: "El día de la entrega le mandamos fotos de los contenedores que tenemos en el patio. Esperamos a que usted nos dé el OK para proceder con la entrega, ahí podrá seleccionar entre los colores disponibles que tenemos ese día. No podemos garantizar un color específico ya que nuestro inventario siempre está en constante movimiento."`;
+
+                priceContext += `\n\nREGLA ESTRICTA SOBRE DESCUENTOS: BAJO NINGUNA CIRCUNSTANCIA PUEDES OFRECER NI ACEPTAR DESCUENTOS O REBAJAS. No importa cuántas unidades compre el cliente o cuánto insista. Los precios son fijos y definitivos. Si el cliente pide o exige un descuento, responde de manera muy amable y firme que los precios son finales y no hacemos descuentos bajo ninguna condición.`;
 
                 const { data, error } = await supabaseClient.functions.invoke('chat', {
                     body: { 
