@@ -2296,9 +2296,17 @@ REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o int
 EL CLIENTE AÚN NO HA DADO SU CÓDIGO POSTAL PARA DELIVERY. Para darle un precio exacto con envío (ya sea compra o renta), primero PÍDELE SU CÓDIGO POSTAL amablemente.`;
                 }
 
-                priceContext += `\n\nREGLA DE IDIOMA: Como el primer mensaje del chat fue en inglés ofreciendo español, DEBES responder en inglés por defecto, a menos que el usuario te haya hablado en español. Si el usuario escribe en español, cambia inmediatamente a español para el resto de la conversación. Si es el primer mensaje que envías, termina preguntando (en inglés) si prefiere continuar en español.`;
+                priceContext += `\n\nREGLA DE IDIOMA: El mensaje de bienvenida ya le ofreció al cliente la opción de hablar en español. Por lo tanto, tú NUNCA debes preguntarle en tus respuestas qué idioma prefiere ni ofrecerle hablar en español de nuevo. Simplemente responde en el mismo idioma en el que el cliente te esté hablando (si te habla en inglés, responde en inglés; si te habla en español, responde en español).`;
 
                 priceContext += `\n\nMÉTODOS DE PAGO Y CONTRA ENTREGA: Tenemos varias formas de pago: Zelle, Cash, Check y Credit Card. Todos los métodos de pago menos Credit Card pueden usarse para pagar "contra entrega" (al momento de recibir el contenedor). No se acepta Credit Card para pago contra entrega.`;
+
+                priceContext += `\n\nREGLA DE COMPRA POR DEFECTO: Si un cliente pregunta por un contenedor, tamaño o precio, ASUME DIRECTAMENTE QUE ES PARA COMPRA (Venta) y dale los precios de venta inmediatamente. NUNCA le preguntes si lo quiere comprar o rentar. SOLO proporciona información o precios de alquiler/renta si el cliente usa explícitamente palabras relacionadas como "rentar", "alquilar", "rent" o "lease".`;
+
+                priceContext += `\n\nREGLA DE TAMAÑO Y ENVÍO POR DEFECTO: 
+1. NUNCA le preguntes al cliente si prefiere el modelo Standard (STD) o High Cube (HC). Ofrécele SIEMPRE directamente el precio del modelo High Cube (HC).
+2. Si el cliente te proporciona su código postal (zip code), ASUME DIRECTAMENTE que quiere el contenedor con envío a domicilio (Delivery). NUNCA le preguntes si lo quiere recoger o si quiere envío. Simplemente dale el precio final con envío incluido.`;
+
+                priceContext += `\n\nREGLA ESTRICTA SOBRE COLORES: NUNCA menciones nada acerca de los colores de los contenedores a menos que el cliente te pregunte o mencione un color primero. Si el cliente NO habla de colores, omite este tema por completo. SOLO si el cliente pregunta por un color específico, respóndele: "El día de la entrega le mandamos fotos de los contenedores que tenemos en el patio. Esperamos a que usted nos dé el OK para proceder con la entrega, ahí podrá seleccionar entre los colores disponibles que tenemos ese día. No podemos garantizar un color específico ya que nuestro inventario siempre está en constante movimiento."`;
 
                 const { data, error } = await supabaseClient.functions.invoke('chat', {
                     body: { 
