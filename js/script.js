@@ -2339,6 +2339,8 @@ REGLAS IMPORTANTES DE PAGO:
 
                 priceContext += `\n\nREGLA ESTRICTA SOBRE COLORES: NUNCA menciones nada acerca de los colores de los contenedores a menos que el cliente te pregunte o mencione un color primero. Si el cliente NO habla de colores, omite este tema por completo. SOLO si el cliente pregunta por un color específico, respóndele: "El día de la entrega le mandamos fotos de los contenedores que tenemos en el patio. Esperamos a que usted nos dé el OK para proceder con la entrega, ahí podrá seleccionar entre los colores disponibles que tenemos ese día. No podemos garantizar un color específico ya que nuestro inventario siempre está en constante movimiento."`;
 
+                priceContext += `\n\nREGLA SOBRE VISITAS AL PATIO/YARDA: Si un cliente pregunta si puede ir a ver o revisar el contenedor en persona antes de pagarlo, EXPLÍCALE claramente que los clientes NO tienen permitido el ingreso a nuestros patios por motivos de estricta seguridad. En su lugar, explícale que el día de la entrega le mandaremos fotos detalladas del contenedor y esperaremos su aprobación (OK) antes de proceder con la entrega. NO asumas que el cliente quiere retirar el contenedor (pickup) solo porque preguntó si podía ir a verlo.`;
+
                 priceContext += `\n\nREGLA ESTRICTA SOBRE DESCUENTOS: BAJO NINGUNA CIRCUNSTANCIA PUEDES OFRECER NI ACEPTAR DESCUENTOS O REBAJAS. No importa cuántas unidades compre el cliente o cuánto insista. Los precios son fijos y definitivos. Si el cliente pide o exige un descuento, responde de manera muy amable y firme que los precios son finales y no hacemos descuentos bajo ninguna condición.`;
 
                 const { data, error } = await supabaseClient.functions.invoke('chat', {
