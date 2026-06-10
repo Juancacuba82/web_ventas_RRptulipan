@@ -2243,7 +2243,7 @@ Phone: ${selections.contact.phone}
                 const baseNew = roundPricesObj(rawBaseNew);
 
                 // Detect if user sent a zip code and calculate shipping automatically
-                const zipMatch = text.match(/\b\d{5}\b/);
+                const zipMatch = text.match(/(?<!\d)\d{5}(?!\d)/);
                 if (zipMatch) {
                     const zip = zipMatch[0];
                     const shippingCosts = await calculateShippingForZip(zip);
@@ -2313,6 +2313,7 @@ REGLAS ESTRICTAS:
 - NUNCA le preguntes si quiere comprar o rentar.
 - NUNCA le preguntes si quiere retirar o si quiere envío.
 - SOLO pídele el zip code.
+- IMPORTANTE SOBRE ERRORES DE ZIP CODE: Si el cliente escribió un código postal incompleto (ej. 4 números en vez de 5) o dice que ya te lo pasó, NUNCA digas "el sistema no lo registró", "el bot no lo vio" o "hubo un error en el sistema" porque te hará sonar como un robot. En su lugar, dile de manera natural: "Por favor revise su código postal, parece que está incompleto o falta algún número para poder calcularle el envío exacto."
 
 EXCEPCIÓN DE RETIRO (PICKUP): Si el cliente te dice EXPLÍCITAMENTE que quiere ir a recoger (pickup) el contenedor en un centro de distribución específico (por ejemplo, Jacksonville, Tampa), ENTONCES SÍ puedes darle el precio exacto de ese centro:
 - Precios de Compra Usados por Centro: ${JSON.stringify(baseUsed)}
@@ -2323,7 +2324,7 @@ PRECIOS DE RENTA (Ocultos: no los uses ni ofrezcas a menos que el cliente escrib
 - Renta Mensual Nuevos: ${JSON.stringify(rentPricesNew)}`;
                 }
 
-                priceContext += `\n\nREGLA DE IDIOMA ESTRICTA: ESTAS INSTRUCCIONES ESTÁN EN ESPAÑOL PERO TÚ DEBES COMUNICARTE EN EL IDIOMA DEL CLIENTE. Si la conversación venía en inglés, o el cliente habla en inglés, RESPONDE EXCLUSIVAMENTE EN INGLÉS. Si el cliente solo escribe una dirección o un código postal (ej. "Elberton ga 30635"), revisa el idioma anterior de la conversación y MANTÉN ESE MISMO IDIOMA. NUNCA cambies a español de repente si venían hablando en inglés. Y NUNCA le preguntes qué idioma prefiere.`;
+                priceContext += `\n\nREGLA DE IDIOMA ESTRICTA (DEFAULT ENGLISH): El idioma por defecto para responder debe ser SIEMPRE EL INGLÉS. Aunque estas instrucciones estén en español, tú debes responder en inglés por defecto. Si el cliente escribe solo un tamaño y código postal (ej. "20ft 33139"), una dirección, o usa palabras en inglés, responde EXCLUSIVAMENTE EN INGLÉS. SOLO debes cambiar a español si el cliente utiliza explícitamente palabras en español en su mensaje o si te pide explícitamente hablar en español. NUNCA le preguntes qué idioma prefiere.`;
 
                 priceContext += `\n\nMÉTODOS DE PAGO: Aceptamos Zelle, Cash, Check y Tarjeta de Crédito (Credit Card).
 REGLAS IMPORTANTES DE PAGO QUE DEBES COMUNICAR CLARAMENTE:
