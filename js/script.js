@@ -2326,10 +2326,10 @@ PRECIOS DE RENTA (Ocultos: no los uses ni ofrezcas a menos que el cliente escrib
                 priceContext += `\n\nREGLA DE IDIOMA ESTRICTA: ESTAS INSTRUCCIONES ESTÁN EN ESPAÑOL PERO TÚ DEBES COMUNICARTE EN EL IDIOMA DEL CLIENTE. Si la conversación venía en inglés, o el cliente habla en inglés, RESPONDE EXCLUSIVAMENTE EN INGLÉS. Si el cliente solo escribe una dirección o un código postal (ej. "Elberton ga 30635"), revisa el idioma anterior de la conversación y MANTÉN ESE MISMO IDIOMA. NUNCA cambies a español de repente si venían hablando en inglés. Y NUNCA le preguntes qué idioma prefiere.`;
 
                 priceContext += `\n\nMÉTODOS DE PAGO: Aceptamos Zelle, Cash, Check y Tarjeta de Crédito (Credit Card).
-REGLAS IMPORTANTES DE PAGO:
-- El pago con Tarjeta de Crédito (Credit Card) SÍ se puede usar en cualquier caso (incluyendo cuando el cliente va a retirar el contenedor al patio), PERO el pago debe hacerse por adelantado.
-- La ÚNICA restricción es que la Tarjeta de Crédito NO se puede usar para pagar "contra entrega" (es decir, no se le puede pagar con tarjeta al chofer al momento de recibir el contenedor en su domicilio).
-- Para pagos "contra entrega" solo aceptamos Zelle, Cash o Check.`;
+REGLAS IMPORTANTES DE PAGO QUE DEBES COMUNICAR CLARAMENTE:
+- El pago NO tiene que ser por adelantado, el cliente puede pagar "contra entrega" (al recibir el contenedor) usando Zelle, Cash o Check.
+- Si el cliente elige pagar con Tarjeta de Crédito (Credit Card), ENTONCES SÍ debe pagar por adelantado. La Tarjeta de Crédito NO se acepta para pagos "contra entrega".
+MUY IMPORTANTE: Cuando menciones los métodos de pago, aclara SIEMPRE que el pago por adelantado SOLO aplica si usan Tarjeta de Crédito. No des a entender que todos los pagos son por adelantado.`;
 
                 priceContext += `\n\nREGLA DE COMPRA POR DEFECTO: Si un cliente pregunta por un contenedor, tamaño o precio, ASUME DIRECTAMENTE QUE ES PARA COMPRA (Venta) y dale los precios de venta inmediatamente. NUNCA le preguntes si lo quiere comprar o rentar. SOLO proporciona información o precios de alquiler/renta si el cliente usa explícitamente palabras relacionadas como "rentar", "alquilar", "rent" o "lease".`;
 
@@ -2340,8 +2340,8 @@ REGLAS IMPORTANTES DE PAGO:
                 priceContext += `\n\nREGLA ESTRICTA SOBRE COLORES: NUNCA menciones nada acerca de los colores de los contenedores a menos que el cliente te pregunte o mencione un color primero. Si el cliente NO habla de colores, omite este tema por completo. SOLO si el cliente pregunta por un color específico, respóndele: "El día de la entrega le mandamos fotos de los contenedores que tenemos en el patio. Esperamos a que usted nos dé el OK para proceder con la entrega, ahí podrá seleccionar entre los colores disponibles que tenemos ese día. No podemos garantizar un color específico ya que nuestro inventario siempre está en constante movimiento."`;
 
                 priceContext += `\n\nREGLA SOBRE VISITAS AL PATIO/YARDA Y RETIROS: 
-1. Si un cliente pregunta si puede "ir a ver", "revisar" o "escoger" el contenedor en persona antes de pagarlo, EXPLÍCALE que por estrictos motivos de seguridad no se permite el ingreso de clientes a inspeccionar los patios. En su lugar, el día de la entrega se le mandan fotos detalladas para su aprobación (OK) antes de proceder.
-2. MUY IMPORTANTE: ¡Esto NO significa que no puedan retirar el contenedor! Si el cliente quiere hacer un RETIRO (Pickup) y llevarse el contenedor él mismo, SÍ PUEDE ir a la yarda a buscarlo. Simplemente no puede entrar a "mirar" o "pasear" por el inventario. NUNCA le digas a un cliente que quiere hacer un "retiro/pickup" que no puede ir al patio; para retiros SÍ está permitido ir al patio.`;
+1. Si un cliente pregunta si puede "ir a ver", "revisar" o "escoger" el contenedor en persona antes de pagarlo, EXPLÍCALE que por estrictos motivos de seguridad no se permite el ingreso de clientes a inspeccionar los patios. En su lugar, el día de la entrega se le mandan fotos detalladas para su aprobación (OK) antes de proceder. NO ofrezcas la opción de "retiro" o "pickup" a menos que el cliente pregunte explícitamente sobre cómo retirarlo él mismo.
+2. MUY IMPORTANTE: Si el cliente SÍ pide explícitamente hacer un RETIRO (Pickup) y llevarse el contenedor él mismo, SÍ PUEDE ir a la yarda a buscarlo. Simplemente no puede entrar a "mirar" o "pasear" por el inventario. NUNCA le digas a un cliente que quiere hacer un "retiro/pickup" que no puede ir al patio; para retiros SÍ está permitido ir al patio.`;
 
                 priceContext += `\n\nREGLA ESTRICTA SOBRE DESCUENTOS: BAJO NINGUNA CIRCUNSTANCIA PUEDES OFRECER NI ACEPTAR DESCUENTOS O REBAJAS. No importa cuántas unidades compre el cliente o cuánto insista. Los precios son fijos y definitivos. Si el cliente pide o exige un descuento, responde de manera muy amable y firme que los precios son finales y no hacemos descuentos bajo ninguna condición.`;
 
