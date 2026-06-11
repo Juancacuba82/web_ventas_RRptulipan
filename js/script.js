@@ -156,7 +156,7 @@ async function sendLeadToSupabase(leadData) {
             }
         }
 
-        await supabaseClient.from('call_logs').insert([{
+        const payload = {
             customer: leadData.name || 'Unknown',
             phone: leadData.phone || '---',
             service_type: leadData.service || 'Sales',
@@ -166,9 +166,33 @@ async function sendLeadToSupabase(leadData) {
             source: 'website',
             status: 'PENDING',
             date: new Date().toISOString().split('T')[0]
-        }]);
+        };
+
+        // Añadir columnas personalizadas si vienen en los datos
+        if (leadData.amount !== undefined && leadData.amount !== null) payload.amount = leadData.amount;
+        if (leadData.delivery_place) payload.zip_code = leadData.delivery_place;
+        if (leadData.size) payload.measures = leadData.size;
+
+        const { error } = await supabaseClient.from('call_logs').insert([payload]);
+        
+        if (error) {
+            console.warn("Supabase insert falló con columnas extra, intentando modo seguro (fallback):", error);
+            
+            // Si falló, posiblemente sea porque las columnas amount, zip_code o measures no existen o tienen límite.
+            // Removemos las columnas problemáticas y ponemos la info en la descripción para no perderla.
+            delete payload.amount;
+            delete payload.zip_code;
+            delete payload.measures;
+            
+            payload.description += `\n[Fallback Data] Address: ${leadData.delivery_place || ''} | Size: ${leadData.size || ''} | Price: ${leadData.amount || ''}`;
+            
+            const { error: fallbackError } = await supabaseClient.from('call_logs').insert([payload]);
+            if (fallbackError) {
+                console.error("Supabase Fallback Error:", fallbackError);
+            }
+        }
     } catch (err) {
-        console.error("Supabase Error:", err);
+        console.error("Supabase Exception:", err);
     }
 }
 
@@ -2346,6 +2370,12 @@ MUY IMPORTANTE: Cuando menciones los métodos de pago, aclara SIEMPRE que el pag
 
                 priceContext += `\n\nREGLA ESTRICTA SOBRE DESCUENTOS: BAJO NINGUNA CIRCUNSTANCIA PUEDES OFRECER NI ACEPTAR DESCUENTOS O REBAJAS. No importa cuántas unidades compre el cliente o cuánto insista. Los precios son fijos y definitivos. Si el cliente pide o exige un descuento, responde de manera muy amable y firme que los precios son finales y no hacemos descuentos bajo ninguna condición.`;
 
+                priceContext += `\n\nREGLA PARA CERRAR LA VENTA (MUY IMPORTANTE):
+Cuando el cliente confirme que quiere proceder a comprar/rentar, DEBES pedirle su Dirección Exacta de Entrega (Full Delivery Address) si aún no te la ha dado, además de su Nombre, Teléfono, y confirmar el Tamaño del contenedor. (El Zip Code inicial era solo para cotizar, ahora necesitas la dirección completa de la calle).
+Una vez que tengas OBLIGATORIAMENTE su Nombre, Teléfono, Dirección Exacta y el Tamaño, debes decirle amablemente que la orden ha sido recibida y que logística se comunicará pronto para coordinar la entrega.
+Además, DEBES agregar al final de tu respuesta (oculto para el sistema) el siguiente formato exacto:
+[ORDER_CLOSED: Nombre | Teléfono | Dirección Exacta | Tamaño | Precio Final]`;
+
                 const { data, error } = await supabaseClient.functions.invoke('chat', {
                     body: { 
                         message: text,
@@ -2356,16 +2386,41 @@ MUY IMPORTANTE: Cuando menciones los métodos de pago, aclara SIEMPRE que el pag
                 
                 if (error) throw error;
                 
+                let finalReply = data.reply;
+                
+                // Interceptar etiqueta de cierre de venta
+                const orderMatch = finalReply.match(/\[ORDER_CLOSED:\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^\]]+)\]/i);
+                if (orderMatch) {
+                    const [fullMatch, cName, cPhone, cAddress, cSize, cPrice] = orderMatch;
+                    
+                    // Remover la etiqueta para que el usuario no la vea
+                    finalReply = finalReply.replace(fullMatch, '').trim();
+                    
+                    // Enviar a Supabase automáticamente
+                    if (typeof sendLeadToSupabase === 'function') {
+                        const cleanPrice = parseFloat(cPrice.replace(/[^0-9.]/g, '')) || null;
+                        sendLeadToSupabase({
+                            name: cName.trim(),
+                            phone: cPhone.trim(),
+                            delivery_place: cAddress.trim(),
+                            amount: cleanPrice,
+                            size: cSize.trim(),
+                            service: 'Chatbot Sale',
+                            message: `Order closed via Chatbot.`
+                        }).catch(e => console.error("DB Error on Chatbot close:", e));
+                    }
+                }
+
                 // Calcular un retraso artificial basado en la longitud de la respuesta
                 // Simulando la velocidad de escritura humana (minimo 2.5 segs, maximo 8 segs, 40ms por letra)
-                const typingDelay = Math.min(8000, Math.max(2500, data.reply.length * 40));
+                const typingDelay = Math.min(8000, Math.max(2500, finalReply.length * 40));
                 
                 setTimeout(() => {
                     typingIndicator.classList.remove('active');
-                    appendMessage(data.reply, 'bot');
+                    appendMessage(finalReply, 'bot');
                     
-                    // Guardar la respuesta del bot en la historia
-                    chatHistory.push({ role: 'model', parts: [{ text: data.reply }] });
+                    // Guardar la respuesta del bot en la historia (sin la etiqueta oculta)
+                    chatHistory.push({ role: 'model', parts: [{ text: finalReply }] });
                 }, typingDelay);
 
             } catch (err) {
