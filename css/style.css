@@ -1606,12 +1606,15 @@ body.with-countdown .buy-header {
         display: none;
     }
     .ai-chat-window {
+        top: 0;
         bottom: 0;
+        left: 0;
         right: 0;
         width: 100%;
-        height: 100vh;
-        max-height: 100vh;
+        height: 100%;
+        max-height: 100%;
         border-radius: 0;
+        z-index: 999999;
     }
     .ai-chat-window.active {
         transform: translateY(0);
