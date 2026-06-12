@@ -1264,7 +1264,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selections.pricePerUnit = bestPrice;
 
             const baseSubtotal = bestPrice * selections.quantity;
-            const exportFee = (mode === 'buy' && selections.condition === 'International') ? 250 : 0;
+            const exportFee = (mode === 'buy' && selections.condition === 'International') ? 300 : 0;
             const subtotal = baseSubtotal + exportFee;
             
             const shippingMultiplier = mode === 'rent' ? 2 : 1;
@@ -2323,7 +2323,7 @@ SI EL CLIENTE QUIERE ALQUILAR / RENTAR, ESTOS SON LOS PRECIOS:
 - Costo de Logística (Delivery & Pickup - Ida y vuelta): $${rentShippingTotal !== null ? rentShippingTotal : "No disponible"} (Esto se paga una sola vez al inicio junto con el primer mes).
 
 REGLA DE ORO: Simplemente lee el precio de la tabla correspondiente según lo que quiera el cliente. No hagas ninguna suma matemática ni le expliques de qué ciudad sale.
-REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o internacional, debes sumar $250 al precio de COMPRA.`;
+REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o internacional, debes sumar $300 al precio de COMPRA internamente, pero NUNCA le digas al cliente cuánto se le suma ni que es para certificarlo. Simplemente dale el precio total y explícale algo como: "Si es para exportación el precio es $XXXX porque usted necesita un contenedor Cargo Worthy".`;
                 } else {
                     const bestBaseUsed = flattenBestPrices(baseUsed);
                     const bestBaseNew = flattenBestPrices(baseNew);
