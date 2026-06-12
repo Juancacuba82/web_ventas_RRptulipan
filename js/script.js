@@ -2090,6 +2090,7 @@ Phone: ${selections.contact.phone}
 
     let chatHistory = []; // Mantener memoria de la conversación
     let globalShippingCosts = null; // Guardar mapa de costos de envío por depot
+    let globalLastZipCode = null; // Guardar el último zip code ingresado
 
     if (aiChatBtn && aiChatWindow) {
         aiChatBtn.addEventListener('click', () => {
@@ -2270,6 +2271,7 @@ Phone: ${selections.contact.phone}
                 const zipMatch = text.match(/(?<!\d)\d{5}(?!\d)/);
                 if (zipMatch) {
                     const zip = zipMatch[0];
+                    globalLastZipCode = zip;
                     const shippingCosts = await calculateShippingForZip(zip);
                     if (shippingCosts) {
                         globalShippingCosts = shippingCosts;
@@ -2323,7 +2325,7 @@ SI EL CLIENTE QUIERE ALQUILAR / RENTAR, ESTOS SON LOS PRECIOS:
 - Costo de Logística (Delivery & Pickup - Ida y vuelta): $${rentShippingTotal !== null ? rentShippingTotal : "No disponible"} (Esto se paga una sola vez al inicio junto con el primer mes).
 
 REGLA DE ORO: Simplemente lee el precio de la tabla correspondiente según lo que quiera el cliente. No hagas ninguna suma matemática ni le expliques de qué ciudad sale.
-REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o internacional, debes sumar $300 al precio de COMPRA del contenedor internamente. Al darle el precio, dale la suma total del contenedor ya certificado (SIN sumar el envío) y explícale claramente que ese es el total del contenedor certificado para exportación (Cargo Worthy). Además, indícale que para finalizar el precio total con la entrega debe llamarnos para coordinar los detalles, o puede dejar su número de teléfono y nosotros lo llamaremos.`;
+REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o internacional, debes sumar $300 al precio de COMPRA del contenedor internamente. Al darle el precio, dale la suma total del contenedor ya certificado (SIN sumar el envío) y explícale claramente que ese es el total del contenedor certificado para exportación (Cargo Worthy). Además, PÍDELE de forma amable que te proporcione su Nombre, Número de Teléfono y Dirección de Entrega para que nuestro equipo lo contacte, coordine los detalles del envío y le dé el precio final de toda la logística.`;
                 } else {
                     const bestBaseUsed = flattenBestPrices(baseUsed);
                     const bestBaseNew = flattenBestPrices(baseNew);
@@ -2393,21 +2395,41 @@ Además, DEBES agregar al final de tu respuesta (oculto para el sistema) el sigu
                 if (orderMatch) {
                     const [fullMatch, cName, cPhone, cAddress, cSize, cPrice] = orderMatch;
                     
-                    // Remover la etiqueta para que el usuario no la vea
-                    finalReply = finalReply.replace(fullMatch, '').trim();
-                    
-                    // Enviar a Supabase automáticamente
-                    if (typeof sendLeadToSupabase === 'function') {
-                        const cleanPrice = parseFloat(cPrice.replace(/[^0-9.]/g, '')) || null;
-                        sendLeadToSupabase({
-                            name: cName.trim(),
-                            phone: cPhone.trim(),
-                            delivery_place: cAddress.trim(),
-                            amount: cleanPrice,
-                            size: cSize.trim(),
-                            service: 'Chatbot Sale',
-                            message: `Order closed via Chatbot.`
-                        }).catch(e => console.error("DB Error on Chatbot close:", e));
+                    let foundZipInAddress = null;
+                    const addressZipMatch = cAddress.match(/(?<!\d)\d{5}(?!\d)/);
+                    if (addressZipMatch) {
+                        foundZipInAddress = addressZipMatch[0];
+                    } else {
+                        try {
+                            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cAddress)}&addressdetails=1`);
+                            const gData = await response.json();
+                            if (gData && gData.length > 0 && gData[0].address && gData[0].address.postcode) {
+                                foundZipInAddress = gData[0].address.postcode.split('-')[0];
+                            }
+                        } catch (e) { console.warn("Geocoding failed", e); }
+                    }
+
+                    if (globalLastZipCode && foundZipInAddress && foundZipInAddress !== globalLastZipCode) {
+                        finalReply = "La dirección de entrega proporcionada no parece coincidir con el código postal (" + globalLastZipCode + ") que ingresó inicialmente. Para evitar errores en el cálculo del envío, por favor escriba nuevamente su dirección asegurándose de incluir el código postal correcto.";
+                    } else if (globalLastZipCode && !foundZipInAddress) {
+                        finalReply = "Para procesar la orden correctamente y verificar el costo de envío, por favor envíeme nuevamente su dirección exacta de entrega incluyendo explícitamente el código postal al final.";
+                    } else {
+                        // Remover la etiqueta para que el usuario no la vea
+                        finalReply = finalReply.replace(fullMatch, '').trim();
+                        
+                        // Enviar a Supabase automáticamente
+                        if (typeof sendLeadToSupabase === 'function') {
+                            const cleanPrice = parseFloat(cPrice.replace(/[^0-9.]/g, '')) || null;
+                            sendLeadToSupabase({
+                                name: cName.trim(),
+                                phone: cPhone.trim(),
+                                delivery_place: cAddress.trim(),
+                                amount: cleanPrice,
+                                size: cSize.trim(),
+                                service: 'Chatbot Sale',
+                                message: `Order closed via Chatbot.`
+                            }).catch(e => console.error("DB Error on Chatbot close:", e));
+                        }
                     }
                 }
 
