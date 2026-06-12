@@ -2323,7 +2323,7 @@ SI EL CLIENTE QUIERE ALQUILAR / RENTAR, ESTOS SON LOS PRECIOS:
 - Costo de Logística (Delivery & Pickup - Ida y vuelta): $${rentShippingTotal !== null ? rentShippingTotal : "No disponible"} (Esto se paga una sola vez al inicio junto con el primer mes).
 
 REGLA DE ORO: Simplemente lee el precio de la tabla correspondiente según lo que quiera el cliente. No hagas ninguna suma matemática ni le expliques de qué ciudad sale.
-REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o internacional, debes sumar $300 al precio de COMPRA internamente, pero NUNCA le digas al cliente cuánto se le suma ni que es para certificarlo. Simplemente dale el precio total y explícale algo como: "Si es para exportación el precio es $XXXX porque usted necesita un contenedor Cargo Worthy".`;
+REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o internacional, debes sumar $300 al precio de COMPRA del contenedor internamente. Al darle el precio, dale la suma total del contenedor ya certificado (SIN sumar el envío) y explícale claramente que ese es el total del contenedor certificado para exportación (Cargo Worthy). Además, indícale que para finalizar el precio total con la entrega debe llamarnos para coordinar los detalles, o puede dejar su número de teléfono y nosotros lo llamaremos.`;
                 } else {
                     const bestBaseUsed = flattenBestPrices(baseUsed);
                     const bestBaseNew = flattenBestPrices(baseNew);
@@ -2348,7 +2348,7 @@ PRECIOS DE RENTA (Ocultos: no los uses ni ofrezcas a menos que el cliente escrib
 - Renta Mensual Nuevos: ${JSON.stringify(rentPricesNew)}`;
                 }
 
-                priceContext += `\n\nREGLA DE IDIOMA ESTRICTA (DEFAULT ENGLISH): El idioma por defecto para responder debe ser SIEMPRE EL INGLÉS. Aunque estas instrucciones estén en español, tú debes responder en inglés por defecto. Si el cliente escribe solo un tamaño y código postal (ej. "20ft 33139"), una dirección, o usa palabras en inglés, responde EXCLUSIVAMENTE EN INGLÉS. SOLO debes cambiar a español si el cliente utiliza explícitamente palabras en español en su mensaje o si te pide explícitamente hablar en español. NUNCA le preguntes qué idioma prefiere.`;
+                priceContext += `\n\nREGLA DE IDIOMA ESTRICTA: Mantén siempre la conversación en el idioma en el que el cliente la inició (analiza el historial). Si el cliente inició en español y luego usa términos comunes en inglés como "zip code", "delivery", "pickup", "High Cube", etc., NO cambies a inglés. Continúa respondiendo en español. Solo debes responder en inglés si la conversación inició en inglés o si el cliente te pide explícitamente hablar en inglés. NUNCA cambies de idioma a mitad de la conversación solo por detectar una palabra aislada en otro idioma. NUNCA le preguntes qué idioma prefiere.`;
 
                 priceContext += `\n\nMÉTODOS DE PAGO: Aceptamos Zelle, Cash, Check y Tarjeta de Crédito (Credit Card).
 REGLAS IMPORTANTES DE PAGO QUE DEBES COMUNICAR CLARAMENTE:
