@@ -2458,6 +2458,24 @@ Además, DEBES agregar al final de tu respuesta (oculto para el sistema) el sigu
         aiChatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
+
+        // Auto-open chat and greet
+        setTimeout(() => {
+            if (chatHistory.length === 0) {
+                aiChatWindow.classList.add('active');
+                aiChatBtn.style.display = 'none';
+                
+                const greeting = currentLang === 'en' 
+                    ? "Hello! I'm your RP Tulipan logistics advisor. How can I help you today? Are you looking to buy or rent a container?"
+                    : "¡Hola! Soy tu asesor de logística de RP Tulipan. ¿En qué te puedo ayudar hoy? ¿Buscas comprar o rentar un contenedor?";
+                
+                typingIndicator.classList.add('active');
+                setTimeout(() => {
+                    typingIndicator.classList.remove('active');
+                    appendMessage(greeting, 'bot');
+                }, 1500);
+            }
+        }, 3000); // Wait 3 seconds after page load
     }
 
 });
