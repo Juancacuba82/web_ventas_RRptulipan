@@ -2430,6 +2430,15 @@ Además, DEBES agregar al final de tu respuesta (oculto para el sistema) el sigu
                                 message: `Order closed via Chatbot.`
                             }).catch(e => console.error("DB Error on Chatbot close:", e));
                         }
+
+                        // Enviar notificación a WhatsApp
+                        let waText = `¡Hola! Me gustaría concretar mi pedido con los siguientes datos:\n\n`;
+                        waText += `👤 Nombre: ${cName.trim()}\n`;
+                        waText += `📞 Teléfono: ${cPhone.trim()}\n`;
+                        waText += `📍 Dirección: ${cAddress.trim()}\n`;
+                        waText += `📏 Tamaño: ${cSize.trim()}\n`;
+                        waText += `💰 Precio estimado: ${cPrice}\n`;
+                        window.open(`https://wa.me/17867366292?text=${encodeURIComponent(waText)}`, '_blank');
                     }
                 }
 
