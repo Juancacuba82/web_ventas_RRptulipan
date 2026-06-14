@@ -1321,20 +1321,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 html += `<div class="summary-item"><strong>Contact:</strong> <span>${selections.contact.name || '-'}</span></div>`;
             }
 
+            const deliveryIncludedText = selections['delivery-mode'] === 'Delivery' ? (currentLang === 'en' ? '(Delivery included)' : '(Envío incluido)') : '';
+            
             html += `
                 <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-                <div class="summary-item"><strong>${t["buy-summary-subtotal"]}:</strong> <span style="font-weight: 700;">$${subtotal.toLocaleString()}${subtotalDetailText}</span></div>
-                ${selections['delivery-mode'] === 'Delivery' ? `
-                    <div class="summary-item" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                        <strong>${mode === 'rent' ? (currentLang === 'en' ? "Shipping (Delivery & Pickup)" : "Envío (Entrega y Recogida)") : (selections.condition === 'Local' ? t["buy-summary-delivery"] : t["buy-summary-shipping"])}:</strong> 
-                        <span>$${shippingTotal.toLocaleString()} ${selections.quantity === 1 ? shippingDetailText : ''}</span>
+                <div class="summary-item total-line" style="font-size: 1.25rem; color: var(--primary-color); margin-top: 10px; align-items: flex-start;">
+                    <strong>${t["buy-summary-total"]}:</strong> 
+                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                        <span style="font-weight: 700;">$${Math.max(0, total).toLocaleString()}</span>
+                        ${deliveryIncludedText ? `<small style="color: #888; font-size: 0.9rem; font-weight: normal; margin-top: 4px;">${deliveryIncludedText}</small>` : ''}
                     </div>
-                    ${selections.quantity > 1 ? shippingDetailText : ''}
-                ` : ''}
-
-
-
-                <div class="summary-item total-line" style="font-size: 1.25rem; color: var(--primary-color); margin-top: 10px;"><strong>${t["buy-summary-total"]}:</strong> <span style="font-weight: 700;">$${Math.max(0, total).toLocaleString()}</span></div>
+                </div>
             `;
 
             const taxWarningMethods = ["Zelle", "Card", "Check"];
