@@ -3,7 +3,7 @@ const SUPABASE_URL = 'https://xtrceqpuwqetzslwxxux.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Wt5TmlxBw3FOtZ_L_oWt0Q_RoMMVuni';
 let supabaseClient = null;
 
-// ─── Dynamic Price Config (loaded from Supabase 'licencias') ─────────────────
+// â”€â”€â”€ Dynamic Price Config (loaded from Supabase 'licencias') â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const LS_PRICE_KEY = 'tulipan_prices_v1';
 let DYNAMIC_PRICES = null; // Will be populated on page load
 
@@ -14,13 +14,13 @@ let DYNAMIC_PRICES = null; // Will be populated on page load
  *   RENT_PRICES_USED, RENT_PRICES_NEW, DEPOTS
  *
  * Size key mapping:
- *   "20std"  → "20'"
- *   "40std"  → "40' STD"
- *   "40hc"   → "40' HC"
- *   "45hc"   → "45'"
+ *   "20std"  â†’ "20'"
+ *   "40std"  â†’ "40' STD"
+ *   "40hc"   â†’ "40' HC"
+ *   "45hc"   â†’ "45'"
  * Reefer key mapping:
- *   "20func" → "20'"
- *   "40func" → "40' STD" and "40' HC"   (same price for both 40-foot variants)
+ *   "20func" â†’ "20'"
+ *   "40func" â†’ "40' STD" and "40' HC"   (same price for both 40-foot variants)
  */
 function buildPricesFromHubs(hubs) {
     const sizeMap = {
@@ -101,7 +101,7 @@ async function loadDynamicPrices() {
         // Cache a fresh copy for offline fallback
         try { localStorage.setItem(LS_PRICE_KEY, JSON.stringify(data.config)); } catch (_) {}
 
-        console.log('[Prices] Loaded from Supabase ✓', DYNAMIC_PRICES);
+        console.log('[Prices] Loaded from Supabase âœ“', DYNAMIC_PRICES);
         return true;
 
     } catch (err) {
@@ -119,7 +119,7 @@ async function loadDynamicPrices() {
                         DYNAMIC_PRICES.deliveryRates = configCache.deliveryRates;
                     }
                 }
-                console.log('[Prices] Loaded from localStorage cache ✓');
+                console.log('[Prices] Loaded from localStorage cache âœ“');
                 return true;
             }
         } catch (_) {}
@@ -128,7 +128,7 @@ async function loadDynamicPrices() {
         return false; // Hardcoded prices remain as final fallback
     }
 }
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 async function sendLeadToSupabase(leadData) {
@@ -168,7 +168,7 @@ async function sendLeadToSupabase(leadData) {
             date: new Date().toISOString().split('T')[0]
         };
 
-        // Añadir columnas personalizadas si vienen en los datos
+        // AÃ±adir columnas personalizadas si vienen en los datos
         if (leadData.amount !== undefined && leadData.amount !== null) payload.amount = leadData.amount;
         if (leadData.delivery_place) payload.zip_code = leadData.delivery_place;
         if (leadData.size) payload.measures = leadData.size;
@@ -176,10 +176,10 @@ async function sendLeadToSupabase(leadData) {
         const { error } = await supabaseClient.from('call_logs').insert([payload]);
         
         if (error) {
-            console.warn("Supabase insert falló con columnas extra, intentando modo seguro (fallback):", error);
+            console.warn("Supabase insert fallÃ³ con columnas extra, intentando modo seguro (fallback):", error);
             
-            // Si falló, posiblemente sea porque las columnas amount, zip_code o measures no existen o tienen límite.
-            // Removemos las columnas problemáticas y ponemos la info en la descripción para no perderla.
+            // Si fallÃ³, posiblemente sea porque las columnas amount, zip_code o measures no existen o tienen lÃ­mite.
+            // Removemos las columnas problemÃ¡ticas y ponemos la info en la descripciÃ³n para no perderla.
             delete payload.amount;
             delete payload.zip_code;
             delete payload.measures;
@@ -378,81 +378,81 @@ document.addEventListener('DOMContentLoaded', () => {
             "nav-home": "Inicio",
             "nav-services": "Servicios",
             "nav-about": "Nosotros",
-            "nav-gallery": "Galería",
+            "nav-gallery": "GalerÃ­a",
             "nav-contact": "Contacto",
             "hero-title": "Soluciones Modernas de Contenedores",
-            "hero-p": "Logística global simplificada. Vendemos, alquilamos y transportamos contenedores de alta calidad adaptados a sus necesidades comerciales.",
+            "hero-p": "LogÃ­stica global simplificada. Vendemos, alquilamos y transportamos contenedores de alta calidad adaptados a sus necesidades comerciales.",
             "hero-btn-services": "Nuestros Servicios",
             "services-title": "Nuestros Servicios",
             "service-sales-h3": "Venta de Contenedores",
-            "service-sales-p": "¿Buscas una solución permanente? Ofrecemos una amplia gama de contenedores de envío nuevos y usados para la venta.",
+            "service-sales-p": "Â¿Buscas una soluciÃ³n permanente? Ofrecemos una amplia gama de contenedores de envÃ­o nuevos y usados para la venta.",
             "service-sales-btn": "Comprar",
             "service-rent-h3": "Alquiler de Contenedores",
-            "service-rent-p": "Opciones de alquiler flexibles para necesidades de almacenamiento a corto y largo plazo. Contenedores fiables y seguros a su disposición.",
+            "service-rent-p": "Opciones de alquiler flexibles para necesidades de almacenamiento a corto y largo plazo. Contenedores fiables y seguros a su disposiciÃ³n.",
             "service-rent-btn": "Alquilar",
             "service-trans-h3": "Transporte",
-            "service-trans-p": "Servicios de transporte rápidos y seguros. Entregamos sus contenedores a cualquier ubicación con precisión y cuidado.",
+            "service-trans-p": "Servicios de transporte rÃ¡pidos y seguros. Entregamos sus contenedores a cualquier ubicaciÃ³n con precisiÃ³n y cuidado.",
             "service-trans-btn": "Cotizar",
-            "service-crane-h3": "Servicio de Grúa",
-            "service-crane-p": "¿Necesita elevación pesada? Nuestros servicios de grúa ofrecen un manejo seguro y eficiente para contenedores y equipos grandes.",
+            "service-crane-h3": "Servicio de GrÃºa",
+            "service-crane-p": "Â¿Necesita elevaciÃ³n pesada? Nuestros servicios de grÃºa ofrecen un manejo seguro y eficiente para contenedores y equipos grandes.",
             "service-crane-btn": "Solicitar",
-            "crane-h1": "Cotización de Servicio de Grúa",
-            "about-h2": "¿Por qué elegir RP Tulipan?",
-            "about-p": "Con años de experiencia en la industria logística, nos enorgullecemos de brindar soluciones de contenedores de primer nivel. Nuestro compromiso con la calidad y la satisfacción del cliente nos convierte en líderes en el mercado.",
+            "crane-h1": "CotizaciÃ³n de Servicio de GrÃºa",
+            "about-h2": "Â¿Por quÃ© elegir RP Tulipan?",
+            "about-p": "Con aÃ±os de experiencia en la industria logÃ­stica, nos enorgullecemos de brindar soluciones de contenedores de primer nivel. Nuestro compromiso con la calidad y la satisfacciÃ³n del cliente nos convierte en lÃ­deres en el mercado.",
             "about-f1": "Contenedores de acero de alta calidad",
             "about-f2": "Precios competitivos de mercado",
-            "about-f3": "Atención al cliente 24/7",
+            "about-f3": "AtenciÃ³n al cliente 24/7",
             "about-f4": "Red de entrega global",
-            "contact-h2": "Contáctenos",
+            "contact-h2": "ContÃ¡ctenos",
             "contact-h3": "Ponerse en contacto",
-            "contact-p": "¿Tiene preguntas sobre nuestros servicios? Nuestro equipo está listo para ayudarlo a encontrar la solución de contenedor perfecta.",
+            "contact-p": "Â¿Tiene preguntas sobre nuestros servicios? Nuestro equipo estÃ¡ listo para ayudarlo a encontrar la soluciÃ³n de contenedor perfecta.",
             "contact-address": "9804 NW 80th Ave, Hialeah Gardens FL 33016, Estados Unidos",
             "form-name": "Tu nombre",
-            "form-email": "Tu correo electrónico",
-            "form-phone": "Número de teléfono",
+            "form-email": "Tu correo electrÃ³nico",
+            "form-phone": "NÃºmero de telÃ©fono",
             "form-service-placeholder": "Seleccionar servicio",
             "form-service-sales": "Venta de contenedores",
             "form-service-rent": "Alquiler de contenedores",
             "form-service-trans": "Transporte",
-            "form-service-crane": "Servicio de grúa",
+            "form-service-crane": "Servicio de grÃºa",
             "form-message": "Tu mensaje",
             "form-btn": "Enviar mensaje",
-            "footer-p": "Brindando excelencia en logística de contenedores.",
-            "footer-links-h4": "Enlaces rápidos",
-            "footer-social-h4": "Síguenos",
+            "footer-p": "Brindando excelencia en logÃ­stica de contenedores.",
+            "footer-links-h4": "Enlaces rÃ¡pidos",
+            "footer-social-h4": "SÃ­guenos",
             "footer-bottom": "&copy; 2026 RP Tulipan Logistics. Todos los derechos reservados.",
-            "gallery-h1": "Nuestra Galería de Fotos",
-            "gallery-p": "Explore nuestros contenedores y operaciones logísticas",
+            "gallery-h1": "Nuestra GalerÃ­a de Fotos",
+            "gallery-p": "Explore nuestros contenedores y operaciones logÃ­sticas",
             "buy-h1": "Configura tu Contenedor",
             "buy-p": "Selecciona las opciones que mejor se adapten a tus necesidades",
             "buy-step1": "Entrega o Recogida",
             "buy-step-qty": "Seleccionar Cantidad",
             "buy-step2": "Tipo de Servicio",
-            "buy-step-cond": "Condición del Contenedor",
-            "buy-step3": "Climatización",
+            "buy-step-cond": "CondiciÃ³n del Contenedor",
+            "buy-step3": "ClimatizaciÃ³n",
             "buy-step4": "Entrega o Recogida",
-            "buy-step5": "Detalles de Logística",
-            "buy-step6": "Método de Pago",
-            "buy-step7": "Información de Contacto",
-            "buy-step-size": "Seleccionar Tamaño",
+            "buy-step5": "Detalles de LogÃ­stica",
+            "buy-step6": "MÃ©todo de Pago",
+            "buy-step7": "InformaciÃ³n de Contacto",
+            "buy-step-size": "Seleccionar TamaÃ±o",
             "buy-step-contact": "Datos de Contacto",
             "buy-summary-subtotal": "Subtotal Contenedor",
-            "buy-summary-export": "Tarifa de Exportación",
-            "buy-summary-shipping": "Costo de Envío",
+            "buy-summary-export": "Tarifa de ExportaciÃ³n",
+            "buy-summary-shipping": "Costo de EnvÃ­o",
             "buy-summary-delivery": "Costo de Entrega",
             "buy-summary-total": "Precio Total",
             "buy-summary-dist": "Distancia",
             "buy-calculating": "Calculando distancia...",
-            "pay-note": "Puedes pagar contra entrega con Zelle, Cash o Check. No se aceptan tarjetas de crédito para pago contra entrega.",
-            "buy-depot-info": "Seleccione el depósito más cercano a su ubicación para obtener las tarifas de envío más bajas.",
+            "pay-note": "Puedes pagar contra entrega con Zelle, Cash o Check. No se aceptan tarjetas de crÃ©dito para pago contra entrega.",
+            "buy-depot-info": "Seleccione el depÃ³sito mÃ¡s cercano a su ubicaciÃ³n para obtener las tarifas de envÃ­o mÃ¡s bajas.",
             "buy-summary": "Resumen",
             "buy-btn-pricing": "Realizar Pedido.",
             "buy-btn-restart": "Reiniciar",
-            "buy-back": "Atrás",
+            "buy-back": "AtrÃ¡s",
             "buy-back-home": "Volver a Servicios",
-            "buy-opt-20": "20' Estándar",
+            "buy-opt-20": "20' EstÃ¡ndar",
             "buy-opt-40": "40' High Cube",
-            "buy-opt-40std": "40' Estándar",
+            "buy-opt-40std": "40' EstÃ¡ndar",
             "buy-opt-45": "45' High Cube",
             "buy-opt-int": "Shipping",
             "buy-opt-local": "Storage",
@@ -465,9 +465,9 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-opt-pickup": "Recogida",
             "buy-pay-cash": "Efectivo",
             "buy-pay-zelle": "Zelle",
-            "buy-pay-card": "Tarjeta de Crédito/Débito",
+            "buy-pay-card": "Tarjeta de CrÃ©dito/DÃ©bito",
             "buy-pay-check": "Cheque",
-            "buy-zip-placeholder": "Código Postal de Entrega",
+            "buy-zip-placeholder": "CÃ³digo Postal de Entrega",
             "buy-btn-next": "Siguiente",
             "buy-depot-sav": "Savannah (31408)",
             "buy-depot-atl": "Atlanta (30288)",
@@ -475,30 +475,30 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-depot-tit": "Titusville (32780)",
             "buy-depot-tam": "Tampa (33619)",
             "buy-depot-mia": "Miami (33178)",
-            "rent-step-cond": "5. Condición del Contenedor",
-            "rent-step-logistics": "2. Detalles de Logística",
-            "rent-step-pay": "6. Método de Pago",
-            "rent-step-contact": "7. Información de Contacto",
-            "rent-step-size": "3. Seleccionar Tamaño",
+            "rent-step-cond": "5. CondiciÃ³n del Contenedor",
+            "rent-step-logistics": "2. Detalles de LogÃ­stica",
+            "rent-step-pay": "6. MÃ©todo de Pago",
+            "rent-step-contact": "7. InformaciÃ³n de Contacto",
+            "rent-step-size": "3. Seleccionar TamaÃ±o",
             "rent-step-qty": "4. Seleccionar Cantidad",
             "rent-opt-used": "Usado",
             "rent-opt-new": "Nuevo",
             "rent-h1": "Alquila tu Contenedor",
             "rent-btn-pricing": "Realizar Pedido.",
-            "trans-h1": "Cotización de Transporte",
-            "trans-step1": "1. Tamaño del Contenedor",
+            "trans-h1": "CotizaciÃ³n de Transporte",
+            "trans-step1": "1. TamaÃ±o del Contenedor",
             "trans-step2": "2. Estado del Contenedor",
             "trans-step3": "3. Detalles de la Ruta",
-            "trans-opt-empty": "Vacío",
+            "trans-opt-empty": "VacÃ­o",
             "trans-opt-full": "Cargado",
-            "trans-opt-crane-yes": "Necesita Grúa",
-            "trans-opt-crane-no": "No necesita Grúa",
+            "trans-opt-crane-yes": "Necesita GrÃºa",
+            "trans-opt-crane-no": "No necesita GrÃºa",
             "trans-zip-pickup": "Zip Code de Recogida",
             "trans-zip-delivery": "Zip Code de Entrega",
-            "trans-btn-pricing": "Solicitar Cotización",
-            "trans-step-contact": "4. Información de Contacto",
+            "trans-btn-pricing": "Solicitar CotizaciÃ³n",
+            "trans-step-contact": "4. InformaciÃ³n de Contacto",
             "summary-status": "Estado",
-            "summary-crane": "Grúa",
+            "summary-crane": "GrÃºa",
             "summary-route": "Ruta",
             "summary-quantity": "Cantidad",
             "summary-contact": "Contacto",
@@ -506,13 +506,13 @@ document.addEventListener('DOMContentLoaded', () => {
             "promo-only": "SOLO COMPRA",
             "promo-sub": "POR LANZAMIENTO DE LA WEB",
             "countdown-text": "EL DESCUENTO DE APERTURA TERMINA EN:",
-            "timer-days": "Días",
+            "timer-days": "DÃ­as",
             "timer-hours": "Horas",
             "timer-minutes": "Minutos",
             "timer-seconds": "Segundos",
             "sizes-title": "Dimensiones de Contenedores",
-            "whatsapp-tooltip": "¡Chatea con nosotros!",
-            "tax-warning": "* Pueden aplicarse impuestos según su estatus fiscal."
+            "whatsapp-tooltip": "Â¡Chatea con nosotros!",
+            "tax-warning": "* Pueden aplicarse impuestos segÃºn su estatus fiscal."
         }
     };
 
@@ -704,7 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
                 .then(() => {
-                    submitBtn.innerText = currentLang === 'en' ? 'Message Sent!' : '¡Mensaje Enviado!';
+                    submitBtn.innerText = currentLang === 'en' ? 'Message Sent!' : 'Â¡Mensaje Enviado!';
                     submitBtn.style.backgroundColor = '#2ecc71';
                     contactForm.reset();
                     setTimeout(() => {
@@ -714,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 3000);
                 }, (error) => {
                     console.error('EmailJS Error:', error);
-                    submitBtn.innerText = currentLang === 'en' ? 'Error!' : '¡Error!';
+                    submitBtn.innerText = currentLang === 'en' ? 'Error!' : 'Â¡Error!';
                     submitBtn.style.backgroundColor = '#e74c3c';
                     setTimeout(() => {
                         submitBtn.innerText = originalBtnText;
@@ -731,7 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const gridHTML = images.map(img => `<div class="gallery-item reveal active"><img src="assets/gallery/${img}" alt="Gallery Photo"></div>`).join('');
         const galleryView = document.getElementById('gallery-view');
         galleryView.innerHTML = `<header class="gallery-header"><div class="container"><h1 data-i18n="gallery-h1">${translations[currentLang]["gallery-h1"]}</h1><p data-i18n="gallery-p">${translations[currentLang]["gallery-p"]}</p></div></header><main class="container"><section class="gallery-grid">${gridHTML}</section></main>`;
-        document.title = currentLang === 'en' ? "Photo Gallery | RP Tulipan Logistics" : "Galería de Fotos | RP Tulipan Logistics";
+        document.title = currentLang === 'en' ? "Photo Gallery | RP Tulipan Logistics" : "GalerÃ­a de Fotos | RP Tulipan Logistics";
     }
 
     function renderConfigurationView(viewId, mode) {
@@ -874,7 +874,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </main>`;
 
-        // ── Price Data: use Supabase dynamic prices if loaded, else fall back to hardcoded ──
+        // â”€â”€ Price Data: use Supabase dynamic prices if loaded, else fall back to hardcoded â”€â”€
         const USED_CONTAINER_PRICES = (DYNAMIC_PRICES && DYNAMIC_PRICES.usedPrices) ? DYNAMIC_PRICES.usedPrices : {
             "Savannah (31408)": { "20'": 1450, "40' STD": 1800, "40' HC": 1850, "45'": 2050 },
             "Atlanta (30288)": { "20'": 1800, "40' STD": 2100, "40' HC": 2150 },
@@ -1291,11 +1291,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (mode === 'rent') {
                         shippingDetailText = currentLang === 'en' 
                             ? `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Multiple containers: requires ${selections.quantity} delivery trips & ${selections.quantity} pickup trips (1 container per trip) at $${(bestShip * 2).toLocaleString()} per container.</div>`
-                            : `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Múltiples contenedores: requiere ${selections.quantity} entregas y ${selections.quantity} retiros (1 contenedor por viaje) a $${(bestShip * 2).toLocaleString()} por contenedor.</div>`;
+                            : `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> MÃºltiples contenedores: requiere ${selections.quantity} entregas y ${selections.quantity} retiros (1 contenedor por viaje) a $${(bestShip * 2).toLocaleString()} por contenedor.</div>`;
                     } else {
                         shippingDetailText = currentLang === 'en'
                             ? `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Multiple containers: requires ${selections.quantity} separate shipping trips (1 container per trip) at $${bestShip.toLocaleString()} each.</div>`
-                            : `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Múltiples contenedores: requiere ${selections.quantity} viajes independientes (1 contenedor por viaje) a $${bestShip.toLocaleString()} c/u.</div>`;
+                            : `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> MÃºltiples contenedores: requiere ${selections.quantity} viajes independientes (1 contenedor por viaje) a $${bestShip.toLocaleString()} c/u.</div>`;
                     }
                 } else {
                     if (mode === 'rent') {
@@ -1321,7 +1321,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 html += `<div class="summary-item"><strong>Contact:</strong> <span>${selections.contact.name || '-'}</span></div>`;
             }
 
-            const deliveryIncludedText = selections['delivery-mode'] === 'Delivery' ? (currentLang === 'en' ? '(Delivery included)' : '(Envío incluido)') : '';
+            const deliveryIncludedText = selections['delivery-mode'] === 'Delivery' ? (currentLang === 'en' ? '(Delivery included)' : '(EnvÃ­o incluido)') : '';
             
             html += `
                 <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
@@ -1453,7 +1453,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.disabled = true;
 
             const summary = `
-📦 CONFIGURATION SUMMARY
+ðŸ“¦ CONFIGURATION SUMMARY
 ---------------------------------
 Logistics: ${selections['delivery-mode']}
 Optimal Location: ${selections.bestDepot}
@@ -1467,14 +1467,14 @@ Condition: ${selections['container-condition']}
 Climate: ${selections.type}
 Payment: ${selections['payment-method']}
 
-💰 PRICING DETAILS
+ðŸ’° PRICING DETAILS
 ---------------------------------
 Unit Price: $${selections.pricePerUnit.toLocaleString()}
 Subtotal${selections.exportFee > 0 ? ' (Includes Export Documents)' : ''}: $${selections.subtotal.toLocaleString()}
 Shipping Total: $${selections.shippingTotal.toLocaleString()}
 ${selections.discount > 0 ? `Promo Discount: -$${selections.discount}\n` : ''}TOTAL PRICE: $${selections.total.toLocaleString()}
 
-👤 CONTACT INFORMATION
+ðŸ‘¤ CONTACT INFORMATION
 ---------------------------------
 Name: ${selections.contact.name}
 Email: ${selections.contact.email}
@@ -1681,7 +1681,7 @@ Phone: ${selections.contact.phone}
             selections.pickup = transView.querySelector('#zip-pickup').value;
             selections.delivery = transView.querySelector('#zip-delivery').value;
             if (!selections.pickup || !selections.delivery) {
-                alert(currentLang === 'en' ? 'Please enter both zip codes' : 'Por favor ingrese ambos códigos postales');
+                alert(currentLang === 'en' ? 'Please enter both zip codes' : 'Por favor ingrese ambos cÃ³digos postales');
                 return;
             }
             transView.querySelector('#trans-step-route').style.display = 'none';
@@ -1705,7 +1705,7 @@ Phone: ${selections.contact.phone}
             transView.querySelector('#trans-step-contact').style.display = 'none';
             transView.querySelector('.summary-size').textContent = selections.size;
             transView.querySelector('.summary-status').textContent = selections.status;
-            transView.querySelector('.summary-route').textContent = `${selections.pickup} ➔ ${selections.delivery}`;
+            transView.querySelector('.summary-route').textContent = `${selections.pickup} âž” ${selections.delivery}`;
             transView.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email}) - ${selections.contact.phone}`;
             transView.querySelector('#trans-summary').style.display = 'block';
             transView.querySelector('#trans-summary').classList.add('fade-in');
@@ -1733,13 +1733,13 @@ Phone: ${selections.contact.phone}
             btn.disabled = true;
 
             const summary = `
-🚛 TRANSPORTATION QUOTE REQUEST
+ðŸš› TRANSPORTATION QUOTE REQUEST
 ---------------------------------
 Size: ${selections.size}
 Status: ${selections.status}
-Route: ${selections.pickup} ➔ ${selections.delivery}
+Route: ${selections.pickup} âž” ${selections.delivery}
 
-👤 CONTACT INFORMATION
+ðŸ‘¤ CONTACT INFORMATION
 ---------------------------------
 Name: ${selections.contact.name}
 Email: ${selections.contact.email}
@@ -1886,7 +1886,7 @@ Phone: ${selections.contact.phone}
             selections.pickup = craneView.querySelector('#crane-zip-pickup').value;
             selections.delivery = craneView.querySelector('#crane-zip-delivery').value;
             if (!selections.pickup || !selections.delivery) {
-                alert(currentLang === 'en' ? 'Please enter both zip codes' : 'Por favor ingrese ambos códigos postales');
+                alert(currentLang === 'en' ? 'Please enter both zip codes' : 'Por favor ingrese ambos cÃ³digos postales');
                 return;
             }
             craneView.querySelector('#crane-step-route').style.display = 'none';
@@ -1910,7 +1910,7 @@ Phone: ${selections.contact.phone}
             craneView.querySelector('#crane-step-contact').style.display = 'none';
             craneView.querySelector('.summary-size').textContent = selections.size;
             craneView.querySelector('.summary-status').textContent = selections.status;
-            craneView.querySelector('.summary-route').textContent = `${selections.pickup} ➔ ${selections.delivery}`;
+            craneView.querySelector('.summary-route').textContent = `${selections.pickup} âž” ${selections.delivery}`;
             craneView.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email}) - ${selections.contact.phone}`;
             craneView.querySelector('#crane-summary').style.display = 'block';
             craneView.querySelector('#crane-summary').classList.add('fade-in');
@@ -1938,13 +1938,13 @@ Phone: ${selections.contact.phone}
             btn.disabled = true;
 
             const summary = `
-🏗️ CRANE SERVICE QUOTE REQUEST
+ðŸ—ï¸ CRANE SERVICE QUOTE REQUEST
 ---------------------------------
 Size: ${selections.size}
 Status: ${selections.status}
-Route: ${selections.pickup} ➔ ${selections.delivery}
+Route: ${selections.pickup} âž” ${selections.delivery}
 
-👤 CONTACT INFORMATION
+ðŸ‘¤ CONTACT INFORMATION
 ---------------------------------
 Name: ${selections.contact.name}
 Email: ${selections.contact.email}
@@ -2085,9 +2085,8 @@ Phone: ${selections.contact.phone}
     const aiChatMessages = document.getElementById('ai-chat-messages');
     const typingIndicator = document.getElementById('ai-typing-indicator');
 
-    let chatHistory = []; // Mantener memoria de la conversación
-    let globalShippingCosts = null; // Guardar mapa de costos de envío por depot
-    let globalLastZipCode = null; // Guardar el último zip code ingresado
+    let chatHistory = []; // Mantener memoria de la conversaciÃ³n
+    let globalLastZipCode = null; // Guardar el Ãºltimo zip code ingresado (tambiÃ©n usado por la UI)
 
     if (aiChatBtn && aiChatWindow) {
         aiChatBtn.addEventListener('click', () => {
@@ -2110,344 +2109,70 @@ Phone: ${selections.contact.phone}
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
         };
 
-        // Helper to calculate shipping cost for all depots
-        const calculateShippingForZip = async (zip) => {
-            const depots = (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.depots && DYNAMIC_PRICES.depots.length > 0)
-                ? DYNAMIC_PRICES.depots
-                : [
-                    { label: "Savannah (31408)", zip: "31408" },
-                    { label: "Atlanta (30288)", zip: "30288" },
-                    { label: "Jacksonville (32218)", zip: "32218" },
-                    { label: "Titusville (32780)", zip: "32780" },
-                    { label: "Tampa (33619)", zip: "33619" },
-                    { label: "Miami (33178)", zip: "33178" }
-                ];
-            
-            const getCoordinatesBot = async (z) => {
-                if (window.coordCache && window.coordCache[z]) return window.coordCache[z];
-                const cleanZ = z.replace(/\D/g, '').substring(0, 5);
-                const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${cleanZ}&countrycodes=us`;
-                const response = await fetch(url, { headers: { 'User-Agent': 'RPTulipan-Web/1.0' } });
-                const data = await response.json();
-                if (data && data.length > 0) {
-                    const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-                    if (!window.coordCache) window.coordCache = {};
-                    window.coordCache[z] = coords;
-                    return coords;
-                }
-                throw new Error('Coords not found');
-            };
-
-            const getDist = async (origin, destination) => {
-                try {
-                    const originCoords = await getCoordinatesBot(origin);
-                    const destCoords = await getCoordinatesBot(destination);
-                    const url = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?overview=false`;
-                    const response = await fetch(url);
-                    const data = await response.json();
-                    if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-                        return data.routes[0].distance / 1609.344;
-                    }
-                    throw new Error('OSRM Error');
-                } catch (e) {
-                    throw new Error('Error');
-                }
-            };
-
-            try {
-                const distances = await Promise.all(depots.map(d => getDist(d.zip, zip).catch(() => 9999)));
-                const depotCosts = {};
-                let SHIPPING_RATES = [
-                    { max: 30, price: 350 },
-                    { max: 60, price: 450 },
-                    { max: 80, price: 500 },
-                    { max: 100, price: 550 }
-                ];
-                let flatRate = 5.5;
-
-                if (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.deliveryRates) {
-                    const dr = DYNAMIC_PRICES.deliveryRates;
-                    SHIPPING_RATES = [
-                        { max: 30, price: dr["0-30"] !== undefined ? dr["0-30"] : 350 },
-                        { max: 60, price: dr["31-60"] !== undefined ? dr["31-60"] : 450 },
-                        { max: 80, price: dr["61-80"] !== undefined ? dr["61-80"] : 500 },
-                        { max: 100, price: dr["81-100"] !== undefined ? dr["81-100"] : 550 }
-                    ];
-                    if (dr["over 100"] !== undefined) flatRate = dr["over 100"];
-                }
-                
-                depots.forEach((d, idx) => {
-                    const dist = distances[idx];
-                    if (dist === 9999) return;
-                    let cost = 0;
-                    if (dist <= 100) {
-                        const rate = SHIPPING_RATES.find(r => dist <= r.max);
-                        cost = rate ? rate.price : SHIPPING_RATES[3].price;
-                    } else {
-                        cost = dist * flatRate;
-                    }
-                    depotCosts[d.label] = cost;
-                });
-                return depotCosts;
-            } catch(e) {
-                return null;
-            }
-        };
-
-        const addShippingToPrices = (pricesObj, depotCostsMap) => {
-            if (!pricesObj || !depotCostsMap) return {};
-            const newObj = JSON.parse(JSON.stringify(pricesObj));
-            for (const depot in newObj) {
-                const shippingFee = depotCostsMap[depot];
-                if (shippingFee === undefined) {
-                    delete newObj[depot]; // Remover si no hay ruta válida
-                    continue;
-                }
-                for (const size in newObj[depot]) {
-                    newObj[depot][size] = Math.ceil((newObj[depot][size] + shippingFee) / 10) * 10;
-                }
-            }
-            return newObj;
-        };
-
-        const flattenBestPrices = (pricesObj) => {
-            if (!pricesObj) return {};
-            const best = {};
-            for (const depot in pricesObj) {
-                for (const size in pricesObj[depot]) {
-                    if (!best[size] || pricesObj[depot][size] < best[size]) {
-                        best[size] = pricesObj[depot][size];
-                    }
-                }
-            }
-            return best;
-        };
-
         const sendMessage = async () => {
             const text = aiChatInput.value.trim();
             if (!text) return;
 
             appendMessage(text, 'user');
             aiChatInput.value = '';
-            
-            // Guardar en la historia local
-            chatHistory.push({ role: 'user', parts: [{ text: text }] });
-            
-            // Show typing indicator
+            chatHistory.push({ role: 'user', parts: [{ text }] });
+
             typingIndicator.classList.add('active');
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
 
             try {
-                if (!supabaseClient) {
-                    throw new Error("Supabase is not initialized.");
-                }
+                if (!supabaseClient) throw new Error("Supabase is not initialized.");
 
-                // Obtener precios base
-                const rawBaseUsed = (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.usedPrices) ? DYNAMIC_PRICES.usedPrices : USED_CONTAINER_PRICES;
-                const rawBaseNew = (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.newPrices) ? DYNAMIC_PRICES.newPrices : NEW_CONTAINER_PRICES;
-
-                const roundPricesObj = (obj) => {
-                    if (!obj) return obj;
-                    const newObj = {};
-                    for (const key in obj) {
-                        if (typeof obj[key] === 'number') {
-                            newObj[key] = Math.ceil(obj[key] / 10) * 10;
-                        } else if (typeof obj[key] === 'object') {
-                            newObj[key] = roundPricesObj(obj[key]);
-                        } else {
-                            newObj[key] = obj[key];
-                        }
-                    }
-                    return newObj;
-                };
-
-                const baseUsed = roundPricesObj(rawBaseUsed);
-                const baseNew = roundPricesObj(rawBaseNew);
-
-                // Detect if user sent a zip code and calculate shipping automatically
+                // Detect ZIP in the current message and update globalLastZipCode
                 const zipMatch = text.match(/(?<!\d)\d{5}(?!\d)/);
-                if (zipMatch) {
-                    const zip = zipMatch[0];
-                    globalLastZipCode = zip;
-                    const shippingCosts = await calculateShippingForZip(zip);
-                    if (shippingCosts) {
-                        globalShippingCosts = shippingCosts;
-                    }
-                }
-                
-                // Generar contexto de precios para la IA
-                let priceContext = "";
-                if (globalShippingCosts) {
-                    // Magia: Sumar el costo de envío a todos los precios ANTES de enviarlos a la IA
-                    const finalUsed = addShippingToPrices(baseUsed, globalShippingCosts);
-                    const finalNew = addShippingToPrices(baseNew, globalShippingCosts);
-                    
-                    // Solo enviamos el mejor precio por tamaño (sin nombres de ciudad)
-                    const bestUsed = flattenBestPrices(finalUsed);
-                    const bestNew = flattenBestPrices(finalNew);
-                    
-                    const bestBaseUsed = flattenBestPrices(baseUsed);
-                    const bestBaseNew = flattenBestPrices(baseNew);
-                    
-                    // Calcular el costo de envío más barato desde los almacenes permitidos para renta
-                    const allowedRentDepots = ["Jacksonville (32218)", "Titusville (32780)", "Tampa (33619)", "Miami (33178)"];
-                    let bestRentShipping = null;
-                    for (const depot of allowedRentDepots) {
-                        if (globalShippingCosts[depot] !== undefined) {
-                            if (bestRentShipping === null || globalShippingCosts[depot] < bestRentShipping) {
-                                bestRentShipping = globalShippingCosts[depot];
-                            }
-                        }
-                    }
-                    
-                    // En renta se cobra envío de ida y vuelta (Delivery & Pickup)
-                    const rentShippingTotal = bestRentShipping !== null ? bestRentShipping * 2 : null;
-                    
-                    const rentPricesUsed = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
-                    const rentPricesNew  = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
-                    
-                    priceContext = `¡ATENCIÓN! EL CLIENTE YA PROPORCIONÓ SU CÓDIGO POSTAL.
-SI EL CLIENTE QUIERE COMPRAR CON ENVÍO A DOMICILIO (DELIVERY), DALE ESTOS PRECIOS (Ya tienen el envío sumado):
-- Compra Delivery Usados: ${JSON.stringify(bestUsed)}
-- Compra Delivery Nuevos: ${JSON.stringify(bestNew)}
+                if (zipMatch) globalLastZipCode = zipMatch[0];
 
-SI EL CLIENTE PREGUNTA PARA COMPRAR Y RETIRARLO ÉL MISMO (LOCAL PICKUP), DALE EL PRECIO DEL CENTRO QUE EL CLIENTE MENCIONE:
-- Precios de Compra Usados por Centro: ${JSON.stringify(baseUsed)}
-- Precios de Compra Nuevos por Centro: ${JSON.stringify(baseNew)}
-- Si el cliente no especifica un centro, dale el mejor precio disponible: Usados ${JSON.stringify(bestBaseUsed)}, Nuevos ${JSON.stringify(bestBaseNew)}.
-
-SI EL CLIENTE QUIERE ALQUILAR / RENTAR, ESTOS SON LOS PRECIOS:
-- Mensualidad Usados: ${JSON.stringify(rentPricesUsed)}
-- Mensualidad Nuevos: ${JSON.stringify(rentPricesNew)}
-- Costo de Logística (Delivery & Pickup - Ida y vuelta): $${rentShippingTotal !== null ? rentShippingTotal : "No disponible"} (Esto se paga una sola vez al inicio junto con el primer mes).
-
-REGLA DE ORO: Simplemente lee el precio de la tabla correspondiente según lo que quiera el cliente. No hagas ninguna suma matemática ni le expliques de qué ciudad sale.
-REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o internacional, debes sumar $300 al precio de COMPRA del contenedor internamente. Al darle el precio, dale la suma total del contenedor ya certificado (SIN sumar el envío) y explícale claramente que ese es el total del contenedor certificado para exportación (Cargo Worthy). Además, PÍDELE de forma amable que te proporcione su Nombre, Número de Teléfono y Dirección de Entrega para que nuestro equipo lo contacte, coordine los detalles del envío y le dé el precio final de toda la logística.`;
-                } else {
-                    const bestBaseUsed = flattenBestPrices(baseUsed);
-                    const bestBaseNew = flattenBestPrices(baseNew);
-                    const rentPricesUsed = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
-                    const rentPricesNew  = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
-
-                    priceContext = `INSTRUCCIÓN CRÍTICA: EL CLIENTE AÚN NO HA DADO SU CÓDIGO POSTAL. 
-TU ÚNICO OBJETIVO AHORA ES PEDIRLE EL CÓDIGO POSTAL (ZIP CODE). 
-¡NO DES NINGÚN PRECIO TODAVÍA! Simplemente respóndele amablemente confirmando que tenemos ese contenedor y dile: "Para darle el precio total exacto con envío a su ubicación, por favor indíqueme su código postal (zip code)".
-REGLAS ESTRICTAS:
-- NUNCA le preguntes si quiere comprar o rentar.
-- NUNCA le preguntes si quiere retirar o si quiere envío.
-- SOLO pídele el zip code.
-- IMPORTANTE SOBRE ERRORES DE ZIP CODE: Si el cliente escribió un código postal incompleto (ej. 4 números en vez de 5) o dice que ya te lo pasó, NUNCA digas "el sistema no lo registró", "el bot no lo vio" o "hubo un error en el sistema" porque te hará sonar como un robot. En su lugar, dile de manera natural: "Por favor revise su código postal, parece que está incompleto o falta algún número para poder calcularle el envío exacto."
-
-EXCEPCIÓN DE RETIRO (PICKUP): Si el cliente te dice EXPLÍCITAMENTE que quiere ir a recoger (pickup) el contenedor en un centro de distribución específico (por ejemplo, Jacksonville, Tampa), ENTONCES SÍ puedes darle el precio exacto de ese centro:
-- Precios de Compra Usados por Centro: ${JSON.stringify(baseUsed)}
-- Precios de Compra Nuevos por Centro: ${JSON.stringify(baseNew)}
-
-PRECIOS DE RENTA (Ocultos: no los uses ni ofrezcas a menos que el cliente escriba explícitamente "rentar", "alquilar" o "lease"):
-- Renta Mensual Usados: ${JSON.stringify(rentPricesUsed)}
-- Renta Mensual Nuevos: ${JSON.stringify(rentPricesNew)}`;
-                }
-
-                priceContext += `\n\nREGLA DE IDIOMA ESTRICTA: Mantén siempre la conversación en el idioma en el que el cliente la inició (analiza el historial). Si el cliente inició en español y luego usa términos comunes en inglés como "zip code", "delivery", "pickup", "High Cube", etc., NO cambies a inglés. Continúa respondiendo en español. Solo debes responder en inglés si la conversación inició en inglés o si el cliente te pide explícitamente hablar en inglés. NUNCA cambies de idioma a mitad de la conversación solo por detectar una palabra aislada en otro idioma. NUNCA le preguntes qué idioma prefiere.`;
-
-                priceContext += `\n\nMÉTODOS DE PAGO: Aceptamos Zelle, Cash, Check y Tarjeta de Crédito (Credit Card).
-REGLAS IMPORTANTES DE PAGO QUE DEBES COMUNICAR CLARAMENTE:
-- El pago NO tiene que ser por adelantado, el cliente puede pagar "contra entrega" (al recibir el contenedor) usando Zelle, Cash o Check.
-- Si el cliente elige pagar con Tarjeta de Crédito (Credit Card), ENTONCES SÍ debe pagar por adelantado. La Tarjeta de Crédito NO se acepta para pagos "contra entrega".
-MUY IMPORTANTE: Cuando menciones los métodos de pago, aclara SIEMPRE que el pago por adelantado SOLO aplica si usan Tarjeta de Crédito. No des a entender que todos los pagos son por adelantado.`;
-
-                priceContext += `\n\nREGLA DE COMPRA POR DEFECTO: Si un cliente pregunta por un contenedor, tamaño o precio, ASUME DIRECTAMENTE QUE ES PARA COMPRA (Venta) y dale los precios de venta inmediatamente. NUNCA le preguntes si lo quiere comprar o rentar. SOLO proporciona información o precios de alquiler/renta si el cliente usa explícitamente palabras relacionadas como "rentar", "alquilar", "rent" o "lease".`;
-
-                priceContext += `\n\nREGLA DE TAMAÑO Y ENVÍO POR DEFECTO: 
-1. NUNCA le preguntes al cliente si prefiere el modelo Standard (STD) o High Cube (HC). Ofrécele SIEMPRE directamente el precio del modelo High Cube (HC).
-2. Si el cliente te proporciona su código postal (zip code), ASUME DIRECTAMENTE que quiere el contenedor con envío a domicilio (Delivery). NUNCA le preguntes si lo quiere recoger o si quiere envío. Simplemente dale el precio final con envío incluido.`;
-
-                priceContext += `\n\nREGLA ESTRICTA SOBRE COLORES: NUNCA menciones nada acerca de los colores de los contenedores a menos que el cliente te pregunte o mencione un color primero. Si el cliente NO habla de colores, omite este tema por completo. SOLO si el cliente pregunta por un color específico, respóndele: "El día de la entrega le mandamos fotos de los contenedores que tenemos en el patio. Esperamos a que usted nos dé el OK para proceder con la entrega, ahí podrá seleccionar entre los colores disponibles que tenemos ese día. No podemos garantizar un color específico ya que nuestro inventario siempre está en constante movimiento."`;
-
-                priceContext += `\n\nREGLA SOBRE VISITAS AL PATIO/YARDA Y RETIROS: 
-1. Si un cliente pregunta si puede "ir a ver", "revisar" o "escoger" el contenedor en persona antes de pagarlo, EXPLÍCALE que por estrictos motivos de seguridad no se permite el ingreso de clientes a inspeccionar los patios. En su lugar, el día de la entrega se le mandan fotos detalladas para su aprobación (OK) antes de proceder. NO ofrezcas la opción de "retiro" o "pickup" a menos que el cliente pregunte explícitamente sobre cómo retirarlo él mismo.
-2. MUY IMPORTANTE: Si el cliente SÍ pide explícitamente hacer un RETIRO (Pickup) y llevarse el contenedor él mismo, SÍ PUEDE ir a la yarda a buscarlo. Simplemente no puede entrar a "mirar" o "pasear" por el inventario. NUNCA le digas a un cliente que quiere hacer un "retiro/pickup" que no puede ir al patio; para retiros SÍ está permitido ir al patio.`;
-
-                priceContext += `\n\nREGLA ESTRICTA SOBRE DESCUENTOS: BAJO NINGUNA CIRCUNSTANCIA PUEDES OFRECER NI ACEPTAR DESCUENTOS O REBAJAS. No importa cuántas unidades compre el cliente o cuánto insista. Los precios son fijos y definitivos. Si el cliente pide o exige un descuento, responde de manera muy amable y firme que los precios son finales y no hacemos descuentos bajo ninguna condición.`;
-
-                priceContext += `\n\nREGLA PARA CERRAR LA VENTA (MUY IMPORTANTE):
-Cuando el cliente confirme que quiere proceder a comprar/rentar, DEBES pedirle su Dirección Exacta de Entrega (Full Delivery Address) si aún no te la ha dado, además de su Nombre, Teléfono, y confirmar el Tamaño del contenedor. (El Zip Code inicial era solo para cotizar, ahora necesitas la dirección completa de la calle).
-Una vez que tengas OBLIGATORIAMENTE su Nombre, Teléfono, Dirección Exacta y el Tamaño, debes decirle amablemente que la orden ha sido recibida y que logística se comunicará pronto para coordinar la entrega.
-Además, DEBES agregar al final de tu respuesta (oculto para el sistema) el siguiente formato exacto:
-[ORDER_CLOSED: Nombre | Teléfono | Dirección Exacta | Tamaño | Precio Final]`;
-
-                const { data, error } = await supabaseClient.functions.invoke('chat', {
-                    body: { 
+                // Call chat-v2 â€” the single shared brain for both chatbots
+                const { data, error } = await supabaseClient.functions.invoke('chat-v2', {
+                    body: {
                         message: text,
-                        context: priceContext,
-                        history: chatHistory // Enviamos la memoria
+                        zip:     globalLastZipCode,
+                        history: chatHistory
                     }
                 });
-                
+
                 if (error) throw error;
-                
-                let finalReply = data.reply;
-                
-                // Interceptar etiqueta de cierre de venta
-                const orderMatch = finalReply.match(/\[ORDER_CLOSED:\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^|]+)\|\s*([^\]]+)\]/i);
-                if (orderMatch) {
-                    const [fullMatch, cName, cPhone, cAddress, cSize, cPrice] = orderMatch;
-                    
-                    let foundZipInAddress = null;
-                    const addressZipMatch = cAddress.match(/(?<!\d)\d{5}(?!\d)/);
-                    if (addressZipMatch) {
-                        foundZipInAddress = addressZipMatch[0];
-                    } else {
-                        try {
-                            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cAddress)}&addressdetails=1`);
-                            const gData = await response.json();
-                            if (gData && gData.length > 0 && gData[0].address && gData[0].address.postcode) {
-                                foundZipInAddress = gData[0].address.postcode.split('-')[0];
-                            }
-                        } catch (e) { console.warn("Geocoding failed", e); }
+
+                const { reply, order_closed, address_error } = data;
+
+                let finalReply = address_error || reply;
+
+                // If order was successfully closed â€” handle web-specific actions
+                if (order_closed && !address_error) {
+                    // Send lead to Supabase DB
+                    if (typeof sendLeadToSupabase === 'function') {
+                        sendLeadToSupabase({
+                            name:          order_closed.name,
+                            phone:         order_closed.phone,
+                            delivery_place: order_closed.address,
+                            amount:        order_closed.price,
+                            size:          order_closed.size,
+                            service:       'Chatbot Sale',
+                            message:       'Order closed via Chatbot.'
+                        }).catch(e => console.error("DB Error on Chatbot close:", e));
                     }
 
-                    if (globalLastZipCode && foundZipInAddress && foundZipInAddress !== globalLastZipCode) {
-                        finalReply = "La dirección de entrega proporcionada no parece coincidir con el código postal (" + globalLastZipCode + ") que ingresó inicialmente. Para evitar errores en el cálculo del envío, por favor escriba nuevamente su dirección asegurándose de incluir el código postal correcto.";
-                    } else if (globalLastZipCode && !foundZipInAddress) {
-                        finalReply = "Para procesar la orden correctamente y verificar el costo de envío, por favor envíeme nuevamente su dirección exacta de entrega incluyendo explícitamente el código postal al final.";
-                    } else {
-                        // Remover la etiqueta para que el usuario no la vea
-                        finalReply = finalReply.replace(fullMatch, '').trim();
-                        
-                        // Enviar a Supabase automáticamente
-                        if (typeof sendLeadToSupabase === 'function') {
-                            const cleanPrice = parseFloat(cPrice.replace(/[^0-9.]/g, '')) || null;
-                            sendLeadToSupabase({
-                                name: cName.trim(),
-                                phone: cPhone.trim(),
-                                delivery_place: cAddress.trim(),
-                                amount: cleanPrice,
-                                size: cSize.trim(),
-                                service: 'Chatbot Sale',
-                                message: `Order closed via Chatbot.`
-                            }).catch(e => console.error("DB Error on Chatbot close:", e));
-                        }
-
-                        // Enviar notificación a WhatsApp
-                        let waText = `¡Hola! Me gustaría concretar mi pedido con los siguientes datos:\n\n`;
-                        waText += `👤 Nombre: ${cName.trim()}\n`;
-                        waText += `📞 Teléfono: ${cPhone.trim()}\n`;
-                        waText += `📍 Dirección: ${cAddress.trim()}\n`;
-                        waText += `📏 Tamaño: ${cSize.trim()}\n`;
-                        waText += `💰 Precio estimado: ${cPrice}\n`;
-                        window.open(`https://wa.me/17867366292?text=${encodeURIComponent(waText)}`, '_blank');
-                    }
+                    // Open WhatsApp for the sales team
+                    let waText = `Â¡Hola! Me gustarÃ­a concretar mi pedido con los siguientes datos:\n\n`;
+                    waText += `ðŸ‘¤ Nombre: ${order_closed.name}\n`;
+                    waText += `ðŸ“ž TelÃ©fono: ${order_closed.phone}\n`;
+                    waText += `ðŸ“ DirecciÃ³n: ${order_closed.address}\n`;
+                    waText += `ðŸ“ TamaÃ±o: ${order_closed.size}\n`;
+                    waText += `ðŸ’° Precio estimado: $${order_closed.price}\n`;
+                    window.open(`https://wa.me/17867366292?text=${encodeURIComponent(waText)}`, '_blank');
                 }
 
-                // Calcular un retraso artificial basado en la longitud de la respuesta
-                // Simulando la velocidad de escritura humana (minimo 2.5 segs, maximo 8 segs, 40ms por letra)
+                // Simulate human typing speed
                 const typingDelay = Math.min(8000, Math.max(2500, finalReply.length * 40));
-                
+
                 setTimeout(() => {
                     typingIndicator.classList.remove('active');
                     appendMessage(finalReply, 'bot');
-                    
-                    // Guardar la respuesta del bot en la historia (sin la etiqueta oculta)
                     chatHistory.push({ role: 'model', parts: [{ text: finalReply }] });
                 }, typingDelay);
 
@@ -2455,7 +2180,6 @@ Además, DEBES agregar al final de tu respuesta (oculto para el sistema) el sigu
                 console.error("Chat error:", err);
                 typingIndicator.classList.remove('active');
                 appendMessage("Sorry, I am having trouble connecting right now.", 'bot');
-                // En caso de error, removemos el último mensaje del usuario del historial para no corromper la memoria
                 chatHistory.pop();
             }
         };
