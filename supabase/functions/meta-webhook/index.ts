@@ -64,7 +64,10 @@ async function processIncomingMessage(psid: string, text: string) {
         const zipMatch = text.match(/(?<!\d)\d{5}(?!\d)/)
         if (zipMatch) lastZip = zipMatch[0]
 
-        // 3. Call chat-v2 (the shared brain with all rules and price logic)
+        // 3. Add user message to history BEFORE calling chat-v2
+        chatHistory.push({ role: 'user', parts: [{ text }] })
+
+        // 4. Call chat-v2 (the shared brain with all rules and price logic)
         const { data: v2Data, error: v2Error } = await supabase.functions.invoke('chat-v2', {
             body: { message: text, zip: lastZip, history: chatHistory }
         })
@@ -73,33 +76,27 @@ async function processIncomingMessage(psid: string, text: string) {
 
         const { reply, order_closed, address_error } = v2Data
 
-        // 4. Add messages to history
-        chatHistory.push({ role: 'user',  parts: [{ text }] })
+        // 5. Add bot reply to history
         chatHistory.push({ role: 'model', parts: [{ text: reply }] })
         if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20)
 
         // 5. Handle order closure (Facebook-specific: insert into call_logs)
         if (order_closed) {
-            const alreadyClosed = chatHistory.some((m: any) =>
-                m.role === 'model' && m.parts[0].text.includes('[ORDER_CLOSED')
-            )
-            if (!alreadyClosed) {
-                const { error: insertErr } = await supabase.from('call_logs').insert([{
-                    customer:     order_closed.name,
-                    phone:        order_closed.phone,
-                    service_type: 'Sales',
-                    city:         '---',
-                    zip_code:     lastZip || order_closed.address,
-                    measures:     order_closed.size,
-                    amount:       order_closed.price,
-                    description:  `Address: ${order_closed.address} | Order closed via Facebook Chatbot.`,
-                    created_by:   'rptulipantransport@gmail.com',
-                    source:       'facebook',
-                    status:       'PENDING',
-                    date:         new Date().toISOString().split('T')[0]
-                }])
-                if (insertErr) console.error('call_logs insert error:', insertErr)
-            }
+            const { error: insertErr } = await supabase.from('call_logs').insert([{
+                customer:     order_closed.name,
+                phone:        order_closed.phone,
+                service_type: 'Sales',
+                city:         '---',
+                zip_code:     order_closed.address,
+                measures:     order_closed.size,
+                amount:       order_closed.price,
+                description:  `Address: ${order_closed.address} | Order closed via Facebook Chatbot.`,
+                created_by:   'rptulipantransport@gmail.com',
+                source:       'facebook',
+                status:       'PENDING',
+                date:         new Date().toISOString().split('T')[0]
+            }])
+            if (insertErr) console.error('call_logs insert error:', insertErr)
         }
 
         // 6. Save updated history and last ZIP to DB

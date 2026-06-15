@@ -2195,9 +2195,7 @@ Phone: ${selections.contact.phone}
                 aiChatWindow.classList.add('active');
                 aiChatBtn.style.display = 'none';
                 
-                const greeting = currentLang === 'en' 
-                    ? "Hello! I'm your RP Tulipan logistics advisor. How can I help you today? Are you looking to buy or rent a container?"
-                    : "¡Hola! Soy tu asesor de logística de RP Tulipan. ¿En qué te puedo ayudar hoy? ¿Buscas comprar o rentar un contenedor?";
+                const greeting = "Hello! / ¡Hola! I'm your RP Tulipan logistics advisor. How can I help you today? / ¿En qué te puedo ayudar hoy?";
                 
                 typingIndicator.classList.add('active');
                 setTimeout(() => {

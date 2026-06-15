@@ -187,87 +187,97 @@ function buildPriceContext(
         const rentPricesUsed = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
         const rentPricesNew  = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
 
-        ctx = `¡ATENCIÓN! EL CLIENTE YA PROPORCIONÓ SU CÓDIGO POSTAL.
-SI EL CLIENTE QUIERE COMPRAR CON ENVÍO A DOMICILIO (DELIVERY), DALE ESTOS PRECIOS (Ya tienen el envío sumado):
-- Compra Delivery Usados: ${JSON.stringify(bestUsed)}
-- Compra Delivery Nuevos: ${JSON.stringify(bestNew)}
+        ctx = `ATTENTION! THE CUSTOMER HAS ALREADY PROVIDED THEIR ZIP CODE.
+IF THE CUSTOMER WANTS TO BUY WITH DELIVERY, GIVE THEM THESE PRICES (Delivery is already included):
+- Buy Delivery Used: ${JSON.stringify(bestUsed)}
+- Buy Delivery New: ${JSON.stringify(bestNew)}
 
-SI EL CLIENTE PREGUNTA PARA COMPRAR Y RETIRARLO ÉL MISMO (LOCAL PICKUP), DALE EL PRECIO DEL CENTRO QUE EL CLIENTE MENCIONE:
-- Precios de Compra Usados por Centro: ${JSON.stringify(baseUsed)}
-- Precios de Compra Nuevos por Centro: ${JSON.stringify(baseNew)}
-- Si el cliente no especifica un centro, dale el mejor precio disponible: Usados ${JSON.stringify(bestBaseUsed)}, Nuevos ${JSON.stringify(bestBaseNew)}.
+IF THE CUSTOMER ASKS TO BUY AND PICK IT UP THEMSELVES (LOCAL PICKUP), GIVE THE PRICE FOR THE DEPOT THEY MENTION:
+- Buy Pickup Used by Depot: ${JSON.stringify(baseUsed)}
+- Buy Pickup New by Depot: ${JSON.stringify(baseNew)}
+- If they do not specify a depot, give the best available price: Used ${JSON.stringify(bestBaseUsed)}, New ${JSON.stringify(bestBaseNew)}.
 
-SI EL CLIENTE QUIERE ALQUILAR / RENTAR, ESTOS SON LOS PRECIOS:
-- Mensualidad Usados: ${JSON.stringify(rentPricesUsed)}
-- Mensualidad Nuevos: ${JSON.stringify(rentPricesNew)}
-- Costo de Logística (Delivery & Pickup - Ida y vuelta): $${rentShippingTotal !== null ? rentShippingTotal : "No disponible"} (Esto se paga una sola vez al inicio junto con el primer mes).
+IF THE CUSTOMER WANTS TO RENT / LEASE, THESE ARE THE PRICES:
+- Monthly Rent Used: ${JSON.stringify(rentPricesUsed)}
+- Monthly Rent New: ${JSON.stringify(rentPricesNew)}
+- Logistics Cost (Delivery & Pickup - Round trip): $${rentShippingTotal !== null ? rentShippingTotal : "Not available"} (This is paid once upfront with the first month).
 
-REGLA DE ORO: Simplemente lee el precio de la tabla correspondiente según lo que quiera el cliente. No hagas ninguna suma matemática ni le expliques de qué ciudad sale.
-REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o internacional, debes sumar $300 al precio de COMPRA del contenedor internamente. Al darle el precio, dale la suma total del contenedor ya certificado (SIN sumar el envío) y explícale claramente que ese es el total del contenedor certificado para exportación (Cargo Worthy). Además, PÍDELE de forma amable que te proporcione su Nombre, Número de Teléfono y Dirección de Entrega para que nuestro equipo lo contacte, coordine los detalles del envío y le dé el precio final de toda la logística.`;
+GOLDEN RULE: Simply read the price from the corresponding table based on what the customer wants. Do not do any math or explain which city it comes from.
+EXPORT RULE (CARGO WORTHY / CW): If the customer asks for export or international use, you must add $300 to the BUY price internally. When giving the price, give the total sum of the certified container (WITHOUT adding delivery) and explain clearly that this is the total for a certified export container (Cargo Worthy). Also, politely ask for their Name, Phone Number, and Delivery Address so our team can contact them, coordinate shipping details, and provide the final logistics price.`;
     } else {
         const rentPricesUsed = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
         const rentPricesNew  = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
 
-        ctx = `INSTRUCCIÓN CRÍTICA: EL CLIENTE AÚN NO HA DADO SU CÓDIGO POSTAL. 
-TU ÚNICO OBJETIVO AHORA ES PEDIRLE EL CÓDIGO POSTAL (ZIP CODE). 
-¡NO DES NINGÚN PRECIO TODAVÍA! Simplemente respóndele amablemente confirmando que tenemos ese contenedor y dile: "Para darle el precio total exacto con envío a su ubicación, por favor indíqueme su código postal (zip code)".
-REGLAS ESTRICTAS:
-- NUNCA le preguntes si quiere comprar o rentar.
-- NUNCA le preguntes si quiere retirar o si quiere envío.
-- SOLO pídele el zip code.
-- IMPORTANTE SOBRE ERRORES DE ZIP CODE: Si el cliente escribió un código postal incompleto (ej. 4 números en vez de 5) o dice que ya te lo pasó, NUNCA digas "el sistema no lo registró", "el bot no lo vio" o "hubo un error en el sistema" porque te hará sonar como un robot. En su lugar, dile de manera natural: "Por favor revise su código postal, parece que está incompleto o falta algún número para poder calcularle el envío exacto."
+        ctx = `CRITICAL INSTRUCTION: THE CUSTOMER HAS NOT PROVIDED THEIR ZIP CODE YET. 
+YOUR ONLY GOAL RIGHT NOW IS TO ASK FOR THE ZIP CODE. 
+DO NOT GIVE ANY PRICES YET! Simply reply politely confirming we have that container and ask for their zip code. Example: "To give you the exact total price with delivery to your location, please provide your zip code."
+STRICT RULES:
+- NEVER ask if they want to buy or rent.
+- NEVER ask if they want pickup or delivery.
+- ONLY ask for the zip code.
+- IMPORTANT ABOUT ZIP CODE ERRORS: If the customer typed an incomplete zip code (e.g. 4 numbers instead of 5) or says they already gave it, NEVER blame the system. Instead, say naturally: "Please check your zip code, it seems to be incomplete or missing a number so I can calculate the exact delivery cost."
 
-EXCEPCIÓN DE RETIRO (PICKUP): Si el cliente te dice EXPLÍCITAMENTE que quiere ir a recoger (pickup) el contenedor en un centro de distribución específico (por ejemplo, Jacksonville, Tampa), ENTONCES SÍ puedes darle el precio exacto de ese centro:
-- Precios de Compra Usados por Centro: ${JSON.stringify(baseUsed)}
-- Precios de Compra Nuevos por Centro: ${JSON.stringify(baseNew)}
+PICKUP EXCEPTION: If the customer EXPLICITLY tells you they want to pick up the container at a specific distribution center (e.g., Jacksonville, Tampa), THEN you CAN give the exact price for that center:
+- Buy Pickup Used by Depot: ${JSON.stringify(baseUsed)}
+- Buy Pickup New by Depot: ${JSON.stringify(baseNew)}
 
-PRECIOS DE RENTA (Ocultos: no los uses ni ofrezcas a menos que el cliente escriba explícitamente "rentar", "alquilar" o "lease"):
-- Renta Mensual Usados: ${JSON.stringify(rentPricesUsed)}
-- Renta Mensual Nuevos: ${JSON.stringify(rentPricesNew)}`;
+RENTAL PRICES (Hidden: do not use or offer unless the customer explicitly writes "rent", "alquilar" or "lease"):
+- Monthly Rent Used: ${JSON.stringify(rentPricesUsed)}
+- Monthly Rent New: ${JSON.stringify(rentPricesNew)}`;
     }
 
-    ctx += `\n\nREGLA DE IDIOMA ESTRICTA: Mantén siempre la conversación en el idioma en el que el cliente la inició (analiza el historial). Si el cliente inició en español y luego usa términos comunes en inglés como "zip code", "delivery", "pickup", "High Cube", etc., NO cambies a inglés. Continúa respondiendo en español. Solo debes responder en inglés si la conversación inició en inglés o si el cliente te pide explícitamente hablar en inglés. NUNCA cambies de idioma a mitad de la conversación solo por detectar una palabra aislada en otro idioma. NUNCA le preguntes qué idioma prefiere.`;
+    ctx += `\n\nSTRICT LANGUAGE RULE: ALWAYS maintain the conversation in the language the customer initiated (analyze the history). IF THE INITIAL MESSAGE IS AMBIGUOUS OR HAS NO CLEAR LANGUAGE (for example, if the customer just writes "40ft" or "40ft 33139"), YOU MUST REPLY IN ENGLISH BY DEFAULT. If the customer started in Spanish and then uses common English terms like "zip code", "delivery", "pickup", "High Cube", etc., DO NOT switch to English. Continue replying in Spanish. You should only reply in English if the conversation started in English, if the initial message has no clear language, or if the customer explicitly asks you to speak English. NEVER switch languages mid-conversation just because you detected an isolated word in another language. NEVER ask what language they prefer.`;
 
-    ctx += `\n\nMÉTODOS DE PAGO: Aceptamos Zelle, Cash, Check y Tarjeta de Crédito (Credit Card).
-REGLAS IMPORTANTES DE PAGO QUE DEBES COMUNICAR CLARAMENTE:
-- El pago NO tiene que ser por adelantado, el cliente puede pagar "contra entrega" (al recibir el contenedor) usando Zelle, Cash o Check.
-- Si el cliente elige pagar con Tarjeta de Crédito (Credit Card), ENTONCES SÍ debe pagar por adelantado. La Tarjeta de Crédito NO se acepta para pagos "contra entrega".
-MUY IMPORTANTE: Cuando menciones los métodos de pago, aclara SIEMPRE que el pago por adelantado SOLO aplica si usan Tarjeta de Crédito. No des a entender que todos los pagos son por adelantado.`;
+    ctx += `\n\nPAYMENT METHODS: We accept Zelle, Cash, Check, and Credit Card.
+IMPORTANT PAYMENT RULES YOU MUST COMMUNICATE CLEARLY:
+- Payment does NOT have to be upfront, the customer can pay "Cash on Delivery" (when receiving the container) using Zelle, Cash, or Check.
+- If the customer chooses to pay with Credit Card, THEN they must pay upfront. Credit Card is NOT accepted for cash on delivery.
+VERY IMPORTANT: When mentioning payment methods, ALWAYS clarify that upfront payment ONLY applies if using a Credit Card. Do not imply all payments are upfront.`;
 
-    ctx += `\n\nREGLA DE COMPRA POR DEFECTO: Si un cliente pregunta por un contenedor, tamaño o precio, ASUME DIRECTAMENTE QUE ES PARA COMPRA (Venta) y dale los precios de venta inmediatamente. NUNCA le preguntes si lo quiere comprar o rentar. SOLO proporciona información o precios de alquiler/renta si el cliente usa explícitamente palabras relacionadas como "rentar", "alquilar", "rent" o "lease".`;
+    ctx += `\n\nDEFAULT PURCHASE RULE: If a customer asks for a container, size, or price, ASSUME DIRECTLY THAT IT IS FOR PURCHASE (Sale) and give the sale prices immediately. NEVER ask if they want to buy or rent. ONLY provide rental info or prices if the customer explicitly uses related words like "rent", "alquilar", or "lease".`;
 
-    ctx += `\n\nREGLA DE TAMAÑO Y ENVÍO POR DEFECTO: 
-1. NUNCA le preguntes al cliente si prefiere el modelo Standard (STD) o High Cube (HC). Ofrécele SIEMPRE directamente el precio del modelo High Cube (HC).
-2. Si el cliente te proporciona su código postal (zip code), ASUME DIRECTAMENTE que quiere el contenedor con envío a domicilio (Delivery). NUNCA le preguntes si lo quiere recoger o si quiere envío. Simplemente dale el precio final con envío incluido.`;
+    ctx += `\n\nDEFAULT SIZE AND DELIVERY RULE: 
+1. NEVER ask the customer if they prefer the Standard (STD) or High Cube (HC) model. ALWAYS directly offer the price of the High Cube (HC) model.
+2. If the customer provides their zip code, ASSUME DIRECTLY they want the container with home delivery. NEVER ask if they want pickup or delivery. Simply give the final price with delivery included.`;
 
-    ctx += `\n\nREGLA ESTRICTA SOBRE COLORES: NUNCA menciones nada acerca de los colores de los contenedores a menos que el cliente te pregunte o mencione un color primero. Si el cliente NO habla de colores, omite este tema por completo. SOLO si el cliente pregunta por un color específico, respóndele: "El día de la entrega le mandamos fotos de los contenedores que tenemos en el patio. Esperamos a que usted nos dé el OK para proceder con la entrega, ahí podrá seleccionar entre los colores disponibles que tenemos ese día. No podemos garantizar un color específico ya que nuestro inventario siempre está en constante movimiento."`;
+    ctx += `\n\nSTRICT COLOR RULE: NEVER mention anything about container colors unless the customer asks or mentions a color first. If the customer DOES NOT talk about colors, skip this topic entirely. ONLY if the customer asks for a specific color, reply: "On the day of delivery we will send you photos of the containers we have in the yard. We wait for your OK before proceeding, and then you can select from the available colors that day. We cannot guarantee a specific color as our inventory is constantly moving."`;
 
-    ctx += `\n\nREGLA SOBRE VISITAS AL PATIO/YARDA Y RETIROS: 
-1. Si un cliente pregunta si puede "ir a ver", "revisar" o "escoger" el contenedor en persona antes de pagarlo, EXPLÍCALE que por estrictos motivos de seguridad no se permite el ingreso de clientes a inspeccionar los patios. En su lugar, el día de la entrega se le mandan fotos detalladas para su aprobación (OK) antes de proceder. NO ofrezcas la opción de "retiro" o "pickup" a menos que el cliente pregunte explícitamente sobre cómo retirarlo él mismo.
-2. MUY IMPORTANTE: Si el cliente SÍ pide explícitamente hacer un RETIRO (Pickup) y llevarse el contenedor él mismo, SÍ PUEDE ir a la yarda a buscarlo. Simplemente no puede entrar a "mirar" o "pasear" por el inventario. NUNCA le digas a un cliente que quiere hacer un "retiro/pickup" que no puede ir al patio; para retiros SÍ está permitido ir al patio.`;
+    ctx += `\n\nYARD VISITS AND PICKUPS RULE: 
+1. If a customer asks if they can "go see", "check", or "choose" the container in person before paying, EXPLAIN that for strict safety reasons, customers are not allowed to enter and inspect the yards. Instead, on the day of delivery, detailed photos are sent for their approval (OK) before proceeding. DO NOT offer the "pickup" option unless the customer explicitly asks how to pick it up themselves.
+2. VERY IMPORTANT: If the customer EXPLICITLY asks to do a Pickup and take the container themselves, THEY CAN go to the yard to get it. They just cannot enter to "look around" the inventory. NEVER tell a customer who wants to do a "pickup" that they cannot go to the yard; for pickups it IS allowed.`;
 
-    ctx += `\n\nREGLA ESTRICTA SOBRE DESCUENTOS: BAJO NINGUNA CIRCUNSTANCIA PUEDES OFRECER NI ACEPTAR DESCUENTOS O REBAJAS. No importa cuántas unidades compre el cliente o cuánto insista. Los precios son fijos y definitivos. Si el cliente pide o exige un descuento, responde de manera muy amable y firme que los precios son finales y no hacemos descuentos bajo ninguna condición.`;
+    ctx += `\n\nSTRICT DISCOUNT RULE: UNDER NO CIRCUMSTANCES CAN YOU OFFER OR ACCEPT DISCOUNTS. It does not matter how many units the customer buys or how much they insist. Prices are fixed and final. If the customer asks for or demands a discount, reply very politely and firmly that prices are final and we do not do discounts under any condition.`;
 
-    ctx += `\n\nREGLA PARA CERRAR LA VENTA (MUY IMPORTANTE):
-Cuando el cliente confirme que quiere proceder a comprar/rentar, DEBES pedirle su Dirección Exacta de Entrega (Full Delivery Address) si aún no te la ha dado, además de su Nombre, Teléfono, y confirmar el Tamaño del contenedor. (El Zip Code inicial era solo para cotizar, ahora necesitas la dirección completa de la calle).
-Una vez que tengas OBLIGATORIAMENTE su Nombre, Teléfono, Dirección Exacta y el Tamaño, debes decirle amablemente que la orden ha sido recibida y que logística se comunicará pronto para coordinar la entrega.
-Además, DEBES agregar al final de tu respuesta (oculto para el sistema) el siguiente formato exacto:
-[ORDER_CLOSED: Nombre | Teléfono | Dirección Exacta | Tamaño | Precio Final]`;
+    ctx += `\n\nRULE FOR CLOSING THE SALE (VERY IMPORTANT):
+When the customer confirms they want to proceed to buy/rent, YOU MUST ask for their Full Delivery Address if they haven't given it yet, plus their Name, Phone, and confirm the Container Size. (The initial Zip Code was just to quote, now you need the full street address).
+Once you MANDATORILY have their Name, Phone, Full Exact Address, and Size, you must kindly tell them that the order has been received and logistics will communicate soon to coordinate the delivery. (Example: "Thank you! Your order has been received. Our logistics team will contact you shortly to coordinate the delivery.")
+Also, YOU MUST add at the end of your response (hidden to the system) the exact following format:
+[ORDER_CLOSED: Name | Phone | Full Address | Size | Final Price]`;
 
     return ctx;
 }
 
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 serve(async (req) => {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+        return new Response('ok', { headers: corsHeaders });
+    }
+
     if (req.method !== 'POST') {
-        return new Response('Method Not Allowed', { status: 405 });
+        return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
     }
 
     try {
         const { message, zip, history = [] } = await req.json();
 
         if (!message) {
-            return new Response(JSON.stringify({ error: 'message is required' }), { status: 400 });
+            return new Response(JSON.stringify({ error: 'message is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         }
 
         // 1. Fetch prices from licencias table
@@ -311,7 +321,7 @@ serve(async (req) => {
         if (!orderMatch) {
             // No order to close — return the reply as-is
             return new Response(JSON.stringify({ reply: rawReply, order_closed: null, address_error: null }), {
-                headers: { 'Content-Type': 'application/json' }
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
         }
 
@@ -327,7 +337,7 @@ serve(async (req) => {
                     reply: cleanReply,
                     order_closed: null,
                     address_error: `La dirección de entrega proporcionada no parece coincidir con el código postal (${zip}) que ingresó inicialmente. Para evitar errores en el cálculo del envío, por favor escriba nuevamente su dirección asegurándose de incluir el código postal correcto.`
-                }), { headers: { 'Content-Type': 'application/json' } });
+                }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
 
             if (!foundZip) {
@@ -335,7 +345,7 @@ serve(async (req) => {
                     reply: cleanReply,
                     order_closed: null,
                     address_error: `Para procesar la orden correctamente y verificar el costo de envío, por favor envíeme nuevamente su dirección exacta de entrega incluyendo explícitamente el código postal al final.`
-                }), { headers: { 'Content-Type': 'application/json' } });
+                }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
         }
 
@@ -352,10 +362,10 @@ serve(async (req) => {
                 price:   numericPrice
             },
             address_error: null
-        }), { headers: { 'Content-Type': 'application/json' } });
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     } catch (err) {
         console.error('chat-v2 error:', err);
-        return new Response(JSON.stringify({ error: 'Internal error' }), { status: 500 });
+        return new Response(JSON.stringify({ error: 'Internal error' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 });
