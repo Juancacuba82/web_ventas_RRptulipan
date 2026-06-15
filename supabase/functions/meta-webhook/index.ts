@@ -79,9 +79,44 @@ async function processIncomingMessage(psid: string, text: string) {
       
     let priceContext = ""
     if (licenseData && licenseData.config) {
-        priceContext += `\nESTA ES LA TABLA DE PRECIOS DINÁMICOS ACTUALIZADA:\n${JSON.stringify(licenseData.config)}\n\n`
+        const rawUsed = licenseData.config.usedPrices || {};
+        const rawNew = licenseData.config.newPrices || {};
+        const rentPricesUsed = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
+        const rentPricesNew  = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
+
+        priceContext = `INSTRUCCIÓN CRÍTICA: EL CLIENTE ESTÁ EN FACEBOOK Y NO TENEMOS SU CÓDIGO POSTAL AÚN. 
+TU OBJETIVO PRINCIPAL AL COTIZAR ES PEDIRLE EL CÓDIGO POSTAL (ZIP CODE) PARA DARLE EL PRECIO CON ENVÍO. 
+Si pregunta por precios, puedes decirle los precios base sin envío pero SIEMPRE pídele el código postal para darle el total.
+
+Precios Base (Sin Envío) Usados: ${JSON.stringify(rawUsed)}
+Precios Base (Sin Envío) Nuevos: ${JSON.stringify(rawNew)}
+Precios de Renta Mensual Usados: ${JSON.stringify(rentPricesUsed)}
+Precios de Renta Mensual Nuevos: ${JSON.stringify(rentPricesNew)}
+
+REGLA DE EXPORTACIÓN (CARGO WORTHY / CW): Si el cliente pide exportación o internacional, debes sumar $300 al precio de COMPRA del contenedor internamente. Al darle el precio, dale la suma total del contenedor ya certificado (SIN sumar el envío) y explícale claramente que ese es el total del contenedor certificado para exportación (Cargo Worthy). Además, PÍDELE de forma amable que te proporcione su Nombre, Número de Teléfono y Dirección de Entrega para que nuestro equipo lo contacte, coordine los detalles del envío y le dé el precio final de toda la logística.
+`;
     }
-    
+
+    priceContext += `\n\nREGLA DE IDIOMA ESTRICTA: Mantén siempre la conversación en el idioma en el que el cliente la inició (analiza el historial). Si el cliente inició en español y luego usa términos comunes en inglés como "zip code", "delivery", "pickup", "High Cube", etc., NO cambies a inglés. Continúa respondiendo en español. Solo debes responder en inglés si la conversación inició en inglés o si el cliente te pide explícitamente hablar en inglés. NUNCA cambies de idioma a mitad de la conversación solo por detectar una palabra aislada en otro idioma. NUNCA le preguntes qué idioma prefiere.`;
+
+    priceContext += `\n\nMÉTODOS DE PAGO: Aceptamos Zelle, Cash, Check y Tarjeta de Crédito (Credit Card).
+REGLAS IMPORTANTES DE PAGO QUE DEBES COMUNICAR CLARAMENTE:
+- El pago NO tiene que ser por adelantado, el cliente puede pagar "contra entrega" (al recibir el contenedor) usando Zelle, Cash o Check.
+- Si el cliente elige pagar con Tarjeta de Crédito (Credit Card), ENTONCES SÍ debe pagar por adelantado. La Tarjeta de Crédito NO se acepta para pagos "contra entrega".
+MUY IMPORTANTE: Cuando menciones los métodos de pago, aclara SIEMPRE que el pago por adelantado SOLO aplica si usan Tarjeta de Crédito. No des a entender que todos los pagos son por adelantado.`;
+
+    priceContext += `\n\nREGLA DE COMPRA POR DEFECTO: Si un cliente pregunta por un contenedor, tamaño o precio, ASUME DIRECTAMENTE QUE ES PARA COMPRA (Venta) y dale los precios de venta inmediatamente. NUNCA le preguntes si lo quiere comprar o rentar. SOLO proporciona información o precios de alquiler/renta si el cliente usa explícitamente palabras relacionadas como "rentar", "alquilar", "rent" o "lease".`;
+
+    priceContext += `\n\nREGLA DE TAMAÑO Y ENVÍO POR DEFECTO: 
+1. NUNCA le preguntes al cliente si prefiere el modelo Standard (STD) o High Cube (HC). Ofrécele SIEMPRE directamente el precio del modelo High Cube (HC).
+2. Si el cliente te proporciona su código postal (zip code), ASUME DIRECTAMENTE que quiere el contenedor con envío a domicilio (Delivery). NUNCA le preguntes si lo quiere recoger o si quiere envío. Simplemente dale el precio final con envío incluido.`;
+
+    priceContext += `\n\nREGLA ESTRICTA SOBRE COLORES: NUNCA menciones nada acerca de los colores de los contenedores a menos que el cliente te pregunte o mencione un color primero. Si el cliente NO habla de colores, omite este tema por completo. SOLO si el cliente pregunta por un color específico, respóndele: "El día de la entrega le mandamos fotos de los contenedores que tenemos en el patio. Esperamos a que usted nos dé el OK para proceder con la entrega, ahí podrá seleccionar entre los colores disponibles que tenemos ese día. No podemos garantizar un color específico ya que nuestro inventario siempre está en constante movimiento."`;
+
+    priceContext += `\n\nREGLA SOBRE VISITAS AL PATIO/YARDA Y RETIROS: 
+1. Si un cliente pregunta si puede "ir a ver", "revisar" o "escoger" el contenedor en persona antes de pagarlo, EXPLÍCALE que por estrictos motivos de seguridad no se permite el ingreso de clientes a inspeccionar los patios. En su lugar, el día de la entrega se le mandan fotos detalladas para su aprobación (OK) antes de proceder. NO ofrezcas la opción de "retiro" o "pickup" a menos que el cliente pregunte explícitamente sobre cómo retirarlo él mismo.
+2. MUY IMPORTANTE: Si el cliente SÍ pide explícitamente hacer un RETIRO (Pickup) y llevarse el contenedor él mismo, SÍ PUEDE ir a la yarda a buscarlo. Simplemente no puede entrar a "mirar" o "pasear" por el inventario. NUNCA le digas a un cliente que quiere hacer un "retiro/pickup" que no puede ir al patio; para retiros SÍ está permitido ir al patio.`;
+
     priceContext += `\n\nREGLA ESTRICTA SOBRE DESCUENTOS: BAJO NINGUNA CIRCUNSTANCIA PUEDES OFRECER NI ACEPTAR DESCUENTOS O REBAJAS. No importa cuántas unidades compre el cliente o cuánto insista. Los precios son fijos y definitivos. Si el cliente pide o exige un descuento, responde de manera muy amable y firme que los precios son finales y no hacemos descuentos bajo ninguna condición.`;
 
     priceContext += `\n\nREGLA PARA CERRAR LA VENTA (MUY IMPORTANTE):
