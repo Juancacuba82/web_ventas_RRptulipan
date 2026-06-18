@@ -250,8 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
             "service-rent-h3": "Container Rentals",
             "service-rent-p": "Flexible rental options for short and long-term storage needs. Reliable and secure containers at your disposal.",
             "service-rent-btn": "Rent",
-            "service-trans-h3": "Transportation",
-            "service-trans-p": "Fast and safe transportation services. We deliver your containers to any location with precision and care.",
+            "service-trans-h3": "Transportation & Crane Services",
+            "service-trans-p": "Fast transportation and safe heavy lifting crane services for containers and large equipment.",
             "service-trans-btn": "Quote",
             "service-crane-h3": "Crane Services",
             "service-crane-p": "Need heavy lifting? Our crane services provide safe and efficient handling for containers and large equipment.",
@@ -355,7 +355,8 @@ document.addEventListener('DOMContentLoaded', () => {
             "trans-opt-crane-no": "No Crane Needed",
             "trans-zip-pickup": "Pickup Zip Code",
             "trans-zip-delivery": "Delivery Zip Code",
-            "trans-btn-pricing": "Request Quote",
+            "trans-btn-pricing": "Get Estimated Quote",
+            "exact-quote-text": "For an exact quote please contact:",
             "trans-step-contact": "4. Contact Information",
             "summary-status": "Status",
             "summary-crane": "Crane",
@@ -390,11 +391,11 @@ document.addEventListener('DOMContentLoaded', () => {
             "service-rent-h3": "Alquiler de Contenedores",
             "service-rent-p": "Opciones de alquiler flexibles para necesidades de almacenamiento a corto y largo plazo. Contenedores fiables y seguros a su disposiciÃ³n.",
             "service-rent-btn": "Alquilar",
-            "service-trans-h3": "Transporte",
-            "service-trans-p": "Servicios de transporte rÃ¡pidos y seguros. Entregamos sus contenedores a cualquier ubicaciÃ³n con precisiÃ³n y cuidado.",
+            "service-trans-h3": "Transporte y Servicio de Grúa",
+            "service-trans-p": "Transporte rápido y seguro junto con servicios de grúa de elevación pesada para contenedores y equipos grandes.",
             "service-trans-btn": "Cotizar",
-            "service-crane-h3": "Servicio de GrÃºa",
-            "service-crane-p": "Â¿Necesita elevaciÃ³n pesada? Nuestros servicios de grÃºa ofrecen un manejo seguro y eficiente para contenedores y equipos grandes.",
+            "service-crane-h3": "Servicio de Grúa",
+            "service-crane-p": "¿Necesita elevación pesada? Nuestros servicios de grúa ofrecen un manejo seguro y eficiente para contenedores y equipos grandes.",
             "service-crane-btn": "Solicitar",
             "crane-h1": "CotizaciÃ³n de Servicio de GrÃºa",
             "about-h2": "Â¿Por quÃ© elegir RP Tulipan?",
@@ -495,7 +496,8 @@ document.addEventListener('DOMContentLoaded', () => {
             "trans-opt-crane-no": "No necesita GrÃºa",
             "trans-zip-pickup": "Zip Code de Recogida",
             "trans-zip-delivery": "Zip Code de Entrega",
-            "trans-btn-pricing": "Solicitar CotizaciÃ³n",
+            "trans-btn-pricing": "Obtener Presupuesto Estimado",
+            "exact-quote-text": "Para una cotización exacta por favor comuníquese al:",
             "trans-step-contact": "4. InformaciÃ³n de Contacto",
             "summary-status": "Estado",
             "summary-crane": "GrÃºa",
@@ -1583,6 +1585,86 @@ Phone: ${selections.contact.phone}
         document.title = (mode === 'buy' ? t["service-sales-h3"] : t["service-rent-h3"]) + " | RP Tulipan Logistics";
     }
 
+    // --- Global Logistics Helpers for Trans/Crane ---
+    const getGlobalDepots = () => {
+        if (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.depots && DYNAMIC_PRICES.depots.length > 0) {
+            return DYNAMIC_PRICES.depots;
+        }
+        return [
+            { label: "Savannah (31408)",    zip: "31408" },
+            { label: "Atlanta (30288)",      zip: "30288" },
+            { label: "Jacksonville (32218)", zip: "32218" },
+            { label: "Titusville (32780)",   zip: "32780" },
+            { label: "Tampa (33619)",         zip: "33619" },
+            { label: "Miami (33178)",         zip: "33178" }
+        ];
+    };
+
+    const globalCalculateShippingCost = (miles) => {
+        let rates = [
+            { max: 30, price: 350 },
+            { max: 60, price: 450 },
+            { max: 80, price: 500 },
+            { max: 100, price: 550 }
+        ];
+        let flatRate = 5.5;
+        if (typeof DYNAMIC_PRICES !== 'undefined' && DYNAMIC_PRICES && DYNAMIC_PRICES.deliveryRates) {
+            const dr = DYNAMIC_PRICES.deliveryRates;
+            rates = [
+                { max: 30, price: dr["0-30"] !== undefined ? dr["0-30"] : 350 },
+                { max: 60, price: dr["31-60"] !== undefined ? dr["31-60"] : 450 },
+                { max: 80, price: dr["61-80"] !== undefined ? dr["61-80"] : 500 },
+                { max: 100, price: dr["81-100"] !== undefined ? dr["81-100"] : 550 }
+            ];
+            if (dr["over 100"] !== undefined) flatRate = dr["over 100"];
+        }
+        
+        if (miles <= 100) {
+            const rate = rates.find(r => miles <= r.max);
+            return rate ? rate.price : rates[3].price;
+        }
+        return miles * flatRate;
+    };
+
+    const globalGetCoordinates = async (zip) => {
+        if (window.coordCache && window.coordCache[zip]) return window.coordCache[zip];
+        const cleanZip = zip.replace(/\D/g, '').substring(0, 5);
+        const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${cleanZip}&countrycodes=us`;
+        try {
+            const response = await fetch(url, { headers: { 'User-Agent': 'RPTulipan-Web/1.0' } });
+            const data = await response.json();
+            if (data && data.length > 0) {
+                const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+                if (!window.coordCache) window.coordCache = {};
+                window.coordCache[zip] = coords;
+                return coords;
+            }
+            throw new Error('Coordinates not found for ' + zip);
+        } catch (e) {
+            console.error("Geocoding Error:", e);
+            throw e;
+        }
+    };
+
+    const globalGetDistance = async (origin, destination) => {
+        try {
+            const originCoords = await globalGetCoordinates(origin);
+            const destCoords = await globalGetCoordinates(destination);
+            const url = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?overview=false`;
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                const distanceMeters = data.routes[0].distance;
+                return distanceMeters / 1609.344;
+            }
+            throw new Error('Could not calculate distance from OSRM');
+        } catch (e) {
+            console.error("Routing Error:", e);
+            throw e;
+        }
+    };
+    // ----------------------------------------------
+
     function renderTransView() {
         const transView = document.getElementById('trans-view');
         const t = translations[currentLang];
@@ -1593,6 +1675,12 @@ Phone: ${selections.contact.phone}
                     <p data-i18n="buy-p">${t["buy-p"]}</p>
                 </div>
             </header>
+            <div class="container" style="margin-top: 20px;">
+                <div style="background: var(--primary-color); color: #fff; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 5px;" data-i18n="exact-quote-text">${t["exact-quote-text"] || "For an exact quote please contact:"}</p>
+                    <a href="tel:7867684409" style="font-size: 2.2rem; font-weight: 800; color: #fff; text-decoration: none; display: block;">786-768-4409</a>
+                </div>
+            </div>
             <main class="container">
                 <div class="buy-container">
                     <div id="trans-steps">
@@ -1607,9 +1695,22 @@ Phone: ${selections.contact.phone}
                                 <div class="option-card" data-value="45'"><i class="fas fa-boxes"></i><span>${t["buy-opt-45"]}</span></div>
                             </div>
                         </div>
+                        <!-- Step 1.5: Quantity -->
+                        <div class="buy-step" id="trans-step-qty" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="size"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step-qty">${t["buy-step-qty"] || "Select Quantity"}</h3>
+                            <div class="quantity-selector">
+                                <button class="qty-btn minus"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="qty-input trans-qty-input" value="1" min="1" max="99" readonly>
+                                <button class="qty-btn plus"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <div style="text-align: center; margin-top: 20px;">
+                                <button class="btn btn-primary btn-submit-qty" style="width: 100%;">${t["buy-btn-next"] || "Next"}</button>
+                            </div>
+                        </div>
                         <!-- Step 2: Status -->
                         <div class="buy-step" id="trans-step-status" style="display:none;">
-                            <button class="btn-back back-btn-action" data-prev="size"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <button class="btn-back back-btn-action" data-prev="qty"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="trans-step2">${t["trans-step2"]}</h3>
                             <div class="options-grid">
                                 <div class="option-card" data-value="Empty"><i class="fas fa-cube"></i><span>${t["trans-opt-empty"]}</span></div>
@@ -1631,6 +1732,10 @@ Phone: ${selections.contact.phone}
                             <button class="btn-back back-btn-action" data-prev="route"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="trans-step-contact">${t["trans-step-contact"]}</h3>
                             <div class="form-group" style="margin-top: 20px;">
+                                <div id="trans-contact-prices" style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; text-align: left;">
+                                    <p style="margin-bottom: 10px; color: #333; font-size: 1.1rem;"><strong>${currentLang === 'en' ? 'Estimated Price (Flexible Date)' : 'Mejor Precio (fecha flexible)'}:</strong> $<span class="contact-price-flexible">0.00</span></p>
+                                    <p style="margin-bottom: 0; color: #333; font-size: 1.1rem;"><strong>${currentLang === 'en' ? 'Estimated Price (Immediate)' : 'Servicio Inmediato'}:</strong> $<span class="contact-price-immediate">0.00</span></p>
+                                </div>
                                 <input type="text" id="trans-contact-name" placeholder="${t["form-name"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <input type="email" id="trans-contact-email" placeholder="${t["form-email"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <input type="tel" id="trans-contact-phone" placeholder="${t["form-phone"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
@@ -1643,9 +1748,13 @@ Phone: ${selections.contact.phone}
                         <h3 data-i18n="buy-summary">${t["buy-summary"]}</h3>
                         <div class="summary-details">
                             <p><strong>Size:</strong> <span class="summary-size">-</span></p>
+                            <p><strong>${t["summary-quantity"] || "Quantity"}:</strong> <span class="summary-quantity">-</span></p>
                             <p><strong>${t["summary-status"]}:</strong> <span class="summary-status">-</span></p>
                             <p><strong>${t["summary-route"]}:</strong> <span class="summary-route">-</span></p>
                             <p><strong>${t["summary-contact"]}:</strong> <span class="summary-contact">-</span></p>
+                            <hr style="border-color: #eee; margin: 10px 0;">
+                            <p><strong>${currentLang === 'en' ? 'Estimated Price (Flexible Date)' : 'Mejor Precio (fecha flexible)'}:</strong> $<span class="summary-price-flexible">0.00</span></p>
+                            <p><strong>${currentLang === 'en' ? 'Estimated Price (Immediate)' : 'Servicio Inmediato'}:</strong> $<span class="summary-price-immediate">0.00</span></p>
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 20px;">
                             <button class="btn btn-primary btn-get-pricing" style="flex: 1;" data-i18n="trans-btn-pricing">${t["trans-btn-pricing"]}</button>
@@ -1656,9 +1765,29 @@ Phone: ${selections.contact.phone}
             </main>
         `;
 
-        const selections = { size: null, status: null, pickup: '', delivery: '', contact: {} };
-        const steps = ['size', 'status', 'route', 'contact'];
+        const selections = { size: null, quantity: 1, status: null, pickup: '', delivery: '', contact: {} };
+        const steps = ['size', 'qty', 'status', 'route', 'contact'];
         let currentIndex = 0;
+
+        transView.querySelectorAll('.qty-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = transView.querySelector('.trans-qty-input');
+                let val = parseInt(input.value);
+                if (btn.classList.contains('minus') && val > 1) val--;
+                if (btn.classList.contains('plus') && val < 99) val++;
+                input.value = val;
+                selections.quantity = val;
+            });
+        });
+
+        transView.querySelector('.btn-submit-qty').addEventListener('click', () => {
+            transView.querySelector('#trans-step-qty').style.display = 'none';
+            currentIndex++;
+            const nextStep = steps[currentIndex];
+            const nextEl = transView.querySelector(`#trans-step-${nextStep}`);
+            nextEl.style.display = 'block';
+            nextEl.classList.add('fade-in');
+        });
 
         transView.querySelectorAll('.option-card').forEach(card => {
             card.addEventListener('click', () => {
@@ -1677,38 +1806,98 @@ Phone: ${selections.contact.phone}
             });
         });
 
-        transView.querySelector('#btn-submit-route').addEventListener('click', () => {
+        transView.querySelector('#btn-submit-route').addEventListener('click', async (e) => {
             selections.pickup = transView.querySelector('#zip-pickup').value;
             selections.delivery = transView.querySelector('#zip-delivery').value;
             if (!selections.pickup || !selections.delivery) {
                 alert(currentLang === 'en' ? 'Please enter both zip codes' : 'Por favor ingrese ambos cÃ³digos postales');
                 return;
             }
-            transView.querySelector('#trans-step-route').style.display = 'none';
-            currentIndex++;
-            const nextStep = steps[currentIndex];
-            const nextEl = transView.querySelector(`#trans-step-${nextStep}`);
-            nextEl.style.display = 'block';
-            nextEl.classList.add('fade-in');
+
+            const btn = e.target;
+            const originalText = btn.innerText;
+            btn.innerText = currentLang === 'en' ? 'Calculating...' : 'Calculando...';
+            btn.disabled = true;
+
+            try {
+                const distDirect = await globalGetDistance(selections.pickup, selections.delivery);
+                
+                let minDistToPickup = Infinity;
+                const depots = getGlobalDepots();
+                for (let d of depots) {
+                    if (d.label.includes('32780') || d.zip === '32780') continue; // Skip Titusville
+                    try {
+                        const dDist = await globalGetDistance(d.zip, selections.pickup);
+                        if (dDist < minDistToPickup) minDistToPickup = dDist;
+                    } catch (e) {
+                        console.log("Could not calculate distance for depot " + d.label);
+                    }
+                }
+                
+                if (minDistToPickup === Infinity) minDistToPickup = 0;
+                
+                const costDirect = globalCalculateShippingCost(distDirect);
+                const costImmediate = globalCalculateShippingCost(minDistToPickup + distDirect);
+                
+                let multiplier = selections.quantity;
+                if (selections.size === "20'") {
+                    multiplier = Math.ceil(selections.quantity / 2);
+                }
+                
+                let extraStatusCost = 0;
+                if (selections.status === 'Empty') extraStatusCost = 150 * selections.quantity;
+                else if (selections.status === 'Full') extraStatusCost = 800 * selections.quantity;
+                
+                selections.priceFlexible = (costDirect * multiplier) + extraStatusCost;
+                selections.priceImmediate = (costImmediate * multiplier) + extraStatusCost;
+                
+                transView.querySelector('.contact-price-flexible').textContent = selections.priceFlexible.toFixed(2);
+                transView.querySelector('.contact-price-immediate').textContent = selections.priceImmediate.toFixed(2);
+                
+                btn.innerText = originalText;
+                btn.disabled = false;
+                
+                transView.querySelector('#trans-step-route').style.display = 'none';
+                currentIndex++;
+                const nextStep = steps[currentIndex];
+                const nextEl = transView.querySelector(`#trans-step-${nextStep}`);
+                nextEl.style.display = 'block';
+                nextEl.classList.add('fade-in');
+            } catch (error) {
+                console.error("Distance Calculation Error:", error);
+                alert(currentLang === 'en' ? 'Error calculating distance. Please check the zip codes and try again.' : 'Error calculando distancia. Revise los cÃ³digos postales e intente de nuevo.');
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         });
 
         transView.querySelector('#btn-submit-contact').addEventListener('click', () => {
-            selections.contact = {
-                name: transView.querySelector('#trans-contact-name').value,
-                email: transView.querySelector('#trans-contact-email').value,
-                phone: transView.querySelector('#trans-contact-phone').value
-            };
-            if (!selections.contact.name || !selections.contact.email) {
-                alert(currentLang === 'en' ? 'Please fill name and email' : 'Por favor ingrese nombre y email');
-                return;
+            try {
+                selections.contact = {
+                    name: transView.querySelector('#trans-contact-name').value,
+                    email: transView.querySelector('#trans-contact-email').value,
+                    phone: transView.querySelector('#trans-contact-phone').value
+                };
+                if (!selections.contact.name || !selections.contact.email) {
+                    alert(currentLang === 'en' ? 'Please fill name and email' : 'Por favor ingrese nombre y email');
+                    return;
+                }
+                transView.querySelector('#trans-step-contact').style.display = 'none';
+                transView.querySelector('.summary-size').textContent = selections.size || '-';
+                transView.querySelector('.summary-quantity').textContent = selections.quantity || '-';
+                transView.querySelector('.summary-status').textContent = selections.status || '-';
+                transView.querySelector('.summary-route').textContent = `${selections.pickup} ➔ ${selections.delivery}`;
+                transView.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email}) - ${selections.contact.phone}`;
+                if (selections.priceFlexible !== undefined && selections.priceImmediate !== undefined) {
+                    transView.querySelector('.summary-price-flexible').textContent = selections.priceFlexible.toFixed(2);
+                    transView.querySelector('.summary-price-immediate').textContent = selections.priceImmediate.toFixed(2);
+                }
+                transView.querySelector('#trans-summary').style.display = 'block';
+                transView.querySelector('#trans-summary').classList.add('fade-in');
+            } catch (err) {
+                alert("Debug Error: " + err.message + "\nLine: " + err.lineNumber);
+                console.error(err);
             }
-            transView.querySelector('#trans-step-contact').style.display = 'none';
-            transView.querySelector('.summary-size').textContent = selections.size;
-            transView.querySelector('.summary-status').textContent = selections.status;
-            transView.querySelector('.summary-route').textContent = `${selections.pickup} âž” ${selections.delivery}`;
-            transView.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email}) - ${selections.contact.phone}`;
-            transView.querySelector('#trans-summary').style.display = 'block';
-            transView.querySelector('#trans-summary').classList.add('fade-in');
         });
 
         transView.querySelectorAll('.back-btn-action').forEach(btn => {
@@ -1736,8 +1925,11 @@ Phone: ${selections.contact.phone}
 ðŸš› TRANSPORTATION QUOTE REQUEST
 ---------------------------------
 Size: ${selections.size}
+Quantity: ${selections.quantity}
 Status: ${selections.status}
-Route: ${selections.pickup} âž” ${selections.delivery}
+Route: ${selections.pickup} ➔ ${selections.delivery}
+Est. Price (Flexible): $${selections.priceFlexible ? selections.priceFlexible.toFixed(2) : '0.00'}
+Est. Price (Immediate): $${selections.priceImmediate ? selections.priceImmediate.toFixed(2) : '0.00'}
 
 ðŸ‘¤ CONTACT INFORMATION
 ---------------------------------
@@ -1798,6 +1990,12 @@ Phone: ${selections.contact.phone}
                     <p data-i18n="buy-p">${t["buy-p"]}</p>
                 </div>
             </header>
+            <div class="container" style="margin-top: 20px;">
+                <div style="background: var(--primary-color); color: #fff; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 5px;" data-i18n="exact-quote-text">${t["exact-quote-text"] || "For an exact quote please contact:"}</p>
+                    <a href="tel:7867684409" style="font-size: 2.2rem; font-weight: 800; color: #fff; text-decoration: none; display: block;">786-768-4409</a>
+                </div>
+            </div>
             <main class="container">
                 <div class="buy-container">
                     <div id="crane-steps">
@@ -1812,9 +2010,22 @@ Phone: ${selections.contact.phone}
                                 <div class="option-card" data-value="45'"><i class="fas fa-boxes"></i><span>${t["buy-opt-45"]}</span></div>
                             </div>
                         </div>
+                        <!-- Step 1.5: Quantity -->
+                        <div class="buy-step" id="crane-step-qty" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="size"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step-qty">${t["buy-step-qty"] || "Select Quantity"}</h3>
+                            <div class="quantity-selector">
+                                <button class="qty-btn minus"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="qty-input crane-qty-input" value="1" min="1" max="99" readonly>
+                                <button class="qty-btn plus"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <div style="text-align: center; margin-top: 20px;">
+                                <button class="btn btn-primary btn-submit-qty" style="width: 100%;">${t["buy-btn-next"] || "Next"}</button>
+                            </div>
+                        </div>
                         <!-- Step 2: Status -->
                         <div class="buy-step" id="crane-step-status" style="display:none;">
-                            <button class="btn-back back-btn-action" data-prev="size"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <button class="btn-back back-btn-action" data-prev="qty"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="trans-step2">${t["trans-step2"]}</h3>
                             <div class="options-grid">
                                 <div class="option-card" data-value="Empty"><i class="fas fa-cube"></i><span>${t["trans-opt-empty"]}</span></div>
@@ -1836,6 +2047,10 @@ Phone: ${selections.contact.phone}
                             <button class="btn-back back-btn-action" data-prev="route"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                             <h3 data-i18n="trans-step-contact">${t["trans-step-contact"]}</h3>
                             <div class="form-group" style="margin-top: 20px;">
+                                <div id="crane-contact-prices" style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; text-align: left;">
+                                    <p style="margin-bottom: 10px; color: #333; font-size: 1.1rem;"><strong>${currentLang === 'en' ? 'Estimated Price (Flexible Date)' : 'Mejor Precio (fecha flexible)'}:</strong> $<span class="contact-price-flexible">0.00</span></p>
+                                    <p style="margin-bottom: 0; color: #333; font-size: 1.1rem;"><strong>${currentLang === 'en' ? 'Estimated Price (Immediate)' : 'Servicio Inmediato'}:</strong> $<span class="contact-price-immediate">0.00</span></p>
+                                </div>
                                 <input type="text" id="crane-contact-name" placeholder="${t["form-name"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <input type="email" id="crane-contact-email" placeholder="${t["form-email"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <input type="tel" id="crane-contact-phone" placeholder="${t["form-phone"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
@@ -1848,9 +2063,13 @@ Phone: ${selections.contact.phone}
                         <h3 data-i18n="buy-summary">${t["buy-summary"]}</h3>
                         <div class="summary-details">
                             <p><strong>Size:</strong> <span class="summary-size">-</span></p>
+                            <p><strong>${t["summary-quantity"] || "Quantity"}:</strong> <span class="summary-quantity">-</span></p>
                             <p><strong>${t["summary-status"]}:</strong> <span class="summary-status">-</span></p>
                             <p><strong>${t["summary-route"]}:</strong> <span class="summary-route">-</span></p>
                             <p><strong>${t["summary-contact"]}:</strong> <span class="summary-contact">-</span></p>
+                            <hr style="border-color: #eee; margin: 10px 0;">
+                            <p><strong>${currentLang === 'en' ? 'Estimated Price (Flexible Date)' : 'Mejor Precio (fecha flexible)'}:</strong> $<span class="summary-price-flexible">0.00</span></p>
+                            <p><strong>${currentLang === 'en' ? 'Estimated Price (Immediate)' : 'Servicio Inmediato'}:</strong> $<span class="summary-price-immediate">0.00</span></p>
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 20px;">
                             <button class="btn btn-primary btn-get-pricing" style="flex: 1;" data-i18n="trans-btn-pricing">${t["trans-btn-pricing"]}</button>
@@ -1861,9 +2080,29 @@ Phone: ${selections.contact.phone}
             </main>
         `;
 
-        const selections = { size: null, status: null, pickup: '', delivery: '', contact: {} };
-        const steps = ['size', 'status', 'route', 'contact'];
+        const selections = { size: null, quantity: 1, status: null, pickup: '', delivery: '', contact: {} };
+        const steps = ['size', 'qty', 'status', 'route', 'contact'];
         let currentIndex = 0;
+
+        craneView.querySelectorAll('.qty-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = craneView.querySelector('.crane-qty-input');
+                let val = parseInt(input.value);
+                if (btn.classList.contains('minus') && val > 1) val--;
+                if (btn.classList.contains('plus') && val < 99) val++;
+                input.value = val;
+                selections.quantity = val;
+            });
+        });
+
+        craneView.querySelector('.btn-submit-qty').addEventListener('click', () => {
+            craneView.querySelector('#crane-step-qty').style.display = 'none';
+            currentIndex++;
+            const nextStep = steps[currentIndex];
+            const nextEl = craneView.querySelector(`#crane-step-${nextStep}`);
+            nextEl.style.display = 'block';
+            nextEl.classList.add('fade-in');
+        });
 
         craneView.querySelectorAll('.option-card').forEach(card => {
             card.addEventListener('click', () => {
@@ -1882,38 +2121,98 @@ Phone: ${selections.contact.phone}
             });
         });
 
-        craneView.querySelector('#crane-btn-submit-route').addEventListener('click', () => {
+        craneView.querySelector('#crane-btn-submit-route').addEventListener('click', async (e) => {
             selections.pickup = craneView.querySelector('#crane-zip-pickup').value;
             selections.delivery = craneView.querySelector('#crane-zip-delivery').value;
             if (!selections.pickup || !selections.delivery) {
                 alert(currentLang === 'en' ? 'Please enter both zip codes' : 'Por favor ingrese ambos cÃ³digos postales');
                 return;
             }
-            craneView.querySelector('#crane-step-route').style.display = 'none';
-            currentIndex++;
-            const nextStep = steps[currentIndex];
-            const nextEl = craneView.querySelector(`#crane-step-${nextStep}`);
-            nextEl.style.display = 'block';
-            nextEl.classList.add('fade-in');
+
+            const btn = e.target;
+            const originalText = btn.innerText;
+            btn.innerText = currentLang === 'en' ? 'Calculating...' : 'Calculando...';
+            btn.disabled = true;
+
+            try {
+                const distDirect = await globalGetDistance(selections.pickup, selections.delivery);
+                
+                let minDistToPickup = Infinity;
+                const depots = getGlobalDepots();
+                for (let d of depots) {
+                    if (d.label.includes('32780') || d.zip === '32780') continue; // Skip Titusville
+                    try {
+                        const dDist = await globalGetDistance(d.zip, selections.pickup);
+                        if (dDist < minDistToPickup) minDistToPickup = dDist;
+                    } catch (e) {
+                        console.log("Could not calculate distance for depot " + d.label);
+                    }
+                }
+                
+                if (minDistToPickup === Infinity) minDistToPickup = 0;
+                
+                const costDirect = globalCalculateShippingCost(distDirect);
+                const costImmediate = globalCalculateShippingCost(minDistToPickup + distDirect);
+                
+                let multiplier = selections.quantity;
+                if (selections.size === "20'") {
+                    multiplier = Math.ceil(selections.quantity / 2);
+                }
+                
+                let extraStatusCost = 0;
+                if (selections.status === 'Empty') extraStatusCost = 150 * selections.quantity;
+                else if (selections.status === 'Full') extraStatusCost = 800 * selections.quantity;
+                
+                selections.priceFlexible = (costDirect * multiplier) + extraStatusCost;
+                selections.priceImmediate = (costImmediate * multiplier) + extraStatusCost;
+                
+                craneView.querySelector('.contact-price-flexible').textContent = selections.priceFlexible.toFixed(2);
+                craneView.querySelector('.contact-price-immediate').textContent = selections.priceImmediate.toFixed(2);
+                
+                btn.innerText = originalText;
+                btn.disabled = false;
+                
+                craneView.querySelector('#crane-step-route').style.display = 'none';
+                currentIndex++;
+                const nextStep = steps[currentIndex];
+                const nextEl = craneView.querySelector(`#crane-step-${nextStep}`);
+                nextEl.style.display = 'block';
+                nextEl.classList.add('fade-in');
+            } catch (error) {
+                console.error("Distance Calculation Error:", error);
+                alert(currentLang === 'en' ? 'Error calculating distance. Please check the zip codes and try again.' : 'Error calculando distancia. Revise los cÃ³digos postales e intente de nuevo.');
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         });
 
         craneView.querySelector('#crane-btn-submit-contact').addEventListener('click', () => {
-            selections.contact = {
-                name: craneView.querySelector('#crane-contact-name').value,
-                email: craneView.querySelector('#crane-contact-email').value,
-                phone: craneView.querySelector('#crane-contact-phone').value
-            };
-            if (!selections.contact.name || !selections.contact.email) {
-                alert(currentLang === 'en' ? 'Please fill name and email' : 'Por favor ingrese nombre y email');
-                return;
+            try {
+                selections.contact = {
+                    name: craneView.querySelector('#crane-contact-name').value,
+                    email: craneView.querySelector('#crane-contact-email').value,
+                    phone: craneView.querySelector('#crane-contact-phone').value
+                };
+                if (!selections.contact.name || !selections.contact.email) {
+                    alert(currentLang === 'en' ? 'Please fill name and email' : 'Por favor ingrese nombre y email');
+                    return;
+                }
+                craneView.querySelector('#crane-step-contact').style.display = 'none';
+                craneView.querySelector('.summary-size').textContent = selections.size || '-';
+                craneView.querySelector('.summary-quantity').textContent = selections.quantity || '-';
+                craneView.querySelector('.summary-status').textContent = selections.status || '-';
+                craneView.querySelector('.summary-route').textContent = `${selections.pickup} ➔ ${selections.delivery}`;
+                craneView.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email}) - ${selections.contact.phone}`;
+                if (selections.priceFlexible !== undefined && selections.priceImmediate !== undefined) {
+                    craneView.querySelector('.summary-price-flexible').textContent = selections.priceFlexible.toFixed(2);
+                    craneView.querySelector('.summary-price-immediate').textContent = selections.priceImmediate.toFixed(2);
+                }
+                craneView.querySelector('#crane-summary').style.display = 'block';
+                craneView.querySelector('#crane-summary').classList.add('fade-in');
+            } catch (err) {
+                alert("Debug Error: " + err.message + "\nLine: " + err.lineNumber);
+                console.error(err);
             }
-            craneView.querySelector('#crane-step-contact').style.display = 'none';
-            craneView.querySelector('.summary-size').textContent = selections.size;
-            craneView.querySelector('.summary-status').textContent = selections.status;
-            craneView.querySelector('.summary-route').textContent = `${selections.pickup} âž” ${selections.delivery}`;
-            craneView.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email}) - ${selections.contact.phone}`;
-            craneView.querySelector('#crane-summary').style.display = 'block';
-            craneView.querySelector('#crane-summary').classList.add('fade-in');
         });
 
         craneView.querySelectorAll('.back-btn-action').forEach(btn => {
@@ -1941,8 +2240,11 @@ Phone: ${selections.contact.phone}
 ðŸ—ï¸ CRANE SERVICE QUOTE REQUEST
 ---------------------------------
 Size: ${selections.size}
+Quantity: ${selections.quantity}
 Status: ${selections.status}
-Route: ${selections.pickup} âž” ${selections.delivery}
+Route: ${selections.pickup} ➔ ${selections.delivery}
+Est. Price (Flexible): $${selections.priceFlexible ? selections.priceFlexible.toFixed(2) : '0.00'}
+Est. Price (Immediate): $${selections.priceImmediate ? selections.priceImmediate.toFixed(2) : '0.00'}
 
 ðŸ‘¤ CONTACT INFORMATION
 ---------------------------------
