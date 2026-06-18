@@ -1901,7 +1901,7 @@ Phone: ${selections.contact.phone}
                 
                 if (selections.status === 'Empty') {
                     vehicleImgContact.src = 'assets/transport.png';
-                    vehicleNameContact.innerText = currentLang === 'en' ? 'Hotshot Truck with Trailer' : 'Camioneta con Tráiler (Hotshot)';
+                    vehicleNameContact.innerText = currentLang === 'en' ? 'Pick up truck with tilt trailer' : 'Camioneta Pick-up con Tráiler Inclinable';
                     vehicleInfoContact.style.display = 'block';
                 } else if (selections.status === 'Full') {
                     vehicleImgContact.src = 'assets/crane.png';
@@ -2007,7 +2007,7 @@ Phone: ${selections.contact.phone}
                 
                 if (selections.status === 'Empty') {
                     vehicleImgSummary.src = 'assets/transport.png';
-                    vehicleNameSummary.innerText = currentLang === 'en' ? 'Hotshot Truck with Trailer' : 'Camioneta con Tráiler (Hotshot)';
+                    vehicleNameSummary.innerText = currentLang === 'en' ? 'Pick up truck with tilt trailer' : 'Camioneta Pick-up con Tráiler Inclinable';
                     vehicleInfoSummary.style.display = 'block';
                 } else if (selections.status === 'Full') {
                     vehicleImgSummary.src = 'assets/crane.png';
