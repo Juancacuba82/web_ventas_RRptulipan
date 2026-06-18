@@ -1663,6 +1663,23 @@ Phone: ${selections.contact.phone}
             throw e;
         }
     };
+
+    const globalGetRouteGeometry = async (origin, destination) => {
+        try {
+            const originCoords = await globalGetCoordinates(origin);
+            const destCoords = await globalGetCoordinates(destination);
+            const url = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?overview=full&geometries=geojson`;
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                return data.routes[0].geometry;
+            }
+            return null;
+        } catch (e) {
+            console.error("Routing Geometry Error:", e);
+            return null;
+        }
+    };
     // ----------------------------------------------
 
     function renderTransView() {
@@ -1733,8 +1750,14 @@ Phone: ${selections.contact.phone}
                             <h3 data-i18n="trans-step-contact">${t["trans-step-contact"]}</h3>
                             <div class="form-group" style="margin-top: 20px;">
                                 <div id="trans-contact-prices" style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; text-align: left;">
-                                    <p style="margin-bottom: 10px; color: #333; font-size: 1.1rem;"><strong>${currentLang === 'en' ? 'Estimated Price (Flexible Date)' : 'Mejor Precio (fecha flexible)'}:</strong> $<span class="contact-price-flexible">0.00</span></p>
-                                    <p style="margin-bottom: 0; color: #333; font-size: 1.1rem;"><strong>${currentLang === 'en' ? 'Estimated Price (Immediate)' : 'Servicio Inmediato'}:</strong> $<span class="contact-price-immediate">0.00</span></p>
+                                    <div id="trans-vehicle-info-contact" style="text-align: center; margin-bottom: 15px; display: none;">
+                                        <img id="trans-vehicle-img-contact" src="" alt="Vehicle" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: cover;">
+                                        <p id="trans-vehicle-name-contact" style="margin-top: 10px; font-weight: 600; color: #333;"></p>
+                                    </div>
+                                    <p style="margin-bottom: 2px; color: #333; font-size: 1.1rem;"><strong>${currentLang === 'en' ? 'Estimated Price (Flexible Date)' : 'Mejor Precio (fecha flexible)'}:</strong> $<span class="contact-price-flexible">0.00</span></p>
+                                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;"><em>${currentLang === 'en' ? '(Only charges from pickup to delivery)' : '(Solo pagas el trayecto desde la recogida hasta la entrega)'}</em></p>
+                                    <p style="margin-bottom: 2px; color: #333; font-size: 1.1rem;"><strong>${currentLang === 'en' ? 'Estimated Price (Immediate)' : 'Servicio Inmediato'}:</strong> $<span class="contact-price-immediate">0.00</span></p>
+                                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 0;"><em>${currentLang === 'en' ? '(Includes empty trip from our depot to pickup)' : '(Incluye el envío del equipo vacío desde nuestro depósito a la recogida)'}</em></p>
                                 </div>
                                 <input type="text" id="trans-contact-name" placeholder="${t["form-name"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <input type="email" id="trans-contact-email" placeholder="${t["form-email"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
@@ -1747,14 +1770,20 @@ Phone: ${selections.contact.phone}
                         <button class="btn-back back-btn-action" data-prev="contact"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
                         <h3 data-i18n="buy-summary">${t["buy-summary"]}</h3>
                         <div class="summary-details">
+                            <div id="trans-vehicle-info-summary" style="text-align: center; margin-bottom: 15px; display: none;">
+                                <img id="trans-vehicle-img-summary" src="" alt="Vehicle" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: cover;">
+                                <p id="trans-vehicle-name-summary" style="margin-top: 10px; font-weight: 600; color: #333;"></p>
+                            </div>
                             <p><strong>Size:</strong> <span class="summary-size">-</span></p>
                             <p><strong>${t["summary-quantity"] || "Quantity"}:</strong> <span class="summary-quantity">-</span></p>
                             <p><strong>${t["summary-status"]}:</strong> <span class="summary-status">-</span></p>
                             <p><strong>${t["summary-route"]}:</strong> <span class="summary-route">-</span></p>
                             <p><strong>${t["summary-contact"]}:</strong> <span class="summary-contact">-</span></p>
                             <hr style="border-color: #eee; margin: 10px 0;">
-                            <p><strong>${currentLang === 'en' ? 'Estimated Price (Flexible Date)' : 'Mejor Precio (fecha flexible)'}:</strong> $<span class="summary-price-flexible">0.00</span></p>
-                            <p><strong>${currentLang === 'en' ? 'Estimated Price (Immediate)' : 'Servicio Inmediato'}:</strong> $<span class="summary-price-immediate">0.00</span></p>
+                            <p style="margin-bottom: 2px;"><strong>${currentLang === 'en' ? 'Estimated Price (Flexible Date)' : 'Mejor Precio (fecha flexible)'}:</strong> $<span class="summary-price-flexible">0.00</span></p>
+                            <p style="font-size: 0.85rem; color: #666; margin-bottom: 10px;"><em>${currentLang === 'en' ? '(Only charges from pickup to delivery)' : '(Solo pagas el trayecto desde la recogida hasta la entrega)'}</em></p>
+                            <p style="margin-bottom: 2px;"><strong>${currentLang === 'en' ? 'Estimated Price (Immediate)' : 'Servicio Inmediato'}:</strong> $<span class="summary-price-immediate">0.00</span></p>
+                            <p style="font-size: 0.85rem; color: #666; margin-bottom: 0;"><em>${currentLang === 'en' ? '(Includes empty trip from our depot to pickup)' : '(Incluye el envío del equipo vacío desde nuestro depósito a la recogida)'}</em></p>
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 20px;">
                             <button class="btn btn-primary btn-get-pricing" style="flex: 1;" data-i18n="trans-btn-pricing">${t["trans-btn-pricing"]}</button>
@@ -1762,6 +1791,7 @@ Phone: ${selections.contact.phone}
                         </div>
                     </div>
                 </div>
+                <div id="trans-route-map-container" style="display: none; height: 350px; margin-top: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 2px solid var(--primary-color); z-index: 1; margin-bottom: 20px;"></div>
             </main>
         `;
 
@@ -1823,12 +1853,16 @@ Phone: ${selections.contact.phone}
                 const distDirect = await globalGetDistance(selections.pickup, selections.delivery);
                 
                 let minDistToPickup = Infinity;
+                let closestDepotZip = null;
                 const depots = getGlobalDepots();
                 for (let d of depots) {
                     if (d.label.includes('32780') || d.zip === '32780') continue; // Skip Titusville
                     try {
                         const dDist = await globalGetDistance(d.zip, selections.pickup);
-                        if (dDist < minDistToPickup) minDistToPickup = dDist;
+                        if (dDist < minDistToPickup) {
+                            minDistToPickup = dDist;
+                            closestDepotZip = d.zip;
+                        }
                     } catch (e) {
                         console.log("Could not calculate distance for depot " + d.label);
                     }
@@ -1845,14 +1879,37 @@ Phone: ${selections.contact.phone}
                 }
                 
                 let extraStatusCost = 0;
-                if (selections.status === 'Empty') extraStatusCost = 150 * selections.quantity;
-                else if (selections.status === 'Full') extraStatusCost = 800 * selections.quantity;
+                if (selections.status === 'Empty') {
+                    if (selections.size === "20'" && selections.quantity === 2) {
+                        extraStatusCost = 100 * selections.quantity;
+                    } else {
+                        extraStatusCost = 150 * selections.quantity;
+                    }
+                } else if (selections.status === 'Full') {
+                    extraStatusCost = 800 * selections.quantity;
+                }
                 
                 selections.priceFlexible = (costDirect * multiplier) + extraStatusCost;
                 selections.priceImmediate = (costImmediate * multiplier) + extraStatusCost;
                 
                 transView.querySelector('.contact-price-flexible').textContent = selections.priceFlexible.toFixed(2);
                 transView.querySelector('.contact-price-immediate').textContent = selections.priceImmediate.toFixed(2);
+                
+                const vehicleImgContact = transView.querySelector('#trans-vehicle-img-contact');
+                const vehicleNameContact = transView.querySelector('#trans-vehicle-name-contact');
+                const vehicleInfoContact = transView.querySelector('#trans-vehicle-info-contact');
+                
+                if (selections.status === 'Empty') {
+                    vehicleImgContact.src = 'assets/transport.png';
+                    vehicleNameContact.innerText = currentLang === 'en' ? 'Hotshot Truck with Trailer' : 'Camioneta con Tráiler (Hotshot)';
+                    vehicleInfoContact.style.display = 'block';
+                } else if (selections.status === 'Full') {
+                    vehicleImgContact.src = 'assets/crane.png';
+                    vehicleNameContact.innerText = currentLang === 'en' ? 'Side Loader Crane' : 'Grúa Side Loader';
+                    vehicleInfoContact.style.display = 'block';
+                } else {
+                    vehicleInfoContact.style.display = 'none';
+                }
                 
                 btn.innerText = originalText;
                 btn.disabled = false;
@@ -1863,6 +1920,57 @@ Phone: ${selections.contact.phone}
                 const nextEl = transView.querySelector(`#trans-step-${nextStep}`);
                 nextEl.style.display = 'block';
                 nextEl.classList.add('fade-in');
+                
+                // Map Rendering
+                setTimeout(async () => {
+                    const mapContainer = document.getElementById('trans-route-map-container');
+                    if (mapContainer && typeof L !== 'undefined') {
+                        mapContainer.style.display = 'block';
+                        
+                        if (window.transRouteMap) {
+                            window.transRouteMap.remove();
+                        }
+                        
+                        window.transRouteMap = L.map('trans-route-map-container');
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors'
+                        }).addTo(window.transRouteMap);
+                        
+                        try {
+                            const depotCoords = await globalGetCoordinates(closestDepotZip);
+                            const pickupCoords = await globalGetCoordinates(selections.pickup);
+                            const deliveryCoords = await globalGetCoordinates(selections.delivery);
+                            
+                            const depotIcon = L.divIcon({ html: '<i class="fas fa-warehouse" style="color: blue; font-size: 24px;"></i>', className: '', iconSize: [24, 24], iconAnchor: [12, 24] });
+                            const pickupIcon = L.divIcon({ html: '<i class="fas fa-box" style="color: orange; font-size: 24px;"></i>', className: '', iconSize: [24, 24], iconAnchor: [12, 24] });
+                            const deliveryIcon = L.divIcon({ html: '<i class="fas fa-map-marker-alt" style="color: red; font-size: 24px;"></i>', className: '', iconSize: [24, 24], iconAnchor: [12, 24] });
+                            
+                            const depotMarker = L.marker([depotCoords.lat, depotCoords.lon], {icon: depotIcon}).bindPopup('<b>Depot:</b> ' + closestDepotZip).addTo(window.transRouteMap);
+                            const pickupMarker = L.marker([pickupCoords.lat, pickupCoords.lon], {icon: pickupIcon}).bindPopup('<b>Pickup:</b> ' + selections.pickup).addTo(window.transRouteMap);
+                            const deliveryMarker = L.marker([deliveryCoords.lat, deliveryCoords.lon], {icon: deliveryIcon}).bindPopup('<b>Delivery:</b> ' + selections.delivery).addTo(window.transRouteMap);
+                            
+                            // Draw routes
+                            const depotToPickupRoute = await globalGetRouteGeometry(closestDepotZip, selections.pickup);
+                            if (depotToPickupRoute) {
+                                L.geoJSON(depotToPickupRoute, { style: { color: 'blue', weight: 4, opacity: 0.7, dashArray: '5, 10' } }).addTo(window.transRouteMap);
+                            }
+                            
+                            const pickupToDeliveryRoute = await globalGetRouteGeometry(selections.pickup, selections.delivery);
+                            if (pickupToDeliveryRoute) {
+                                L.geoJSON(pickupToDeliveryRoute, { style: { color: 'red', weight: 5, opacity: 0.9 } }).addTo(window.transRouteMap);
+                            }
+                            
+                            // Fit bounds to show all markers
+                            const group = new L.featureGroup([depotMarker, pickupMarker, deliveryMarker]);
+                            window.transRouteMap.fitBounds(group.getBounds(), { padding: [30, 30] });
+                            window.transRouteMap.invalidateSize();
+                            
+                        } catch (e) {
+                            console.error("Map Drawing Error:", e);
+                        }
+                    }
+                }, 100);
+
             } catch (error) {
                 console.error("Distance Calculation Error:", error);
                 alert(currentLang === 'en' ? 'Error calculating distance. Please check the zip codes and try again.' : 'Error calculando distancia. Revise los cÃ³digos postales e intente de nuevo.');
@@ -1892,6 +2000,23 @@ Phone: ${selections.contact.phone}
                     transView.querySelector('.summary-price-flexible').textContent = selections.priceFlexible.toFixed(2);
                     transView.querySelector('.summary-price-immediate').textContent = selections.priceImmediate.toFixed(2);
                 }
+                
+                const vehicleImgSummary = transView.querySelector('#trans-vehicle-img-summary');
+                const vehicleNameSummary = transView.querySelector('#trans-vehicle-name-summary');
+                const vehicleInfoSummary = transView.querySelector('#trans-vehicle-info-summary');
+                
+                if (selections.status === 'Empty') {
+                    vehicleImgSummary.src = 'assets/transport.png';
+                    vehicleNameSummary.innerText = currentLang === 'en' ? 'Hotshot Truck with Trailer' : 'Camioneta con Tráiler (Hotshot)';
+                    vehicleInfoSummary.style.display = 'block';
+                } else if (selections.status === 'Full') {
+                    vehicleImgSummary.src = 'assets/crane.png';
+                    vehicleNameSummary.innerText = currentLang === 'en' ? 'Side Loader Crane' : 'Grúa Side Loader';
+                    vehicleInfoSummary.style.display = 'block';
+                } else {
+                    vehicleInfoSummary.style.display = 'none';
+                }
+                
                 transView.querySelector('#trans-summary').style.display = 'block';
                 transView.querySelector('#trans-summary').classList.add('fade-in');
             } catch (err) {
@@ -2160,8 +2285,15 @@ Phone: ${selections.contact.phone}
                 }
                 
                 let extraStatusCost = 0;
-                if (selections.status === 'Empty') extraStatusCost = 150 * selections.quantity;
-                else if (selections.status === 'Full') extraStatusCost = 800 * selections.quantity;
+                if (selections.status === 'Empty') {
+                    if (selections.size === "20'" && selections.quantity === 2) {
+                        extraStatusCost = 100 * selections.quantity;
+                    } else {
+                        extraStatusCost = 150 * selections.quantity;
+                    }
+                } else if (selections.status === 'Full') {
+                    extraStatusCost = 800 * selections.quantity;
+                }
                 
                 selections.priceFlexible = (costDirect * multiplier) + extraStatusCost;
                 selections.priceImmediate = (costImmediate * multiplier) + extraStatusCost;
