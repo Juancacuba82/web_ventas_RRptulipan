@@ -1190,8 +1190,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             nextBtn.addEventListener('click', async () => {
-                const zip = zipInput.value;
-                if (!zip) return;
+                const zip = zipInput.value.trim();
+                if (!zip || zip.length < 5) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Zip Code Inválido',
+                        text: 'Por favor, ingrese un Zip Code válido de 5 dígitos.'
+                    });
+                    return;
+                }
                 
                 nextBtn.disabled = true;
                 nextBtn.innerText = t["buy-calculating"];
@@ -1200,6 +1207,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Calculate distances to all depots
                     const distancePromises = DEPOTS.map(d => getDistance(d.zip, zip).catch(() => 9999));
                     const distances = await Promise.all(distancePromises);
+
+                    if (distances.every(d => d === 9999)) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Zip Code Inválido',
+                            text: 'No pudimos encontrar su Zip Code o calcular la ruta. Por favor, verifique que sea correcto.'
+                        });
+                        nextBtn.disabled = false;
+                        nextBtn.innerHTML = t["buy-btn-next"] || 'Next';
+                        return;
+                    }
                     
                     DEPOTS.forEach((d, idx) => {
                         selections.allDistances[d.label] = distances[idx];
