@@ -176,10 +176,10 @@ async function sendLeadToSupabase(leadData) {
         const { error } = await supabaseClient.from('call_logs').insert([payload]);
         
         if (error) {
-            console.warn("Supabase insert fallÃ³ con columnas extra, intentando modo seguro (fallback):", error);
+            console.warn("Supabase insert falló con columnas extra, intentando modo seguro (fallback):", error);
             
-            // Si fallÃ³, posiblemente sea porque las columnas amount, zip_code o measures no existen o tienen lÃ­mite.
-            // Removemos las columnas problemÃ¡ticas y ponemos la info en la descripciÃ³n para no perderla.
+            // Si falló, posiblemente sea porque las columnas amount, zip_code o measures no existen o tienen límite.
+            // Removemos las columnas problemáticas y ponemos la info en la descripción para no perderla.
             delete payload.amount;
             delete payload.zip_code;
             delete payload.measures;
@@ -379,17 +379,17 @@ document.addEventListener('DOMContentLoaded', () => {
             "nav-home": "Inicio",
             "nav-services": "Servicios",
             "nav-about": "Nosotros",
-            "nav-gallery": "GalerÃ­a",
+            "nav-gallery": "Galería",
             "nav-contact": "Contacto",
             "hero-title": "Soluciones Modernas de Contenedores",
-            "hero-p": "LogÃ­stica global simplificada. Vendemos, alquilamos y transportamos contenedores de alta calidad adaptados a sus necesidades comerciales.",
+            "hero-p": "Logística global simplificada. Vendemos, alquilamos y transportamos contenedores de alta calidad adaptados a sus necesidades comerciales.",
             "hero-btn-services": "Nuestros Servicios",
             "services-title": "Nuestros Servicios",
             "service-sales-h3": "Venta de Contenedores",
-            "service-sales-p": "Â¿Buscas una soluciÃ³n permanente? Ofrecemos una amplia gama de contenedores de envÃ­o nuevos y usados para la venta.",
+            "service-sales-p": "¿Buscas una solución permanente? Ofrecemos una amplia gama de contenedores de envío nuevos y usados para la venta.",
             "service-sales-btn": "Comprar",
             "service-rent-h3": "Alquiler de Contenedores",
-            "service-rent-p": "Opciones de alquiler flexibles para necesidades de almacenamiento a corto y largo plazo. Contenedores fiables y seguros a su disposiciÃ³n.",
+            "service-rent-p": "Opciones de alquiler flexibles para necesidades de almacenamiento a corto y largo plazo. Contenedores fiables y seguros a su disposición.",
             "service-rent-btn": "Alquilar",
             "service-trans-h3": "Transporte y Servicio de Grúa",
             "service-trans-p": "Transporte rápido y seguro junto con servicios de grúa de elevación pesada para contenedores y equipos grandes.",
@@ -397,63 +397,63 @@ document.addEventListener('DOMContentLoaded', () => {
             "service-crane-h3": "Servicio de Grúa",
             "service-crane-p": "¿Necesita elevación pesada? Nuestros servicios de grúa ofrecen un manejo seguro y eficiente para contenedores y equipos grandes.",
             "service-crane-btn": "Solicitar",
-            "crane-h1": "CotizaciÃ³n de Servicio de GrÃºa",
-            "about-h2": "Â¿Por quÃ© elegir RP Tulipan?",
-            "about-p": "Con aÃ±os de experiencia en la industria logÃ­stica, nos enorgullecemos de brindar soluciones de contenedores de primer nivel. Nuestro compromiso con la calidad y la satisfacciÃ³n del cliente nos convierte en lÃ­deres en el mercado.",
+            "crane-h1": "Cotización de Servicio de Grúa",
+            "about-h2": "¿Por qué elegir RP Tulipan?",
+            "about-p": "Con años de experiencia en la industria logística, nos enorgullecemos de brindar soluciones de contenedores de primer nivel. Nuestro compromiso con la calidad y la satisfacción del cliente nos convierte en líderes en el mercado.",
             "about-f1": "Contenedores de acero de alta calidad",
             "about-f2": "Precios competitivos de mercado",
-            "about-f3": "AtenciÃ³n al cliente 24/7",
+            "about-f3": "Atención al cliente 24/7",
             "about-f4": "Red de entrega global",
-            "contact-h2": "ContÃ¡ctenos",
+            "contact-h2": "Contáctenos",
             "contact-h3": "Ponerse en contacto",
-            "contact-p": "Â¿Tiene preguntas sobre nuestros servicios? Nuestro equipo estÃ¡ listo para ayudarlo a encontrar la soluciÃ³n de contenedor perfecta.",
+            "contact-p": "¿Tiene preguntas sobre nuestros servicios? Nuestro equipo está listo para ayudarlo a encontrar la solución de contenedor perfecta.",
             "contact-address": "9804 NW 80th Ave, Hialeah Gardens FL 33016, Estados Unidos",
             "form-name": "Tu nombre",
-            "form-email": "Tu correo electrÃ³nico",
-            "form-phone": "NÃºmero de telÃ©fono",
+            "form-email": "Tu correo electrónico",
+            "form-phone": "Número de teléfono",
             "form-service-placeholder": "Seleccionar servicio",
             "form-service-sales": "Venta de contenedores",
             "form-service-rent": "Alquiler de contenedores",
             "form-service-trans": "Transporte",
-            "form-service-crane": "Servicio de grÃºa",
+            "form-service-crane": "Servicio de grúa",
             "form-message": "Tu mensaje",
             "form-btn": "Enviar mensaje",
-            "footer-p": "Brindando excelencia en logÃ­stica de contenedores.",
-            "footer-links-h4": "Enlaces rÃ¡pidos",
-            "footer-social-h4": "SÃ­guenos",
+            "footer-p": "Brindando excelencia en logística de contenedores.",
+            "footer-links-h4": "Enlaces rápidos",
+            "footer-social-h4": "Síguenos",
             "footer-bottom": "&copy; 2026 RP Tulipan Logistics. Todos los derechos reservados.",
-            "gallery-h1": "Nuestra GalerÃ­a de Fotos",
-            "gallery-p": "Explore nuestros contenedores y operaciones logÃ­sticas",
+            "gallery-h1": "Nuestra Galería de Fotos",
+            "gallery-p": "Explore nuestros contenedores y operaciones logísticas",
             "buy-h1": "Configura tu Contenedor",
             "buy-p": "Selecciona las opciones que mejor se adapten a tus necesidades",
             "buy-step1": "Entrega o Recogida",
             "buy-step-qty": "Seleccionar Cantidad",
             "buy-step2": "Tipo de Servicio",
-            "buy-step-cond": "CondiciÃ³n del Contenedor",
-            "buy-step3": "ClimatizaciÃ³n",
+            "buy-step-cond": "Condición del Contenedor",
+            "buy-step3": "Climatización",
             "buy-step4": "Entrega o Recogida",
-            "buy-step5": "Detalles de LogÃ­stica",
-            "buy-step6": "MÃ©todo de Pago",
-            "buy-step7": "InformaciÃ³n de Contacto",
-            "buy-step-size": "Seleccionar TamaÃ±o",
+            "buy-step5": "Detalles de Logística",
+            "buy-step6": "Método de Pago",
+            "buy-step7": "Información de Contacto",
+            "buy-step-size": "Seleccionar Tamaño",
             "buy-step-contact": "Datos de Contacto",
             "buy-summary-subtotal": "Subtotal Contenedor",
-            "buy-summary-export": "Tarifa de ExportaciÃ³n",
-            "buy-summary-shipping": "Costo de EnvÃ­o",
+            "buy-summary-export": "Tarifa de Exportación",
+            "buy-summary-shipping": "Costo de Envío",
             "buy-summary-delivery": "Costo de Entrega",
             "buy-summary-total": "Precio Total",
             "buy-summary-dist": "Distancia",
             "buy-calculating": "Calculando distancia...",
-            "pay-note": "Puedes pagar contra entrega con Zelle, Cash o Check. No se aceptan tarjetas de crÃ©dito para pago contra entrega.",
-            "buy-depot-info": "Seleccione el depÃ³sito mÃ¡s cercano a su ubicaciÃ³n para obtener las tarifas de envÃ­o mÃ¡s bajas.",
+            "pay-note": "Puedes pagar contra entrega con Zelle, Cash o Check. No se aceptan tarjetas de crédito para pago contra entrega.",
+            "buy-depot-info": "Seleccione el depósito más cercano a su ubicación para obtener las tarifas de envío más bajas.",
             "buy-summary": "Resumen",
             "buy-btn-pricing": "Realizar Pedido.",
             "buy-btn-restart": "Reiniciar",
-            "buy-back": "AtrÃ¡s",
+            "buy-back": "Atrás",
             "buy-back-home": "Volver a Servicios",
-            "buy-opt-20": "20' EstÃ¡ndar",
+            "buy-opt-20": "20' Estándar",
             "buy-opt-40": "40' High Cube",
-            "buy-opt-40std": "40' EstÃ¡ndar",
+            "buy-opt-40std": "40' Estándar",
             "buy-opt-45": "45' High Cube",
             "buy-opt-int": "Shipping",
             "buy-opt-local": "Storage",
@@ -466,9 +466,9 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-opt-pickup": "Recogida",
             "buy-pay-cash": "Efectivo",
             "buy-pay-zelle": "Zelle",
-            "buy-pay-card": "Tarjeta de CrÃ©dito/DÃ©bito",
+            "buy-pay-card": "Tarjeta de Crédito/Débito",
             "buy-pay-check": "Cheque",
-            "buy-zip-placeholder": "CÃ³digo Postal de Entrega",
+            "buy-zip-placeholder": "Código Postal de Entrega",
             "buy-btn-next": "Siguiente",
             "buy-depot-sav": "Savannah (31408)",
             "buy-depot-atl": "Atlanta (30288)",
@@ -476,31 +476,31 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-depot-tit": "Titusville (32780)",
             "buy-depot-tam": "Tampa (33619)",
             "buy-depot-mia": "Miami (33178)",
-            "rent-step-cond": "5. CondiciÃ³n del Contenedor",
-            "rent-step-logistics": "2. Detalles de LogÃ­stica",
-            "rent-step-pay": "6. MÃ©todo de Pago",
-            "rent-step-contact": "7. InformaciÃ³n de Contacto",
-            "rent-step-size": "3. Seleccionar TamaÃ±o",
+            "rent-step-cond": "5. Condición del Contenedor",
+            "rent-step-logistics": "2. Detalles de Logística",
+            "rent-step-pay": "6. Método de Pago",
+            "rent-step-contact": "7. Información de Contacto",
+            "rent-step-size": "3. Seleccionar Tamaño",
             "rent-step-qty": "4. Seleccionar Cantidad",
             "rent-opt-used": "Usado",
             "rent-opt-new": "Nuevo",
             "rent-h1": "Alquila tu Contenedor",
             "rent-btn-pricing": "Realizar Pedido.",
-            "trans-h1": "CotizaciÃ³n de Transporte",
-            "trans-step1": "1. TamaÃ±o del Contenedor",
+            "trans-h1": "Cotización de Transporte",
+            "trans-step1": "1. Tamaño del Contenedor",
             "trans-step2": "2. Estado del Contenedor",
             "trans-step3": "3. Detalles de la Ruta",
-            "trans-opt-empty": "VacÃ­o",
+            "trans-opt-empty": "Vacío",
             "trans-opt-full": "Cargado",
-            "trans-opt-crane-yes": "Necesita GrÃºa",
-            "trans-opt-crane-no": "No necesita GrÃºa",
+            "trans-opt-crane-yes": "Necesita Grúa",
+            "trans-opt-crane-no": "No necesita Grúa",
             "trans-zip-pickup": "Zip Code de Recogida",
             "trans-zip-delivery": "Zip Code de Entrega",
             "trans-btn-pricing": "Obtener Presupuesto Estimado",
             "exact-quote-text": "Para una cotización exacta por favor comuníquese al:",
-            "trans-step-contact": "4. InformaciÃ³n de Contacto",
+            "trans-step-contact": "4. Información de Contacto",
             "summary-status": "Estado",
-            "summary-crane": "GrÃºa",
+            "summary-crane": "Grúa",
             "summary-route": "Ruta",
             "summary-quantity": "Cantidad",
             "summary-contact": "Contacto",
@@ -508,13 +508,13 @@ document.addEventListener('DOMContentLoaded', () => {
             "promo-only": "SOLO COMPRA",
             "promo-sub": "POR LANZAMIENTO DE LA WEB",
             "countdown-text": "EL DESCUENTO DE APERTURA TERMINA EN:",
-            "timer-days": "DÃ­as",
+            "timer-days": "Días",
             "timer-hours": "Horas",
             "timer-minutes": "Minutos",
             "timer-seconds": "Segundos",
             "sizes-title": "Dimensiones de Contenedores",
-            "whatsapp-tooltip": "Â¡Chatea con nosotros!",
-            "tax-warning": "* Pueden aplicarse impuestos segÃºn su estatus fiscal."
+            "whatsapp-tooltip": "¡Chatea con nosotros!",
+            "tax-warning": "* Pueden aplicarse impuestos según su estatus fiscal."
         }
     };
 
@@ -706,7 +706,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
                 .then(() => {
-                    submitBtn.innerText = currentLang === 'en' ? 'Message Sent!' : 'Â¡Mensaje Enviado!';
+                    submitBtn.innerText = currentLang === 'en' ? 'Message Sent!' : '¡Mensaje Enviado!';
                     submitBtn.style.backgroundColor = '#2ecc71';
                     contactForm.reset();
                     setTimeout(() => {
@@ -716,7 +716,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 3000);
                 }, (error) => {
                     console.error('EmailJS Error:', error);
-                    submitBtn.innerText = currentLang === 'en' ? 'Error!' : 'Â¡Error!';
+                    submitBtn.innerText = currentLang === 'en' ? 'Error!' : '¡Error!';
                     submitBtn.style.backgroundColor = '#e74c3c';
                     setTimeout(() => {
                         submitBtn.innerText = originalBtnText;
@@ -733,7 +733,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const gridHTML = images.map(img => `<div class="gallery-item reveal active"><img src="assets/gallery/${img}" alt="Gallery Photo"></div>`).join('');
         const galleryView = document.getElementById('gallery-view');
         galleryView.innerHTML = `<header class="gallery-header"><div class="container"><h1 data-i18n="gallery-h1">${translations[currentLang]["gallery-h1"]}</h1><p data-i18n="gallery-p">${translations[currentLang]["gallery-p"]}</p></div></header><main class="container"><section class="gallery-grid">${gridHTML}</section></main>`;
-        document.title = currentLang === 'en' ? "Photo Gallery | RP Tulipan Logistics" : "GalerÃ­a de Fotos | RP Tulipan Logistics";
+        document.title = currentLang === 'en' ? "Photo Gallery | RP Tulipan Logistics" : "Galería de Fotos | RP Tulipan Logistics";
     }
 
     function renderConfigurationView(viewId, mode) {
