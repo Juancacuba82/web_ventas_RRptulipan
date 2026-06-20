@@ -11,6 +11,22 @@ const coordCache: Record<string, { lat: number; lon: number }> = {};
 async function getCoordinates(z: string) {
     if (coordCache[z]) return coordCache[z];
     const cleanZ = z.replace(/\D/g, '').substring(0, 5);
+    
+    try {
+        const zipResp = await fetch(`https://api.zippopotam.us/us/${cleanZ}`);
+        if (zipResp.ok) {
+            const zipData = await zipResp.json();
+            if (zipData && zipData.places && zipData.places.length > 0) {
+                const coords = { 
+                    lat: parseFloat(zipData.places[0].latitude), 
+                    lon: parseFloat(zipData.places[0].longitude) 
+                };
+                coordCache[z] = coords;
+                return coords;
+            }
+        }
+    } catch (e) { console.warn("Zippopotamus error:", e); }
+
     const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${cleanZ}&countrycodes=us`;
     const resp = await fetch(url, { headers: { 'User-Agent': 'RPTulipan-Bot/1.0' } });
     const data = await resp.json();

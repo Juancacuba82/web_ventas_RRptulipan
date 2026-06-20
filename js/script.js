@@ -975,6 +975,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const getCoordinates = async (zip) => {
             if (window.coordCache && window.coordCache[zip]) return window.coordCache[zip];
             const cleanZip = zip.replace(/\D/g, '').substring(0, 5); // Extract just the 5-digit zip
+            
+            try {
+                // First try zippopotam.us (Fast, no strict rate limit)
+                const zipResp = await fetch(`https://api.zippopotam.us/us/${cleanZip}`);
+                if (zipResp.ok) {
+                    const zipData = await zipResp.json();
+                    if (zipData && zipData.places && zipData.places.length > 0) {
+                        const coords = { lat: parseFloat(zipData.places[0].latitude), lon: parseFloat(zipData.places[0].longitude) };
+                        if (!window.coordCache) window.coordCache = {};
+                        window.coordCache[zip] = coords;
+                        return coords;
+                    }
+                }
+            } catch (e) { console.warn("Zippopotamus error:", e); }
+
             const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${cleanZip}&countrycodes=us`;
             try {
                 const response = await fetch(url, { headers: { 'User-Agent': 'RPTulipan-Web/1.0' } });
