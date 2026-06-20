@@ -179,11 +179,15 @@ function buildPriceContext(
     zip: string | null,
     globalShippingCosts: Record<string, number> | null,
     baseUsed: any,
-    baseNew: any
+    baseNew: any,
+    isInvalidZip: boolean
 ): string {
     let ctx = '';
 
-    if (globalShippingCosts) {
+    if (isInvalidZip) {
+        ctx = `CRITICAL INSTRUCTION: The customer provided a Zip Code (${zip}), but our system COULD NOT VERIFY IT or calculate shipping. It is likely an INVALID or non-existent zip code. 
+YOUR ONLY GOAL RIGHT NOW is to politely tell the customer that you couldn't find or calculate delivery for that zip code, and ask them to verify it and provide a valid 5-digit zip code. DO NOT GIVE ANY PRICES YET.`;
+    } else if (globalShippingCosts) {
         const finalUsed = addShippingToPrices(baseUsed, globalShippingCosts);
         const finalNew  = addShippingToPrices(baseNew,  globalShippingCosts);
         const bestUsed     = flattenBestPrices(finalUsed);
@@ -316,12 +320,14 @@ serve(async (req) => {
 
         // 2. Calculate shipping if we have a ZIP
         let shippingCosts: Record<string, number> | null = null;
+        let isInvalidZip = false;
         if (zip) {
             shippingCosts = await calculateShippingForZip(zip, dynPrices);
+            if (!shippingCosts) isInvalidZip = true;
         }
 
         // 3. Build the full context (single source of truth for all rules)
-        const priceContext = buildPriceContext(zip, shippingCosts, baseUsed, baseNew);
+        const priceContext = buildPriceContext(zip, shippingCosts, baseUsed, baseNew, isInvalidZip);
 
         // 4. Call the existing 'chat' AI function
         const { data: chatData, error: chatError } = await supabase.functions.invoke('chat', {
