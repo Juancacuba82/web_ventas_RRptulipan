@@ -19,10 +19,10 @@ async function getCoordinates(zip: string): Promise<{lat: number, lon: number}> 
     throw new Error('Coordinates not found for ' + zip);
 }
 
-async function getDrivingDistanceMiles(originZip: string, destZip: string): Promise<number> {
+async function getDrivingDistanceMiles(origin: string | {lat: number, lon: number}, dest: string | {lat: number, lon: number}): Promise<number> {
     try {
-        const originCoords = await getCoordinates(originZip);
-        const destCoords = await getCoordinates(destZip);
+        const originCoords = typeof origin === 'string' ? await getCoordinates(origin) : origin;
+        const destCoords = typeof dest === 'string' ? await getCoordinates(dest) : dest;
         const url = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?overview=false`;
         
         const response = await fetch(url);
@@ -124,7 +124,10 @@ serve(async (req) => {
                 return new Response(JSON.stringify({ error: "zip_origen y zip_destino requeridos para transport_only" }), { status: 400, headers: corsHeaders });
             }
             
-            const dist = await getDrivingDistanceMiles(zip_origen, zip_destino);
+            const originCoords = (hubs.find((h:any) => h.zip === zip_origen)?.lat) ? {lat: hubs.find((h:any) => h.zip === zip_origen).lat, lon: hubs.find((h:any) => h.zip === zip_origen).lon} : zip_origen;
+            const destCoords = (hubs.find((h:any) => h.zip === zip_destino)?.lat) ? {lat: hubs.find((h:any) => h.zip === zip_destino).lat, lon: hubs.find((h:any) => h.zip === zip_destino).lon} : zip_destino;
+            
+            const dist = await getDrivingDistanceMiles(originCoords, destCoords);
             const originHub = hubs.find((h: any) => h.zip === zip_origen);
             const deliveryRanges = originHub ? originHub.deliveryRanges : null;
             
@@ -151,7 +154,8 @@ serve(async (req) => {
                 const distancePromises = activeHubs.map((hub: any) => {
                     // Skip Titusville as per business logic (usually not used for dispatch)
                     if (hub.zip === '32780') return Promise.resolve({hub, dist: Infinity});
-                    return getDrivingDistanceMiles(hub.zip, zip_origen)
+                    const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
+                    return getDrivingDistanceMiles(hubCoords, zip_origen)
                         .then(d => ({hub, dist: d}))
                         .catch(() => ({hub, dist: Infinity}));
                 });
@@ -293,7 +297,8 @@ serve(async (req) => {
             const hubDistances = await Promise.all(
                 activeHubs.map(async (hub: any) => {
                     try {
-                        const dist = await getDrivingDistanceMiles(hub.zip, zip_destino);
+                        const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
+                        const dist = await getDrivingDistanceMiles(hubCoords, zip_destino);
                         return { hub, dist };
                     } catch (e) {
                         return { hub, dist: Infinity };
@@ -306,7 +311,7 @@ serve(async (req) => {
                 if (item.dist === Infinity) continue;
                 
                 const hub = item.hub;
-                let deliveryCost = calculateDeliveryFee(item.dist, deliveryRates, is20ft, route20ftDiscount, hub.deliveryRanges);
+                let deliveryCost = calculateDeliveryFee(item.dist, deliveryRates, false, 0, hub.deliveryRanges);
                 
                 // Fetch container price from the exact size
                 let containerPrice = 0;
