@@ -8,19 +8,9 @@ const corsHeaders = {
 
 async function getCoordinates(zip: string): Promise<{lat: number, lon: number}> {
     const cleanZip = zip.replace(/\D/g, '').substring(0, 5);
-    try {
-        const zipResp = await fetch(`https://api.zippopotam.us/us/${cleanZip}`);
-        if (zipResp.ok) {
-            const zipData = await zipResp.json();
-            if (zipData && zipData.places && zipData.places.length > 0) {
-                return { lat: parseFloat(zipData.places[0].latitude), lon: parseFloat(zipData.places[0].longitude) };
-            }
-        }
-    } catch (e) {
-        console.warn("Zippopotamus error:", e);
-    }
-
-    const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${cleanZip}&countrycodes=us`;
+    
+    // STRICTLY USE NOMINATIM TO MATCH WEBAPP EXACTLY
+    const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${cleanZip}&countrycodes=us&limit=1`;
     const response = await fetch(url, { headers: { 'User-Agent': 'CalcLogistics-API/1.0' } });
     const data = await response.json();
     if (data && data.length > 0) {
@@ -64,9 +54,15 @@ function calculateDeliveryFee(dist: number, globalRates: any, is20ft: boolean = 
         // Fallback a las tarifas globales antiguas si el hub no tiene rangos
         if (dist <= 30) deliveryCost = globalRates["0-30"] || 350;
         else if (dist <= 60) deliveryCost = globalRates["31-60"] || 400;
-        else if (dist <= 80) deliveryCost = globalRates["61-80"] || 475;
-        else if (dist <= 100) deliveryCost = globalRates["81-100"] || 550;
-        else deliveryCost = dist * (globalRates["over-100"] || 5.5);
+        // Default global pricing logic
+        let baseCost = 0;
+        if (dist <= 100) baseCost = 400;
+        else if (dist <= 200) baseCost = dist * 5.5;
+        else if (dist <= 300) baseCost = dist * 6;
+        else if (dist <= 400) baseCost = dist * 6.5;
+        else baseCost = dist * 7;
+        
+        deliveryCost = baseCost;
     }
     
     // Aplicar descuento 20ft si aplica
@@ -74,9 +70,8 @@ function calculateDeliveryFee(dist: number, globalRates: any, is20ft: boolean = 
         deliveryCost = Math.max(0, deliveryCost - route20ftDiscount);
     }
     
-    // Redondear siempre a la decena superior (ej: 342 -> 350, o 340 -> 340)
-    // Nota: El redondeo en la webapp original podría ser diferente, pero Math.ceil(x/10)*10 es seguro.
-    return Math.ceil(deliveryCost / 10) * 10;
+    // No intermediate rounding, match webapp precisely
+    return deliveryCost;
 }
 
 serve(async (req) => {
@@ -107,6 +102,7 @@ serve(async (req) => {
         
         const config = licenseData?.config || {};
         const hubs = config.hubs || [];
+        const features = config.features || {};
         const deliveryRates = config.deliveryRates || { "0-30": 350, "31-60": 400, "61-80": 475, "81-100": 550, "over-100": 5.5 };
         const activeHubs = hubs.filter((h: any) => h.active);
         const route20ftDiscount = config.features?.descuento_20ft ? 150 : 0; 
@@ -132,13 +128,21 @@ serve(async (req) => {
             const originHub = hubs.find((h: any) => h.zip === zip_origen);
             const deliveryRanges = originHub ? originHub.deliveryRanges : null;
             
-            const baseDelivery = calculateDeliveryFee(dist, deliveryRates, is20ft, route20ftDiscount, deliveryRanges);
-            const total = baseDelivery + extraServiceFee + craneServiceFee;
+            let baseDelivery = calculateDeliveryFee(dist, deliveryRates, is20ft, route20ftDiscount, deliveryRanges);
+            let total = baseDelivery + extraServiceFee + craneServiceFee;
+            
+            // Apply Redondeo 25 feature exactly like webapp
+            if (features.redondeo_25) {
+                const ceiledTotal = Math.ceil(total / 25) * 25;
+                baseDelivery += (ceiledTotal - total);
+                total = ceiledTotal;
+            }
             
             // Calculate Immediate Price (Yard -> Origin -> Dest)
             let immediate_price = null;
             let immediate_distance = null;
             let closest_yard = null;
+            let closest_yard_zip = null;
 
             try {
                 // Find closest active hub to zip_origen
@@ -158,6 +162,7 @@ serve(async (req) => {
                     if (item.dist < minDistToPickup) {
                         minDistToPickup = item.dist;
                         closest_yard = item.hub;
+                        closest_yard_zip = item.hub.zip;
                     }
                 }
 
@@ -166,8 +171,15 @@ serve(async (req) => {
                     // Usually yard dispatch uses global rates, or its own ranges if we want.
                     // We'll use global rates as fallback if it has no ranges
                     const yardRanges = closest_yard.deliveryRanges || null;
-                    const baseImmed = calculateDeliveryFee(immediate_distance, deliveryRates, is20ft, route20ftDiscount, yardRanges);
-                    immediate_price = baseImmed + extraServiceFee + craneServiceFee;
+                    let baseImmed = calculateDeliveryFee(immediate_distance, deliveryRates, is20ft, route20ftDiscount, yardRanges);
+                    let immedTotal = baseImmed + extraServiceFee + craneServiceFee;
+                    
+                    if (features.redondeo_25) {
+                        const ceiledImmed = Math.ceil(immedTotal / 25) * 25;
+                        baseImmed += (ceiledImmed - immedTotal);
+                        immedTotal = ceiledImmed;
+                    }
+                    immediate_price = immedTotal;
                 }
             } catch (e) {
                 console.warn("Could not calculate immediate price:", e);
@@ -182,7 +194,7 @@ serve(async (req) => {
                 immediate_price: immediate_price,
                 immediate_distance: immediate_distance,
                 closest_yard: closest_yard ? closest_yard.name : null,
-                closest_yard_zip: closest_yard ? closest_yard.zip : null
+                closest_yard_zip: closest_yard_zip
             }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
         }
 
@@ -264,7 +276,7 @@ serve(async (req) => {
         // ─────────────────────────────────────────────────────────────────────────────
         // 3. MODO: UN SOLO CONTENEDOR (SALE O RENT)
         // ─────────────────────────────────────────────────────────────────────────────
-        let originHub = null;
+        let bestHub = null;
         let bestDistance = 0;
         let bestDeliveryCost = 0;
         let bestContainerPrice = 0;
@@ -277,72 +289,75 @@ serve(async (req) => {
             reeferKey = prefix + condition; 
         }
 
-        if (zip_origen) {
-            originHub = hubs.find((h: any) => h.zip === zip_origen);
-            if (originHub) {
-                bestDistance = await getDrivingDistanceMiles(originHub.zip, zip_destino);
-            }
-        } else if (zip_destino) {
-            const distances = await Promise.all(
-                activeHubs.map((hub: any) => getDrivingDistanceMiles(hub.zip, zip_destino).catch(() => 999999))
+        if (zip_destino) {
+            const hubDistances = await Promise.all(
+                activeHubs.map(async (hub: any) => {
+                    try {
+                        const dist = await getDrivingDistanceMiles(hub.zip, zip_destino);
+                        return { hub, dist };
+                    } catch (e) {
+                        return { hub, dist: Infinity };
+                    }
+                })
             );
 
-            activeHubs.forEach((hub: any, index: number) => {
-                const dist = distances[index];
-                if (dist === 999999) return; 
-
-                if (operation_mode === 'rent') {
-                    const allowedRentZips = ['32218', '32780', '33619', '33178']; 
-                    if (!allowedRentZips.includes(hub.zip)) return;
-                }
-
-                let deliveryCost = calculateDeliveryFee(dist, deliveryRates, is20ft, route20ftDiscount, hub.deliveryRanges);
+            // 3. Evaluar el mejor puerto
+            for (const item of hubDistances) {
+                if (item.dist === Infinity) continue;
                 
-                if (operation_mode === 'rent') {
-                    deliveryCost = deliveryCost * 2; 
-                }
-
+                const hub = item.hub;
+                let deliveryCost = calculateDeliveryFee(item.dist, deliveryRates, is20ft, route20ftDiscount, hub.deliveryRanges);
+                
+                // Fetch container price from the exact size
                 let containerPrice = 0;
                 
                 if (operation_mode === 'rent') {
-                    if (hub.rent && hub.rent[condition] && hub.rent[condition][container_size] !== undefined) {
-                        containerPrice = hub.rent[condition][container_size];
-                    } else if (hub.rent && hub.rent[container_size] !== undefined) {
-                        containerPrice = hub.rent[container_size];
-                    }
+                    // For rent, use global rent rates (if available in settings or hardcoded). Usually rent prices are global.
+                    // We fall back to 0 if not present, but in a real scenario they are fetched from hub.rent
+                    const rentData = condition === 'new' ? hub.rent?.new : hub.rent?.used;
+                    containerPrice = rentData ? (rentData[container_size] || 0) : 0;
+                    
+                    // En renta cobramos envío de ida y vuelta
+                    deliveryCost = deliveryCost * 2;
                 } else if (isReefer) {
                     if (hub.reefer && hub.reefer[reeferKey]) {
                         containerPrice = hub.reefer[reeferKey];
                     }
                 } else {
-                    if (condition === 'new' && hub.new && hub.new[container_size]) {
-                        containerPrice = hub.new[container_size];
-                    } else if (condition === 'used' && hub.used && hub.used[container_size]) {
-                        containerPrice = hub.used[container_size];
-                    }
+                    const priceData = condition === 'new' ? hub.new : hub.used;
+                    containerPrice = priceData ? (priceData[container_size] || 0) : 0;
                 }
 
-                if (containerPrice === 0) return;
+                if (containerPrice === 0) continue;
                 
-                const totalPrice = containerPrice + deliveryCost + craneServiceFee + certFee + extraServiceFee;
+                let subtotal = containerPrice + deliveryCost;
+                
+                // Apply Redondeo 25 exactly like Webapp Mode 1
+                if (features.redondeo_25) {
+                    const ceiledSub = Math.ceil(subtotal / 25) * 25;
+                    deliveryCost += (ceiledSub - subtotal);
+                    subtotal = ceiledSub;
+                }
+                
+                const totalPrice = subtotal + craneServiceFee + certFee + extraServiceFee;
 
                 if (totalPrice < bestTotalPrice) {
                     bestTotalPrice = totalPrice;
-                    originHub = hub;
-                    bestDistance = dist;
+                    bestHub = hub;
+                    bestDistance = item.dist;
                     bestDeliveryCost = deliveryCost;
                     bestContainerPrice = containerPrice;
                 }
-            });
+            }
         }
 
-        if (!originHub || bestTotalPrice === Infinity) {
+        if (!bestHub || bestTotalPrice === Infinity) {
             return new Response(JSON.stringify({ error: "No available hubs, containers, or route impossible" }), { status: 400, headers: corsHeaders });
         }
 
         return new Response(JSON.stringify({
-            origin_hub: originHub.name,
-            origin_zip: originHub.zip,
+            origin_hub: bestHub.name,
+            origin_zip: bestHub.zip,
             distance_miles: bestDistance,
             delivery_cost: bestDeliveryCost,
             container_price: bestContainerPrice,
