@@ -128,6 +128,11 @@ serve(async (req) => {
             const destCoords = (hubs.find((h:any) => h.zip === zip_destino)?.lat) ? {lat: hubs.find((h:any) => h.zip === zip_destino).lat, lon: hubs.find((h:any) => h.zip === zip_destino).lon} : zip_destino;
             
             const dist = await getDrivingDistanceMiles(originCoords, destCoords);
+            let immedOriginCoords: any = zip_origen;
+            try {
+                if (zip_origen) immedOriginCoords = await getCoordinates(zip_origen);
+            } catch(e) {}
+            
             const originHub = hubs.find((h: any) => h.zip === zip_origen);
             const deliveryRanges = originHub ? originHub.deliveryRanges : null;
             
@@ -155,7 +160,7 @@ serve(async (req) => {
                     // Skip Titusville as per business logic (usually not used for dispatch)
                     if (hub.zip === '32780') return Promise.resolve({hub, dist: Infinity});
                     const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
-                    return getDrivingDistanceMiles(hubCoords, zip_origen)
+                    return getDrivingDistanceMiles(hubCoords, immedOriginCoords)
                         .then(d => ({hub, dist: d}))
                         .catch(() => ({hub, dist: Infinity}));
                 });
@@ -208,10 +213,13 @@ serve(async (req) => {
         if (!container_size) {
             if (!zip_destino) throw new Error("zip_destino es requerido para generar la matriz");
 
+            let destCoords = zip_destino;
+            try { destCoords = await getCoordinates(zip_destino); } catch(e) {}
+
             const distances = await Promise.all(
                 activeHubs.map((hub: any) => {
                     const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
-                    return getDrivingDistanceMiles(hubCoords, zip_destino).catch(() => 999999);
+                    return getDrivingDistanceMiles(hubCoords, destCoords).catch(() => 999999);
                 })
             );
 
@@ -294,11 +302,14 @@ serve(async (req) => {
         }
 
         if (zip_destino) {
+            let destCoords = zip_destino;
+            try { destCoords = await getCoordinates(zip_destino); } catch(e) {}
+
             const hubDistances = await Promise.all(
                 activeHubs.map(async (hub: any) => {
                     try {
                         const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
-                        const dist = await getDrivingDistanceMiles(hubCoords, zip_destino);
+                        const dist = await getDrivingDistanceMiles(hubCoords, destCoords);
                         return { hub, dist };
                     } catch (e) {
                         return { hub, dist: Infinity };
