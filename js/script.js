@@ -1200,196 +1200,158 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 
-                nextBtn.disabled = true;
-                nextBtn.innerText = t["buy-calculating"];
+                selections.zip = zip;
+                selections['logistics-details'] = `ZIP: ${zip}`;
                 
-                try {
-                    // Calculate distances to all depots
-                    const distancePromises = DEPOTS.map(d => getDistance(d.zip, zip).catch(() => 9999));
-                    const distances = await Promise.all(distancePromises);
-
-                    if (distances.every(d => d === 9999)) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Zip Code Inválido',
-                            text: 'No pudimos encontrar su Zip Code o calcular la ruta. Por favor, verifique que sea correcto.'
-                        });
-                        nextBtn.disabled = false;
-                        nextBtn.innerHTML = t["buy-btn-next"] || 'Next';
-                        return;
-                    }
-                    
-                    DEPOTS.forEach((d, idx) => {
-                        selections.allDistances[d.label] = distances[idx];
-                    });
-
-                    selections['logistics-details'] = `ZIP: ${zip}`;
-                    viewEl.querySelector(`#${mode}-step-logistics-details`).style.display = 'none';
-                    currentIndex++;
-                    const nextStep = steps[currentIndex];
-                    prepareStep(nextStep);
-                    const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
-                    nextEl.style.display = 'block';
-                    nextEl.classList.add('fade-in');
-                } catch (err) {
-                    console.error(err);
-                }
-                nextBtn.innerText = t["buy-btn-next"];
+                viewEl.querySelector(`#${mode}-step-logistics-details`).style.display = 'none';
+                currentIndex++;
+                const nextStep = steps[currentIndex];
+                prepareStep(nextStep);
+                const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
+                nextEl.style.display = 'block';
+                nextEl.classList.add('fade-in');
             });
         };
 
-        const renderSummaryDetails = (container) => {
-            // Find BEST depot based on total cost
-            let bestCost = Infinity;
-            let bestDepot = null;
-            let bestDist = 0;
-            let bestShip = 0;
-            let bestPrice = 0;
-
-            DEPOTS.forEach(d => {
-                const depotName = d.label;
-                const depotZip = d.zip;
-
-                // Enforce rental restrictions: only Jacksonville, Titusville, Tampa, Miami
-                if (mode === 'rent') {
-                    const allowedRentZips = ['32218', '32780', '33619', '33178'];
-                    if (!allowedRentZips.includes(depotZip)) return;
-                }
-
-                const dist = selections.allDistances[depotName] || 0;
-                const isDelivery = selections['delivery-mode'] === 'Delivery';
-                const shipCost = isDelivery ? calculateShippingCost(dist) : 0;
-                
-                let containerPrice = 0;
-                if (mode === 'buy') {
-                    if (selections.type === 'Reefer') containerPrice = REEFER_PRICES[depotName] ? REEFER_PRICES[depotName][selections.size] : 0;
-                    else if (selections['container-condition'] === 'New') containerPrice = NEW_CONTAINER_PRICES[depotName] ? NEW_CONTAINER_PRICES[depotName][selections.size] : 0;
-                    else containerPrice = USED_CONTAINER_PRICES[depotName] ? USED_CONTAINER_PRICES[depotName][selections.size] : 0;
-                } else {
-                    if (selections['container-condition'] === 'New') containerPrice = RENT_PRICES_NEW[selections.size] || 0;
-                    else containerPrice = RENT_PRICES_USED[selections.size] || 0;
-                }
-
-                if (containerPrice > 0) {
-                    const totalForThisDepot = containerPrice + shipCost;
-                    
-                    // Selection logic: For Delivery use total cost. For Pickup, add a distance penalty ($2/mile) 
-                    // to ensure proximity is considered alongside the base price.
-                    const evaluationValue = isDelivery ? totalForThisDepot : (containerPrice + (dist * 2));
-
-                    if (evaluationValue < bestCost) {
-                        bestCost = evaluationValue;
-                        bestDepot = depotName;
-                        bestDist = dist;
-                        bestShip = shipCost;
-                        bestPrice = containerPrice;
-                    }
-                }
-            });
-
-            // Default fallback if no depot found
-            if (!bestDepot) {
-                bestDepot = "Miami (33178)";
-                bestPrice = mode === 'buy' ? 1500 : 350;
-            }
-
-            selections.bestDepot = bestDepot;
-            selections.distance = bestDist;
-            selections.shippingCost = bestShip;
-            selections.pricePerUnit = bestPrice;
-
-            const baseSubtotal = bestPrice * selections.quantity;
-            const exportFee = (mode === 'buy' && selections.condition === 'International') ? 300 : 0;
-            const subtotal = baseSubtotal + exportFee;
+        const renderSummaryDetails = async (container) => {
+            container.innerHTML = '<div style="text-align:center; padding: 20px;"><div class="loader-ring" style="width: 30px; height: 30px; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div><p style="margin-top: 10px; color: #666;">Calculando ruta óptima y precios...</p></div>';
             
-            const shippingMultiplier = mode === 'rent' ? 2 : 1;
-            const shippingTotal = bestShip * shippingMultiplier * selections.quantity;
-            const totalBeforeDiscount = subtotal + shippingTotal;
-
-            const discount = (mode === 'buy' ? PROMO_DISCOUNT : 0);
-            const total = totalBeforeDiscount - discount;
-
-            selections.subtotal = subtotal;
-            selections.total = total;
-            selections.discount = discount;
-            selections.exportFee = exportFee; // Store but will be bundled in display
-            selections.shippingTotal = shippingTotal;
-
-            let subtotalDetailText = '';
-            if (selections.quantity > 1) {
-                subtotalDetailText = ` <small style="color: #666; font-weight: normal;">($${bestPrice.toLocaleString()} x ${selections.quantity}${exportFee > 0 ? ` + $${exportFee} export` : ''})</small>`;
+            let apiSize = "20std";
+            if (selections.size.includes("40' STD")) apiSize = "40std";
+            else if (selections.size.includes("40' HC") || selections.size.includes("40' High Cube")) apiSize = "40hc";
+            else if (selections.size.includes("45'")) apiSize = "45hc";
+            
+            if (selections.type === 'Reefer') {
+                apiSize = selections.size.includes("20") ? "20func" : "40func";
             }
+            
+            const isNew = selections['container-condition'] === 'New';
+            const apiCondition = isNew ? "new" : "used";
+            const isDelivery = selections['delivery-mode'] === 'Delivery';
+            
+            const apiPayload = {
+                zip_destino: selections.zip,
+                container_size: apiSize,
+                condition: apiCondition,
+                operation_mode: mode === 'rent' ? 'rent' : 'sale',
+                options: {
+                    export_certificate: selections.condition === 'International'
+                }
+            };
+            
+            try {
+                const apiResp = await fetch('https://xtrceqpuwqetzslwxxux.supabase.co/functions/v1/calculate-quote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(apiPayload)
+                });
+                const data = await apiResp.json();
+                
+                if (data.error) throw new Error(data.error);
 
-            let shippingDetailText = '';
-            if (selections['delivery-mode'] === 'Delivery') {
+                selections.bestDepot = data.origin_hub;
+                selections.distance = data.distance_miles;
+                selections.pricePerUnit = data.container_price;
+                
+                const actualShipCost = isDelivery ? data.delivery_cost : 0;
+                selections.shippingCost = actualShipCost;
+
+                const baseSubtotal = data.container_price * selections.quantity;
+                const exportFee = data.cert_fee || 0;
+                const subtotal = baseSubtotal + exportFee;
+                
+                const shippingMultiplier = mode === 'rent' ? 2 : 1;
+                const shippingTotal = actualShipCost * shippingMultiplier * selections.quantity;
+                const totalBeforeDiscount = subtotal + shippingTotal;
+                
+                const discount = (mode === 'buy' ? PROMO_DISCOUNT : 0);
+                const total = totalBeforeDiscount - discount;
+
+                selections.subtotal = subtotal;
+                selections.total = total;
+                selections.discount = discount;
+                selections.exportFee = exportFee;
+                selections.shippingTotal = shippingTotal;
+
+                let subtotalDetailText = '';
                 if (selections.quantity > 1) {
-                    if (mode === 'rent') {
-                        shippingDetailText = currentLang === 'en' 
-                            ? `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Multiple containers: requires ${selections.quantity} delivery trips & ${selections.quantity} pickup trips (1 container per trip) at $${(bestShip * 2).toLocaleString()} per container.</div>`
-                            : `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> MÃºltiples contenedores: requiere ${selections.quantity} entregas y ${selections.quantity} retiros (1 contenedor por viaje) a $${(bestShip * 2).toLocaleString()} por contenedor.</div>`;
+                    subtotalDetailText = ` <small style="color: #666; font-weight: normal;">($${data.container_price.toLocaleString()} x ${selections.quantity}${exportFee > 0 ? ` + $${exportFee} export` : ''})</small>`;
+                }
+
+                let shippingDetailText = '';
+                if (isDelivery) {
+                    if (selections.quantity > 1) {
+                        if (mode === 'rent') {
+                            shippingDetailText = currentLang === 'en' 
+                                ? `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Multiple containers: requires ${selections.quantity} delivery trips & ${selections.quantity} pickup trips (1 container per trip) at $${(actualShipCost * 2).toLocaleString()} per container.</div>`
+                                : `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Múltiples contenedores: requiere ${selections.quantity} entregas y ${selections.quantity} retiros (1 contenedor por viaje) a $${(actualShipCost * 2).toLocaleString()} por contenedor.</div>`;
+                        } else {
+                            shippingDetailText = currentLang === 'en'
+                                ? `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Multiple containers: requires ${selections.quantity} separate shipping trips (1 container per trip) at $${actualShipCost.toLocaleString()} each.</div>`
+                                : `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Múltiples contenedores: requiere ${selections.quantity} viajes independientes (1 contenedor por viaje) a $${actualShipCost.toLocaleString()} c/u.</div>`;
+                        }
                     } else {
-                        shippingDetailText = currentLang === 'en'
-                            ? `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Multiple containers: requires ${selections.quantity} separate shipping trips (1 container per trip) at $${bestShip.toLocaleString()} each.</div>`
-                            : `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> MÃºltiples contenedores: requiere ${selections.quantity} viajes independientes (1 contenedor por viaje) a $${bestShip.toLocaleString()} c/u.</div>`;
-                    }
-                } else {
-                    if (mode === 'rent') {
-                        shippingDetailText = `<small style="color: #666;">(${selections.distance.toFixed(1)} miles / ${currentLang === 'en' ? 'Delivery & Pickup' : 'Entrega y Recogida'})</small>`;
-                    } else {
-                        shippingDetailText = `<small style="color: #666;">(${selections.distance.toFixed(1)} miles)</small>`;
+                        if (mode === 'rent') {
+                            shippingDetailText = `<small style="color: #666;">(${data.distance_miles.toFixed(1)} miles / ${currentLang === 'en' ? 'Delivery & Pickup' : 'Entrega y Recogida'})</small>`;
+                        } else {
+                            shippingDetailText = `<small style="color: #666;">(${data.distance_miles.toFixed(1)} miles)</small>`;
+                        }
                     }
                 }
-            }
 
-            let html = `
-                <div class="summary-item"><strong>Logistics:</strong> <span>${selections['delivery-mode'] || '-'}</span></div>
-                ${selections['logistics-details'] ? `<div class="summary-item"><strong>Details:</strong> <span>${selections['logistics-details']}</span></div>` : ''}
-                <div class="summary-item"><strong>Size:</strong> <span>${selections.size}</span></div>
-                <div class="summary-item"><strong>${t["summary-quantity"] || 'Quantity'}:</strong> <span style="font-weight: 700; color: var(--primary-color);">${selections.quantity}</span></div>
-                <div class="summary-item"><strong>Type of Service:</strong> <span>${selections.condition || '-'}</span></div>
-                <div class="summary-item"><strong>Condition:</strong> <span>${selections['container-condition'] || '-'}</span></div>
-                <div class="summary-item"><strong>Climate:</strong> <span>${selections.type || 'Dry'}</span></div>
-                <div class="summary-item"><strong>Payment:</strong> <span>${selections['payment-method'] || '-'}</span></div>
-            `;
+                let html = `
+                    <div class="summary-item"><strong>Logistics:</strong> <span>${selections['delivery-mode'] || '-'}</span></div>
+                    ${selections['logistics-details'] ? `<div class="summary-item"><strong>Details:</strong> <span>${selections['logistics-details']}</span></div>` : ''}
+                    <div class="summary-item"><strong>Size:</strong> <span>${selections.size}</span></div>
+                    <div class="summary-item"><strong>${t["summary-quantity"] || 'Quantity'}:</strong> <span style="font-weight: 700; color: var(--primary-color);">${selections.quantity}</span></div>
+                    <div class="summary-item"><strong>Type of Service:</strong> <span>${selections.condition || '-'}</span></div>
+                    <div class="summary-item"><strong>Condition:</strong> <span>${selections['container-condition'] || '-'}</span></div>
+                    <div class="summary-item"><strong>Climate:</strong> <span>${selections.type || 'Dry'}</span></div>
+                    <div class="summary-item"><strong>Payment:</strong> <span>${selections['payment-method'] || '-'}</span></div>
+                `;
 
-            if (container.classList.contains('final-summary-details')) {
-                html += `<div class="summary-item"><strong>Contact:</strong> <span>${selections.contact.name || '-'}</span></div>`;
-            }
+                if (container.classList.contains('final-summary-details')) {
+                    html += `<div class="summary-item"><strong>Contact:</strong> <span>${selections.contact.name || '-'}</span></div>`;
+                }
 
-            const deliveryIncludedText = selections['delivery-mode'] === 'Delivery' ? (currentLang === 'en' ? '(Delivery included)' : '(EnvÃ­o incluido)') : '';
-            
-            html += `
-                <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-                <div class="summary-item total-line" style="font-size: 1.25rem; color: var(--primary-color); margin-top: 10px; align-items: flex-start;">
-                    <strong>${t["buy-summary-total"]}:</strong> 
-                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                        <span style="font-weight: 700;">$${Math.max(0, total).toLocaleString()}</span>
-                        ${deliveryIncludedText ? `<small style="color: #888; font-size: 0.9rem; font-weight: normal; margin-top: 4px;">${deliveryIncludedText}</small>` : ''}
+                const deliveryIncludedText = isDelivery ? (currentLang === 'en' ? '(Delivery included)' : '(Envío incluido)') : '';
+                
+                html += `
+                    <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+                    <div class="summary-item total-line" style="font-size: 1.25rem; color: var(--primary-color); margin-top: 10px; align-items: flex-start;">
+                        <strong>${t["buy-summary-total"]}:</strong> 
+                        <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                            <span style="font-weight: 700;">$${Math.max(0, total).toLocaleString()}</span>
+                            ${deliveryIncludedText ? `<small style="color: #888; font-size: 0.9rem; font-weight: normal; margin-top: 4px;">${deliveryIncludedText}</small>` : ''}
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
 
-            const taxWarningMethods = ["Zelle", "Card", "Check"];
-            if (taxWarningMethods.includes(selections['payment-method'])) {
-                html += `<div class="tax-notice" style="font-size: 0.85rem; color: #666; margin-top: 10px; font-style: italic; border-top: 1px dashed #ddd; padding-top: 10px;">${t["tax-warning"]}</div>`;
+                const taxWarningMethods = ["Zelle", "Card", "Check"];
+                if (taxWarningMethods.includes(selections['payment-method'])) {
+                    html += `<div class="tax-notice" style="font-size: 0.85rem; color: #666; margin-top: 10px; font-style: italic; border-top: 1px dashed #ddd; padding-top: 10px;">${t["tax-warning"]}</div>`;
+                }
+
+                container.innerHTML = html;
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = `<div style="color: red; text-align: center;">Error: No se pudo calcular el precio. Verifica el código postal.</div>`;
             }
-
-            container.innerHTML = html;
         };
 
-
-
-        const showSummary = () => {
+        const showSummary = async () => {
             const finalContainer = viewEl.querySelector('.final-summary-details');
-            if (finalContainer) renderSummaryDetails(finalContainer);
-            viewEl.querySelector('.summary-view').style.display = 'block';
-            viewEl.querySelector('.summary-view').classList.add('fade-in');
+            if (finalContainer) {
+                viewEl.querySelector('.summary-view').style.display = 'block';
+                viewEl.querySelector('.summary-view').classList.add('fade-in');
+                await renderSummaryDetails(finalContainer);
+            }
             currentIndex = steps.length;
         };
 
-        const showPricePreview = () => {
+        const showPricePreview = async () => {
             const previewContainer = viewEl.querySelector('.price-preview-details');
-            if (previewContainer) renderSummaryDetails(previewContainer);
+            if (previewContainer) await renderSummaryDetails(previewContainer);
         };
 
         const prepareStep = (stepId) => {
@@ -1883,28 +1845,29 @@ Phone: ${selections.contact.phone}
             btn.disabled = true;
 
             try {
-                const distDirect = await globalGetDistance(selections.pickup, selections.delivery);
-                
-                let minDistToPickup = Infinity;
-                let closestDepotZip = null;
-                const depots = getGlobalDepots();
-                for (let d of depots) {
-                    if (d.label.includes('32780') || d.zip === '32780') continue; // Skip Titusville
-                    try {
-                        const dDist = await globalGetDistance(d.zip, selections.pickup);
-                        if (dDist < minDistToPickup) {
-                            minDistToPickup = dDist;
-                            closestDepotZip = d.zip;
-                        }
-                    } catch (e) {
-                        console.log("Could not calculate distance for depot " + d.label);
+                const apiPayload = {
+                    zip_origen: selections.pickup,
+                    zip_destino: selections.delivery,
+                    operation_mode: 'transport_only',
+                    container_size: selections.size === "20'" ? "20std" : "40std",
+                    options: {
+                        extra_service: false,
+                        crane_service: false
                     }
-                }
+                };
                 
-                if (minDistToPickup === Infinity) minDistToPickup = 0;
+                const apiResp = await fetch('https://xtrceqpuwqetzslwxxux.supabase.co/functions/v1/calculate-quote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(apiPayload)
+                });
+                const data = await apiResp.json();
                 
-                const costDirect = globalCalculateShippingCost(distDirect);
-                const costImmediate = globalCalculateShippingCost(minDistToPickup + distDirect);
+                if (data.error) throw new Error(data.error);
+
+                const closestDepotZip = data.closest_yard_zip || "33178";
+                const costDirect = data.total_price;
+                const costImmediate = data.immediate_price || costDirect;
                 
                 let multiplier = selections.quantity;
                 if (selections.size === "20'") {

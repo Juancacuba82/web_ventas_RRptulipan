@@ -114,46 +114,22 @@ function flattenBestPrices(pricesObj: any): Record<string, number> {
     return best;
 }
 
-async function calculateShippingForZip(zip: string, dynPrices: any): Promise<Record<string, number> | null> {
-    const depots = (dynPrices?.depots?.length > 0) ? dynPrices.depots : [
-        { label: "Savannah (31408)", zip: "31408" },
-        { label: "Atlanta (30288)", zip: "30288" },
-        { label: "Jacksonville (32218)", zip: "32218" },
-        { label: "Titusville (32780)", zip: "32780" },
-        { label: "Tampa (33619)", zip: "33619" },
-        { label: "Miami (33178)", zip: "33178" }
-    ];
-
-    let SHIPPING_RATES = [
-        { max: 30, price: 350 }, { max: 60, price: 450 },
-        { max: 80, price: 500 }, { max: 100, price: 550 }
-    ];
-    let flatRate = 5.5;
-
-    if (dynPrices?.deliveryRates) {
-        const dr = dynPrices.deliveryRates;
-        SHIPPING_RATES = [
-            { max: 30,  price: dr["0-30"]   ?? 350 },
-            { max: 60,  price: dr["31-60"]  ?? 450 },
-            { max: 80,  price: dr["61-80"]  ?? 500 },
-            { max: 100, price: dr["81-100"] ?? 550 }
-        ];
-        if (dr["over-100"] !== undefined) flatRate = dr["over-100"];
-    }
-
+async function calculateShippingForZip(zip: string, supabase: any): Promise<{shippingCosts: Record<string, number>, bestUsed: any, bestNew: any} | null> {
     try {
-        const distances = await Promise.all(
-            depots.map((d: any) => getDrivingDistanceMiles(d.zip, zip).catch(() => 9999))
-        );
-        const costs: Record<string, number> = {};
-        depots.forEach((d: any, i: number) => {
-            const dist = distances[i];
-            if (dist === 9999) return;
-            const rate = dist <= 100 ? (SHIPPING_RATES.find(r => dist <= r.max) ?? SHIPPING_RATES[3]) : null;
-            costs[d.label] = rate ? rate.price : Math.ceil(dist * flatRate / 10) * 10;
+        const { data, error } = await supabase.functions.invoke('calculate-quote', {
+            body: { zip_destino: zip }
         });
-        return Object.keys(costs).length > 0 ? costs : null;
-    } catch { return null; }
+        
+        if (error || !data || !data.shippingCosts) return null;
+        
+        return {
+            shippingCosts: data.shippingCosts,
+            bestUsed: data.bestUsed,
+            bestNew: data.bestNew
+        };
+    } catch {
+        return null;
+    }
 }
 
 // ─── Address validation ───────────────────────────────────────────────────────
@@ -177,7 +153,7 @@ async function getZipFromAddress(address: string): Promise<string | null> {
 // ─── Build priceContext string (THE single source of truth for all rules) ─────
 function buildPriceContext(
     zip: string | null,
-    globalShippingCosts: Record<string, number> | null,
+    apiResponse: {shippingCosts: Record<string, number>, bestUsed: any, bestNew: any} | null,
     baseUsed: any,
     baseNew: any,
     isInvalidZip: boolean
@@ -187,11 +163,10 @@ function buildPriceContext(
     if (isInvalidZip) {
         ctx = `CRITICAL INSTRUCTION: The customer provided a Zip Code (${zip}), but our system COULD NOT VERIFY IT or calculate shipping. It is likely an INVALID or non-existent zip code. 
 YOUR ONLY GOAL RIGHT NOW is to politely tell the customer that you couldn't find or calculate delivery for that zip code, and ask them to verify it and provide a valid 5-digit zip code. DO NOT GIVE ANY PRICES YET.`;
-    } else if (globalShippingCosts) {
-        const finalUsed = addShippingToPrices(baseUsed, globalShippingCosts);
-        const finalNew  = addShippingToPrices(baseNew,  globalShippingCosts);
-        const bestUsed     = flattenBestPrices(finalUsed);
-        const bestNew      = flattenBestPrices(finalNew);
+    } else if (apiResponse) {
+        const globalShippingCosts = apiResponse.shippingCosts;
+        const bestUsed     = apiResponse.bestUsed;
+        const bestNew      = apiResponse.bestNew;
         const bestBaseUsed = flattenBestPrices(baseUsed);
         const bestBaseNew  = flattenBestPrices(baseNew);
 
@@ -319,15 +294,15 @@ serve(async (req) => {
         const baseNew  = roundPricesObj(dynPrices.newPrices  || {});
 
         // 2. Calculate shipping if we have a ZIP
-        let shippingCosts: Record<string, number> | null = null;
+        let apiResponse: {shippingCosts: Record<string, number>, bestUsed: any, bestNew: any} | null = null;
         let isInvalidZip = false;
         if (zip) {
-            shippingCosts = await calculateShippingForZip(zip, dynPrices);
-            if (!shippingCosts) isInvalidZip = true;
+            apiResponse = await calculateShippingForZip(zip, supabase);
+            if (!apiResponse) isInvalidZip = true;
         }
 
         // 3. Build the full context (single source of truth for all rules)
-        const priceContext = buildPriceContext(zip, shippingCosts, baseUsed, baseNew, isInvalidZip);
+        const priceContext = buildPriceContext(zip, apiResponse, baseUsed, baseNew, isInvalidZip);
 
         // 4. Call the existing 'chat' AI function
         const { data: chatData, error: chatError } = await supabase.functions.invoke('chat', {
