@@ -209,7 +209,10 @@ serve(async (req) => {
             if (!zip_destino) throw new Error("zip_destino es requerido para generar la matriz");
 
             const distances = await Promise.all(
-                activeHubs.map((hub: any) => getDrivingDistanceMiles(hub.zip, zip_destino).catch(() => 999999))
+                activeHubs.map((hub: any) => {
+                    const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
+                    return getDrivingDistanceMiles(hubCoords, zip_destino).catch(() => 999999);
+                })
             );
 
             const stdSizes = ["20std", "40std", "40hc", "45hc", "20os", "40os", "20dd", "40dd"];
@@ -224,31 +227,28 @@ serve(async (req) => {
                 const dist = distances[index];
                 if (dist === 999999) return;
                 
-                const deliveryCost40 = calculateDeliveryFee(dist, deliveryRates, false, 0, hub.deliveryRanges);
-                const deliveryCost20 = calculateDeliveryFee(dist, deliveryRates, true, route20ftDiscount, hub.deliveryRanges);
+                // NO 20ft discount for sales!
+                const deliveryCost = calculateDeliveryFee(dist, deliveryRates, false, 0, hub.deliveryRanges);
                 
-                shippingCosts[hub.name] = deliveryCost40; 
+                shippingCosts[hub.name] = deliveryCost; 
 
                 stdSizes.forEach(size => {
-                    const isSize20 = size.startsWith('20');
-                    const myDelivery = isSize20 ? deliveryCost20 : deliveryCost40;
-                    
                     if (hub.used && hub.used[size] > 0) {
-                        const total = hub.used[size] + myDelivery + craneServiceFee + certFee;
+                        let total = hub.used[size] + deliveryCost + craneServiceFee + certFee;
+                        if (features.redondeo_25) total = Math.ceil(total / 25) * 25;
                         if (!bestUsed[size] || total < bestUsed[size]) bestUsed[size] = total;
                     }
                     if (hub.new && hub.new[size] > 0) {
-                        const total = hub.new[size] + myDelivery + craneServiceFee + certFee;
+                        let total = hub.new[size] + deliveryCost + craneServiceFee + certFee;
+                        if (features.redondeo_25) total = Math.ceil(total / 25) * 25;
                         if (!bestNew[size] || total < bestNew[size]) bestNew[size] = total;
                     }
                 });
 
                 reeferSizes.forEach(size => {
-                    const isSize20 = size.startsWith('20');
-                    const myDelivery = isSize20 ? deliveryCost20 : deliveryCost40;
-                    
                     if (hub.reefer && hub.reefer[size] > 0) {
-                        const total = hub.reefer[size] + myDelivery + craneServiceFee + certFee;
+                        let total = hub.reefer[size] + deliveryCost + craneServiceFee + certFee;
+                        if (features.redondeo_25) total = Math.ceil(total / 25) * 25;
                         if (!bestReefer[size] || total < bestReefer[size]) bestReefer[size] = total;
                     }
                 });
