@@ -262,6 +262,15 @@ serve(async (req) => {
                 });
             });
 
+            // Extract base rent prices from the first active hub that has them
+            let baseRentUsed = { "20std": 150, "40std": 225, "40hc": 250, "45hc": 300 }; // Fallbacks
+            let baseRentNew = { "20std": 250, "40std": 325, "40hc": 350, "45hc": 400 };
+            const hubWithRent = activeHubs.find((h: any) => h.rent && h.rent.used);
+            if (hubWithRent && hubWithRent.rent) {
+                if (hubWithRent.rent.used) baseRentUsed = { ...baseRentUsed, ...hubWithRent.rent.used };
+                if (hubWithRent.rent.new) baseRentNew = { ...baseRentNew, ...hubWithRent.rent.new };
+            }
+
             const mappedUsed = {
                 "20'": bestUsed["20std"],
                 "40' STD": bestUsed["40std"],
@@ -274,10 +283,31 @@ serve(async (req) => {
                 "40' HC": bestNew["40hc"],
                 "45'": bestNew["45hc"]
             };
+            const mappedReefer = {
+                "20' Funcional": bestReefer["20func"],
+                "20' Sin A/C": bestReefer["20nofunc"],
+                "40' Funcional": bestReefer["40func"],
+                "40' Sin A/C": bestReefer["40nofunc"]
+            };
+            const mappedRentUsed = {
+                "20'": baseRentUsed["20std"] || 150,
+                "40' STD": baseRentUsed["40std"] || 225,
+                "40' HC": baseRentUsed["40hc"] || 250,
+                "45'": baseRentUsed["45hc"] || 300
+            };
+            const mappedRentNew = {
+                "20'": baseRentNew["20std"] || 250,
+                "40' STD": baseRentNew["40std"] || 325,
+                "40' HC": baseRentNew["40hc"] || 350,
+                "45'": baseRentNew["45hc"] || 400
+            };
 
             return new Response(JSON.stringify({
                 bestUsed: mappedUsed,
                 bestNew: mappedNew,
+                bestReefer: mappedReefer,
+                rentUsed: mappedRentUsed,
+                rentNew: mappedRentNew,
                 rawUsed: bestUsed, 
                 rawNew: bestNew,
                 rawReefer: bestReefer,
@@ -294,11 +324,16 @@ serve(async (req) => {
         let bestContainerPrice = 0;
         let bestTotalPrice = Infinity;
         
-        const isReefer = container_size.includes('reefer') || condition === 'func' || condition === 'nofunc';
+        const isReefer = container_size.includes('reefer') || container_size.includes('func') || condition === 'func' || condition === 'nofunc' || condition === 'reefer';
+        
         let reeferKey = "";
         if (isReefer) {
-            const prefix = container_size.startsWith('20') ? '20' : '40';
-            reeferKey = prefix + condition; 
+            if (container_size.includes('func')) {
+                reeferKey = container_size; // already in format '20func' or '40func'
+            } else {
+                const prefix = container_size.startsWith('20') ? '20' : '40';
+                reeferKey = prefix + (condition === 'reefer' ? 'func' : condition); 
+            }
         }
 
         if (zip_destino) {

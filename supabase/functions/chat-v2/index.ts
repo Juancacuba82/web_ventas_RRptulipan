@@ -114,7 +114,7 @@ function flattenBestPrices(pricesObj: any): Record<string, number> {
     return best;
 }
 
-async function calculateShippingForZip(zip: string, supabase: any): Promise<{shippingCosts: Record<string, number>, bestUsed: any, bestNew: any} | null> {
+async function calculateShippingForZip(zip: string, supabase: any): Promise<{shippingCosts: Record<string, number>, bestUsed: any, bestNew: any, bestReefer: any, rentUsed: any, rentNew: any} | null> {
     try {
         const { data, error } = await supabase.functions.invoke('calculate-quote', {
             body: { zip_destino: zip }
@@ -125,7 +125,10 @@ async function calculateShippingForZip(zip: string, supabase: any): Promise<{shi
         return {
             shippingCosts: data.shippingCosts,
             bestUsed: data.bestUsed,
-            bestNew: data.bestNew
+            bestNew: data.bestNew,
+            bestReefer: data.bestReefer,
+            rentUsed: data.rentUsed,
+            rentNew: data.rentNew
         };
     } catch {
         return null;
@@ -153,7 +156,7 @@ async function getZipFromAddress(address: string): Promise<string | null> {
 // ─── Build priceContext string (THE single source of truth for all rules) ─────
 function buildPriceContext(
     zip: string | null,
-    apiResponse: {shippingCosts: Record<string, number>, bestUsed: any, bestNew: any} | null,
+    apiResponse: {shippingCosts: Record<string, number>, bestUsed: any, bestNew: any, bestReefer: any, rentUsed?: any, rentNew?: any} | null,
     baseUsed: any,
     baseNew: any,
     isInvalidZip: boolean
@@ -167,10 +170,12 @@ YOUR ONLY GOAL RIGHT NOW is to politely tell the customer that you couldn't find
         const globalShippingCosts = apiResponse.shippingCosts;
         const bestUsed     = apiResponse.bestUsed;
         const bestNew      = apiResponse.bestNew;
+        const bestReefer   = apiResponse.bestReefer;
         const bestBaseUsed = flattenBestPrices(baseUsed);
         const bestBaseNew  = flattenBestPrices(baseNew);
 
-        const allowedRentDepots = ["Jacksonville (32218)", "Titusville (32780)", "Tampa (33619)", "Miami (33178)"];
+        // Nombres exactos como vienen en globalShippingCosts (sin los zip codes entre paréntesis)
+        const allowedRentDepots = ["Jacksonville", "Titusville", "Tampa", "Miami", "Savannah", "Atlanta"];
         let bestRentShipping: number | null = null;
         for (const depot of allowedRentDepots) {
             if (globalShippingCosts[depot] !== undefined) {
@@ -179,13 +184,15 @@ YOUR ONLY GOAL RIGHT NOW is to politely tell the customer that you couldn't find
             }
         }
         const rentShippingTotal = bestRentShipping !== null ? bestRentShipping * 2 : null;
-        const rentPricesUsed = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
-        const rentPricesNew  = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
+        const rentPricesUsed = apiResponse.rentUsed || { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
+        const rentPricesNew  = apiResponse.rentNew || { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
+        const rentPricesReefer = { "20' Funcional": 850, "40' Funcional": 1150 };
 
         ctx = `ATTENTION! THE CUSTOMER HAS ALREADY PROVIDED THEIR ZIP CODE.
 IF THE CUSTOMER WANTS TO BUY WITH DELIVERY, GIVE THEM THESE PRICES (Delivery is already included):
 - Buy Delivery Used: ${JSON.stringify(bestUsed)}
 - Buy Delivery New: ${JSON.stringify(bestNew)}
+- Buy Delivery Reefer (Refrigerado): ${JSON.stringify(bestReefer)}
 
 IF THE CUSTOMER ASKS TO BUY AND PICK IT UP THEMSELVES (LOCAL PICKUP), GIVE THE PRICE FOR THE DEPOT THEY MENTION:
 - Buy Pickup Used by Depot: ${JSON.stringify(baseUsed)}
@@ -195,6 +202,7 @@ IF THE CUSTOMER ASKS TO BUY AND PICK IT UP THEMSELVES (LOCAL PICKUP), GIVE THE P
 IF THE CUSTOMER WANTS TO RENT / LEASE, THESE ARE THE PRICES:
 - Monthly Rent Used: ${JSON.stringify(rentPricesUsed)}
 - Monthly Rent New: ${JSON.stringify(rentPricesNew)}
+- Monthly Rent Reefer (Refrigerado): ${JSON.stringify(rentPricesReefer)}
 - Logistics Cost (Delivery & Pickup - Round trip): $${rentShippingTotal !== null ? rentShippingTotal : "Not available"} (This is paid once upfront with the first month).
 
 GOLDEN RULE: Simply read the price from the corresponding table based on what the customer wants. Do not do any math or explain which city it comes from.
@@ -202,6 +210,7 @@ EXPORT RULE (CARGO WORTHY / CW): If the customer asks for export or internationa
     } else {
         const rentPricesUsed = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
         const rentPricesNew  = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
+        const rentPricesReefer = { "20' Funcional": 850, "40' Funcional": 1150 };
 
         ctx = `CRITICAL INSTRUCTION: THE CUSTOMER HAS NOT PROVIDED THEIR ZIP CODE YET. 
 YOUR ONLY GOAL RIGHT NOW IS TO ASK FOR THE ZIP CODE. 
@@ -215,10 +224,12 @@ STRICT RULES:
 PICKUP EXCEPTION: If the customer EXPLICITLY tells you they want to pick up the container at a specific distribution center (e.g., Jacksonville, Tampa), THEN you CAN give the exact price for that center:
 - Buy Pickup Used by Depot: ${JSON.stringify(baseUsed)}
 - Buy Pickup New by Depot: ${JSON.stringify(baseNew)}
+(Note: Refrigerated/Reefer containers are NOT available for local pickup).
 
 RENTAL PRICES (Hidden: do not use or offer unless the customer explicitly writes "rent", "alquilar" or "lease"):
 - Monthly Rent Used: ${JSON.stringify(rentPricesUsed)}
-- Monthly Rent New: ${JSON.stringify(rentPricesNew)}`;
+- Monthly Rent New: ${JSON.stringify(rentPricesNew)}
+- Monthly Rent Reefer: ${JSON.stringify(rentPricesReefer)}`;
     }
 
     ctx += `\n\nSTRICT LANGUAGE RULE: ALWAYS maintain the conversation in the language the customer initiated (analyze the history). IF THE INITIAL MESSAGE IS AMBIGUOUS OR HAS NO CLEAR LANGUAGE (for example, if the customer just writes "40ft" or "40ft 33139"), YOU MUST REPLY IN ENGLISH BY DEFAULT. If the customer started in Spanish and then uses common English terms like "zip code", "delivery", "pickup", "High Cube", etc., DO NOT switch to English. Continue replying in Spanish. You should only reply in English if the conversation started in English, if the initial message has no clear language, or if the customer explicitly asks you to speak English. NEVER switch languages mid-conversation just because you detected an isolated word in another language. NEVER ask what language they prefer.`;

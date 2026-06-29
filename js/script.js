@@ -1260,7 +1260,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const exportFee = data.cert_fee || 0;
                 const subtotal = baseSubtotal + exportFee;
                 
-                const shippingMultiplier = mode === 'rent' ? 2 : 1;
+                // API already returns roundtrip delivery cost for rent
+                const shippingMultiplier = 1;
                 const shippingTotal = actualShipCost * shippingMultiplier * selections.quantity;
                 const totalBeforeDiscount = subtotal + shippingTotal;
                 
@@ -1283,8 +1284,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (selections.quantity > 1) {
                         if (mode === 'rent') {
                             shippingDetailText = currentLang === 'en' 
-                                ? `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Multiple containers: requires ${selections.quantity} delivery trips & ${selections.quantity} pickup trips (1 container per trip) at $${(actualShipCost * 2).toLocaleString()} per container.</div>`
-                                : `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Múltiples contenedores: requiere ${selections.quantity} entregas y ${selections.quantity} retiros (1 contenedor por viaje) a $${(actualShipCost * 2).toLocaleString()} por contenedor.</div>`;
+                                ? `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Multiple containers: requires ${selections.quantity} delivery trips & ${selections.quantity} pickup trips (1 container per trip) at $${actualShipCost.toLocaleString()} per container.</div>`
+                                : `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Múltiples contenedores: requiere ${selections.quantity} entregas y ${selections.quantity} retiros (1 contenedor por viaje) a $${actualShipCost.toLocaleString()} por contenedor.</div>`;
                         } else {
                             shippingDetailText = currentLang === 'en'
                                 ? `<div style="text-align: right; font-size: 0.85rem; color: #d90429; font-weight: 600; margin-top: 2px; width: 100%;"><i class="fas fa-info-circle"></i> Multiple containers: requires ${selections.quantity} separate shipping trips (1 container per trip) at $${actualShipCost.toLocaleString()} each.</div>`
