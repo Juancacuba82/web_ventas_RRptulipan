@@ -51,18 +51,12 @@ function calculateDeliveryFee(dist: number, globalRates: any, is20ft: boolean = 
             deliveryCost = dist * 5.5; // Fallback extremo
         }
     } else {
-        // Fallback a las tarifas globales antiguas si el hub no tiene rangos
+        // Classic global calculation logic
         if (dist <= 30) deliveryCost = globalRates["0-30"] || 350;
         else if (dist <= 60) deliveryCost = globalRates["31-60"] || 400;
-        // Default global pricing logic
-        let baseCost = 0;
-        if (dist <= 100) baseCost = 400;
-        else if (dist <= 200) baseCost = dist * 5.5;
-        else if (dist <= 300) baseCost = dist * 6;
-        else if (dist <= 400) baseCost = dist * 6.5;
-        else baseCost = dist * 7;
-        
-        deliveryCost = baseCost;
+        else if (dist <= 80) deliveryCost = globalRates["61-80"] || 475;
+        else if (dist <= 100) deliveryCost = globalRates["81-100"] || 550;
+        else deliveryCost = dist * (globalRates["over-100"] || 5.5);
     }
     
     // Aplicar descuento 20ft si aplica
@@ -105,7 +99,7 @@ serve(async (req) => {
         const features = config.features || {};
         const deliveryRates = config.deliveryRates || { "0-30": 350, "31-60": 400, "61-80": 475, "81-100": 550, "over-100": 5.5 };
         const activeHubs = hubs.filter((h: any) => h.active);
-        const route20ftDiscount = config.features?.descuento_20ft ? 150 : 0; 
+        const route20ftDiscount = config.features?.route_20ft_discount ? 150 : 0; 
         
         // Dynamic export certificate cost read from database (fallback to 150)
         const dynamicCertCost = config.certExportCost !== undefined ? config.certExportCost : 150;
