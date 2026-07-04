@@ -351,9 +351,8 @@ RENTAL PRICES (Hidden: do not use or offer unless the customer explicitly writes
 
     ctx += `\n\nPAYMENT METHODS: We accept Zelle, Cash, Check, and Credit Card.
 IMPORTANT PAYMENT RULES YOU MUST COMMUNICATE CLEARLY:
-- Payment does NOT have to be upfront, the customer can pay "Cash on Delivery" (when receiving the container) using Zelle, Cash, or Check.
-- If the customer chooses to pay with Credit Card, THEN they must pay upfront. Credit Card is NOT accepted for cash on delivery.
-VERY IMPORTANT: When mentioning payment methods, ALWAYS clarify that upfront payment ONLY applies if using a Credit Card. Do not imply all payments are upfront.`;
+- Payment does NOT have to be upfront, the customer can pay "Cash on Delivery" (when receiving the container) using ANY of our payment methods: Zelle, Cash, Check, and Credit Card.
+VERY IMPORTANT: All payment methods, including Credit Card, are accepted for cash on delivery (pay upon delivery).`;
 
     ctx += `\n\nDEFAULT PURCHASE RULE: If a customer asks for a container, size, or price, ASSUME DIRECTLY THAT IT IS FOR PURCHASE (Sale) and give the sale prices immediately. NEVER ask if they want to buy or rent. ONLY provide rental info or prices if the customer explicitly uses related words like "rent", "alquilar", or "lease".`;
 

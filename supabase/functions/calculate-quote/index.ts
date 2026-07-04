@@ -99,15 +99,11 @@ serve(async (req) => {
         const features = config.features || {};
         const deliveryRates = config.deliveryRates || { "0-30": 350, "31-60": 400, "61-80": 475, "81-100": 550, "over-100": 5.5 };
         const activeHubs = hubs.filter((h: any) => h.active);
-        const route20ftDiscount = config.features?.route_20ft_discount ? 150 : 0; 
-        
-        // Dynamic export certificate cost read from database (fallback to 150)
-        const dynamicCertCost = config.certExportCost !== undefined ? config.certExportCost : 150;
+        const route20ftDiscount = 0; // Desactivado para la web de ventas
         
         // Extra fees options
         const extraServiceFee = options.extra_service ? 150 : 0;
         const craneServiceFee = options.crane_service ? 800 : 0;
-        const certFee = options.export_certificate ? dynamicCertCost : 0; 
         const is20ft = container_size ? container_size.startsWith('20') : false;
 
         // ─────────────────────────────────────────────────────────────────────────────
@@ -149,17 +145,25 @@ serve(async (req) => {
             try {
                 // Find closest active hub to zip_origen
                 let minDistToPickup = Infinity;
+                let hubDistances: any[] = [];
                 
-                const distancePromises = activeHubs.map((hub: any) => {
-                    // Skip Titusville as per business logic (usually not used for dispatch)
-                    if (hub.zip === '32780') return Promise.resolve({hub, dist: Infinity});
-                    const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
-                    return getDrivingDistanceMiles(hubCoords, immedOriginCoords)
-                        .then(d => ({hub, dist: d}))
-                        .catch(() => ({hub, dist: Infinity}));
-                });
-                
-                const hubDistances = await Promise.all(distancePromises);
+                // Si la grua sale de Miami, la yarda obligatoriamente tiene que ser Miami
+                if (options.crane_service) {
+                    const miamiHub = activeHubs.find((h: any) => h.name.toLowerCase().includes('miami')) || { lat: 25.8640, lon: -80.4074, name: 'Miami Hub', zip: '33178' };
+                    const hubCoords = (miamiHub.lat && miamiHub.lon) ? {lat: miamiHub.lat, lon: miamiHub.lon} : miamiHub.zip;
+                    const d = await getDrivingDistanceMiles(hubCoords, immedOriginCoords).catch(() => Infinity);
+                    hubDistances = [{ hub: miamiHub, dist: d }];
+                } else {
+                    const distancePromises = activeHubs.map((hub: any) => {
+                        // Skip Titusville as per business logic (usually not used for dispatch)
+                        if (hub.zip === '32780') return Promise.resolve({hub, dist: Infinity});
+                        const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
+                        return getDrivingDistanceMiles(hubCoords, immedOriginCoords)
+                            .then(d => ({hub, dist: d}))
+                            .catch(() => ({hub, dist: Infinity}));
+                    });
+                    hubDistances = await Promise.all(distancePromises);
+                }
                 
                 for (const item of hubDistances) {
                     if (item.dist < minDistToPickup) {
@@ -235,21 +239,25 @@ serve(async (req) => {
                 shippingCosts[hub.name] = deliveryCost; 
 
                 stdSizes.forEach(size => {
+                    const is20 = size.startsWith('20');
+                    const localCertFee = options.export_certificate ? (is20 ? (hub.certCosts?.['20ft'] || 250) : (hub.certCosts?.['40ft'] || 250)) : 0;
                     if (hub.used && hub.used[size] > 0) {
-                        let total = hub.used[size] + deliveryCost + craneServiceFee + certFee;
+                        let total = hub.used[size] + deliveryCost + craneServiceFee + localCertFee;
                         if (features.redondeo_25) total = Math.ceil(total / 25) * 25;
                         if (!bestUsed[size] || total < bestUsed[size]) bestUsed[size] = total;
                     }
                     if (hub.new && hub.new[size] > 0) {
-                        let total = hub.new[size] + deliveryCost + craneServiceFee + certFee;
+                        let total = hub.new[size] + deliveryCost + craneServiceFee + localCertFee;
                         if (features.redondeo_25) total = Math.ceil(total / 25) * 25;
                         if (!bestNew[size] || total < bestNew[size]) bestNew[size] = total;
                     }
                 });
 
                 reeferSizes.forEach(size => {
+                    const is20 = size.startsWith('20');
+                    const localCertFee = options.export_certificate ? (is20 ? (hub.certCosts?.['20ft'] || 250) : (hub.certCosts?.['40ft'] || 250)) : 0;
                     if (hub.reefer && hub.reefer[size] > 0) {
-                        let total = hub.reefer[size] + deliveryCost + craneServiceFee + certFee;
+                        let total = hub.reefer[size] + deliveryCost + craneServiceFee + localCertFee;
                         if (features.redondeo_25) total = Math.ceil(total / 25) * 25;
                         if (!bestReefer[size] || total < bestReefer[size]) bestReefer[size] = total;
                     }
@@ -317,6 +325,7 @@ serve(async (req) => {
         let bestDeliveryCost = 0;
         let bestContainerPrice = 0;
         let bestTotalPrice = Infinity;
+        let bestCertFee = 0;
         
         const isReefer = container_size.includes('reefer') || container_size.includes('func') || condition === 'func' || condition === 'nofunc' || condition === 'reefer';
         
@@ -358,9 +367,12 @@ serve(async (req) => {
                 
                 if (operation_mode === 'rent') {
                     // For rent, use global rent rates (if available in settings or hardcoded). Usually rent prices are global.
-                    // We fall back to 0 if not present, but in a real scenario they are fetched from hub.rent
-                    const rentData = condition === 'new' ? hub.rent?.new : hub.rent?.used;
-                    containerPrice = rentData ? (rentData[container_size] || 0) : 0;
+                    if (isReefer) {
+                        containerPrice = 0;
+                    } else {
+                        const rentData = condition === 'new' ? hub.rent?.new : hub.rent?.used;
+                        containerPrice = rentData ? (rentData[container_size] || 0) : 0;
+                    }
                     
                     // En renta cobramos envío de ida y vuelta
                     deliveryCost = deliveryCost * 2;
@@ -384,7 +396,8 @@ serve(async (req) => {
                     subtotal = ceiledSub;
                 }
                 
-                const totalPrice = subtotal + craneServiceFee + certFee + extraServiceFee;
+                const localCertFee = options.export_certificate ? (is20ft ? (hub.certCosts?.['20ft'] || 250) : (hub.certCosts?.['40ft'] || 250)) : 0;
+                const totalPrice = subtotal + craneServiceFee + localCertFee + extraServiceFee;
 
                 if (totalPrice < bestTotalPrice) {
                     bestTotalPrice = totalPrice;
@@ -392,6 +405,7 @@ serve(async (req) => {
                     bestDistance = item.dist;
                     bestDeliveryCost = deliveryCost;
                     bestContainerPrice = containerPrice;
+                    bestCertFee = localCertFee;
                 }
             }
         }
@@ -408,7 +422,7 @@ serve(async (req) => {
             container_price: bestContainerPrice,
             crane_service_fee: craneServiceFee,
             extra_service_fee: extraServiceFee,
-            cert_fee: certFee,
+            cert_fee: bestCertFee,
             total_price: bestTotalPrice
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
