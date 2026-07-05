@@ -265,10 +265,7 @@ IF THE CUSTOMER WANTS TO RENT / LEASE, THESE ARE THE PRICES:
 - Monthly Rent New: ${JSON.stringify(rentPricesNew)}
 - Logistics Cost (Delivery & Pickup - Round trip): $${rentShippingTotal !== null ? rentShippingTotal : "Not available"} (This is paid once upfront with the first month).
 
-GOLDEN RULE: Simply read the price from the corresponding table based on what the customer wants. Do not do any math or explain which city it comes from.
-EXPORT RULE (CARGO WORTHY / CW): If the customer asks for export or international use, you MUST ADD the certificate fee to the BUY pickup price internally. 
-The certificate fees per depot are: ${JSON.stringify(certPrices)}. 
-When giving the price, give the total sum of the certified container (WITHOUT adding delivery) and explain clearly that this is the total for a certified export container (Cargo Worthy). Also, politely ask for their Name, Phone Number, and Delivery Address so our team can contact them, coordinate shipping details, and provide the final logistics price.`;
+GOLDEN RULE: Simply read the price from the corresponding table based on what the customer wants. Do not do any math or explain which city it comes from.`;
     } else {
         ctx = `CRITICAL INSTRUCTION: THE CUSTOMER HAS NOT PROVIDED THEIR ZIP CODE YET. 
 YOUR ONLY GOAL RIGHT NOW IS TO ASK FOR THE ZIP CODE. 
@@ -294,30 +291,38 @@ RENTAL PRICES: You must ask for their zip code first to provide accurate rental 
             ctx += `\n\nTRANSPORT INSTRUCTION: Tell the customer you could not calculate the route between ${uniqueZips[0]} and ${uniqueZips[1]} and ask them to verify both zip codes.`;
         } else {
             if (tState.isLoaded === null) {
-                ctx += `\n\nTRANSPORT RULES: If a customer wants to move or transport a container, you need exactly 3 pieces of information to give a quote: 
+                ctx += `\n\nTRANSPORT RULES (LOCAL US ONLY): If a customer wants to move or transport a container within the US (do not apply this to international exports), you need exactly 3 pieces of information to give a quote: 
 (1) Pickup Zip Code, (2) Delivery Zip Code, and (3) Whether the container is EMPTY or LOADED.
-If any of these are missing, politely ask the customer for all the missing information in a single message (e.g. "Para darle un precio exacto necesito saber su código postal de origen, el de entrega, y si el contenedor está vacío o cargado"). DO NOT GIVE ANY ESTIMATED PRICES until you have all 3 pieces of information.`;
+If any of these are missing, politely ask the customer for all the missing information in a single message (e.g. "To give you an exact price, I need to know your pickup zip code, delivery zip code, and whether the container is empty or loaded"). DO NOT GIVE ANY ESTIMATED PRICES until you have all 3 pieces of information.`;
             } else if (tState.isLoaded === true) {
                 const flexPrice = transportData.flexible;
                 const immedPrice = transportData.immediate;
                 ctx += `\n\nTRANSPORT INSTRUCTION (DO EXACTLY THIS - NOTHING ELSE): The container is LOADED. Offer the customer these two transport options:
-1. Servicio Flexible: $${flexPrice} (Sujeto a disponibilidad de grúa en la zona).
-2. Servicio Inmediato: $${immedPrice} (Salida directa y garantizada).
+1. Flexible Service: $${flexPrice} (Subject to crane availability in the area).
+2. Immediate Service: $${immedPrice} (Direct and guaranteed departure).
 Explain clearly what each option means. Do not ask any more questions.`;
             } else if (tState.isLoaded === false) {
                 const flexPrice = transportData.flexible + 150;
                 const immedPrice = transportData.immediate + 150;
                 ctx += `\n\nTRANSPORT INSTRUCTION (DO EXACTLY THIS - NOTHING ELSE): The container is EMPTY. Offer the customer these two transport options:
-1. Servicio Flexible: $${flexPrice} (Sujeto a disponibilidad de grúa en la zona).
-2. Servicio Inmediato: $${immedPrice} (Salida directa y garantizada).
+1. Flexible Service: $${flexPrice} (Subject to crane availability in the area).
+2. Immediate Service: $${immedPrice} (Direct and guaranteed departure).
 Explain clearly what each option means. Do not ask any more questions.`;
             }
         }
     } else {
-        ctx += `\n\nTRANSPORT RULES: If a customer wants to move or transport a container, you need exactly 3 pieces of information to give a quote: 
+        ctx += `\n\nTRANSPORT RULES (LOCAL US ONLY): If a customer wants to move or transport a container within the US (do not apply this to international exports), you need exactly 3 pieces of information to give a quote: 
 (1) Pickup Zip Code, (2) Delivery Zip Code, and (3) Whether the container is EMPTY or LOADED.
-If any of these are missing, politely ask the customer for all the missing information in a single message (e.g. "Para darle un precio exacto necesito saber su código postal de origen, el de entrega, y si el contenedor está vacío o cargado"). DO NOT GIVE ANY ESTIMATED PRICES until you have all 3 pieces of information.`;
+If any of these are missing, politely ask the customer for all the missing information in a single message (e.g. "To give you an exact price, I need to know your pickup zip code, delivery zip code, and whether the container is empty or loaded"). DO NOT GIVE ANY ESTIMATED PRICES until you have all 3 pieces of information.`;
     }
+
+    ctx += `\n\nEXPORT RULE (INTERNATIONAL SHIPPING / CARGO WORTHY): 
+If the customer asks to send, ship, or export a container to another country (e.g. Nicaragua, Bahamas, overseas) OR mentions "export" / "Cargo Worthy":
+1. THIS IS A CONTAINER PURCHASE, NOT A TRANSPORT SERVICE. DO NOT apply transport rules.
+2. You MUST ADD the certificate fee to the BUY pickup price. The certificate fees per depot are: ${JSON.stringify(certPrices)}.
+3. Give the total price for the certified container (WITHOUT delivery). Explain clearly this is the price for a certified export container (Cargo Worthy).
+4. Clarify that we sell the certified container, but the customer handles the ocean freight/international shipping themselves or through a forwarder.
+5. Politely ask for their Name, Phone Number, and their Zip Code/Delivery Address in the US (like a port or forwarder) so we can quote the local delivery to that port.`;
 
     ctx += `\n\nSTRICT LANGUAGE RULE: ALWAYS maintain the conversation in the language the customer initiated (analyze the history). IF THE INITIAL MESSAGE IS AMBIGUOUS OR HAS NO CLEAR LANGUAGE (for example, if the customer just writes "40ft" or "40ft 33139"), YOU MUST REPLY IN ENGLISH BY DEFAULT. If the customer started in Spanish and then uses common English terms like "zip code", "delivery", "pickup", "High Cube", etc., DO NOT switch to English. Continue replying in Spanish. You should only reply in English if the conversation started in English, if the initial message has no clear language, or if the customer explicitly asks you to speak English. NEVER switch languages mid-conversation just because you detected an isolated word in another language. NEVER ask what language they prefer.`;
 
@@ -326,7 +331,7 @@ IMPORTANT PAYMENT RULES YOU MUST COMMUNICATE CLEARLY:
 - Payment does NOT have to be upfront, the customer can pay "Cash on Delivery" (when receiving the container) using ANY of our payment methods: Zelle, Cash, Check, and Credit Card.
 VERY IMPORTANT: All payment methods, including Credit Card, are accepted for cash on delivery (pay upon delivery).`;
 
-    ctx += `\n\nDEFAULT PURCHASE RULE: If a customer asks for a container, size, or price, ASSUME DIRECTLY THAT IT IS FOR PURCHASE (Sale) and give the sale prices immediately. NEVER ask if they want to buy or rent. ONLY provide rental info or prices if the customer explicitly uses related words like "rent", "alquilar", or "lease".`;
+    ctx += `\n\nDEFAULT PURCHASE RULE: If a customer asks for a container, size, or price, ASSUME DIRECTLY THAT IT IS FOR PURCHASE (Sale) and give the sale prices immediately. NEVER ask if they want to buy or rent. ONLY provide rental info or prices if the customer explicitly uses related words like "rent" or "lease".`;
 
     ctx += `\n\nDEFAULT SIZE AND DELIVERY RULE: 
 1. NEVER ask the customer if they prefer the Standard (STD) or High Cube (HC) model. ALWAYS directly offer the price of the High Cube (HC) model.
@@ -454,7 +459,7 @@ serve(async (req) => {
                 return new Response(JSON.stringify({
                     reply: cleanReply,
                     order_closed: null,
-                    address_error: `La dirección de entrega proporcionada no parece coincidir con el código postal (${zip}) que ingresó inicialmente. Para evitar errores en el cálculo del envío, por favor escriba nuevamente su dirección asegurándose de incluir el código postal correcto.`
+                    address_error: `The delivery address provided does not seem to match the zip code (${zip}) you initially entered. / La dirección de entrega proporcionada no parece coincidir con el código postal (${zip}) que ingresó inicialmente. Please re-enter your address with the correct zip code.`
                 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
 
@@ -462,7 +467,7 @@ serve(async (req) => {
                 return new Response(JSON.stringify({
                     reply: cleanReply,
                     order_closed: null,
-                    address_error: `Para procesar la orden correctamente y verificar el costo de envío, por favor envíeme nuevamente su dirección exacta de entrega incluyendo explícitamente el código postal al final.`
+                    address_error: `To process the order and verify shipping costs, please send me your exact delivery address again, explicitly including the zip code at the end. / Para procesar la orden correctamente, por favor envíeme nuevamente su dirección exacta de entrega incluyendo explícitamente el código postal al final.`
                 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
         }
