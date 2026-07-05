@@ -1853,7 +1853,7 @@ Phone: ${selections.contact.phone}
                     container_size: selections.size === "20'" ? "20std" : "40std",
                     options: {
                         extra_service: false,
-                        crane_service: false
+                        crane_service: selections.status === 'Full'
                     }
                 };
                 
@@ -1882,9 +1882,8 @@ Phone: ${selections.contact.phone}
                     } else {
                         extraStatusCost = 150 * selections.quantity;
                     }
-                } else if (selections.status === 'Full') {
-                    extraStatusCost = 800 * selections.quantity;
                 }
+                // Note: If 'Full', the $800 crane service fee is already included natively in costDirect and costImmediate by the backend API.
                 
                 selections.priceFlexible = (costDirect * multiplier) + extraStatusCost;
                 selections.priceImmediate = (costImmediate * multiplier) + extraStatusCost;

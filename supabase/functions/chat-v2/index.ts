@@ -57,6 +57,7 @@ function buildPricesFromHubs(hubs: any[]) {
     };
     const usedPrices: Record<string, any> = {};
     const newPrices: Record<string, any> = {};
+    const certPrices: Record<string, any> = {};
     const depots: { label: string; zip: string }[] = [];
 
     hubs.forEach(hub => {
@@ -75,8 +76,22 @@ function buildPricesFromHubs(hubs: any[]) {
             const label = sizeMap[k]; if (label && (v as number) > 0) newEntry[label] = v as number;
         });
         if (Object.keys(newEntry).length) newPrices[hubName] = newEntry;
+
+        const certEntry: Record<string, number> = {};
+        if (hub.certCosts) {
+            certEntry["20'"] = hub.certCosts['20ft'] || 250;
+            certEntry["40' STD"] = hub.certCosts['40ft'] || 250;
+            certEntry["40' HC"] = hub.certCosts['40ft'] || 250;
+            certEntry["45'"] = hub.certCosts['40ft'] || 250;
+        } else {
+            certEntry["20'"] = 250;
+            certEntry["40' STD"] = 250;
+            certEntry["40' HC"] = 250;
+            certEntry["45'"] = 250;
+        }
+        certPrices[hubName] = certEntry;
     });
-    return { usedPrices, newPrices, depots };
+    return { usedPrices, newPrices, certPrices, depots };
 }
 
 function roundPricesObj(obj: any): any {
@@ -135,19 +150,23 @@ async function calculateShippingForZip(zip: string, supabase: any): Promise<{shi
     }
 }
 
-async function calculateTransport(zipOrigen: string, zipDestino: string, supabase: any): Promise<{base_delivery: number, error?: string} | null> {
+async function calculateTransport(zipOrigen: string, zipDestino: string, isLoaded: boolean, supabase: any): Promise<{flexible: number, immediate: number, error?: string} | null> {
     try {
         const { data, error } = await supabase.functions.invoke('calculate-quote', {
             body: { 
                 zip_origen: zipOrigen, 
                 zip_destino: zipDestino, 
                 operation_mode: 'transport_only',
-                container_size: '20std'
+                container_size: '20std',
+                options: {
+                    extra_service: false,
+                    crane_service: isLoaded
+                }
             }
         });
         if (error || !data) return null;
-        if (data.error) return { base_delivery: 0, error: data.error };
-        return { base_delivery: data.base_delivery };
+        if (data.error) return { flexible: 0, immediate: 0, error: data.error };
+        return { flexible: data.total_price, immediate: data.immediate_price || data.total_price };
     } catch {
         return null;
     }
@@ -156,7 +175,6 @@ async function calculateTransport(zipOrigen: string, zipDestino: string, supabas
 // ─── Transport state machine ───────────────────────────────────────────────────
 function extractTransportState(history: any[], currentMessage: string): {
     isLoaded: boolean | null;   // true=cargado, false=vacío, null=unknown
-    isFloorToFloor: boolean | null; // true=sí, false=no, null=unknown
 } {
     const allText = [
         ...history.map((h: any) => h.parts?.map((p: any) => p.text).join(' ')).join(' '),
@@ -170,47 +188,7 @@ function extractTransportState(history: any[], currentMessage: string): {
     if (loadedKeywords.some(k => allText.includes(k))) isLoaded = true;
     else if (emptyKeywords.some(k => allText.includes(k))) isLoaded = false;
 
-    // Detect floor-to-floor ONLY if we know it's empty
-    let isFloorToFloor: boolean | null = null;
-    if (isLoaded === false) {
-        // Strict keywords that mean floor without needing a prompt
-        const strictFloorKw = ['en el piso', 'en el suelo', 'a nivel de piso', 'on the floor', 'ground level', 'del piso', 'al piso', 'floor to floor'];
-        const strictNoFloorKw = ['no está en el piso', 'no esta en el piso', 'sobre un chasis', 'en un chasis', 'not on the floor', 'on a chassis', 'crane', 'grúa', 'con grúa'];
-        
-        if (strictNoFloorKw.some(k => allText.includes(k))) isFloorToFloor = false;
-        else if (strictFloorKw.some(k => allText.includes(k))) isFloorToFloor = true;
-        else {
-            // Check for explicit floor confirmation at both ends ONLY AFTER bot asks
-            const botAskedAboutFloor = history.some((h: any) => {
-                const isBot = h.role === 'model';
-                const text = h.parts?.map((p: any) => p.text).join(' ').toLowerCase() || '';
-                return isBot && (text.includes('piso') || text.includes('suelo') || text.includes('floor'));
-            });
-            
-            if (botAskedAboutFloor) {
-                const lastBotFloorIdx = history.reduce((last: number, h: any, idx: number) => {
-                    const isBot = h.role === 'model';
-                    const text = h.parts?.map((p: any) => p.text).join(' ').toLowerCase() || '';
-                    return isBot && (text.includes('piso') || text.includes('suelo') || text.includes('floor')) ? idx : last;
-                }, -1);
-                
-                if (lastBotFloorIdx >= 0) {
-                    const userRepliesAfter = history.slice(lastBotFloorIdx + 1)
-                        .filter((h: any) => h.role === 'user')
-                        .map((h: any) => h.parts?.map((p: any) => p.text).join(' ').toLowerCase())
-                        .join(' ');
-                    const combined = userRepliesAfter + ' ' + currentMessage.toLowerCase();
-                    
-                    const genericNo = ['no'];
-                    const genericYes = ['si', 'sí', 'yes'];
-                    if (genericNo.some(k => combined.match(new RegExp(`\\b${k}\\b`)))) isFloorToFloor = false;
-                    else if (genericYes.some(k => combined.match(new RegExp(`\\b${k}\\b`)))) isFloorToFloor = true;
-                }
-            }
-        }
-    }
-
-    return { isLoaded, isFloorToFloor };
+    return { isLoaded };
 }
 
 // ─── Address validation ───────────────────────────────────────────────────────
@@ -237,9 +215,11 @@ function buildPriceContext(
     apiResponse: {shippingCosts: Record<string, number>, bestUsed: any, bestNew: any, bestReefer: any, rentUsed?: any, rentNew?: any} | null,
     baseUsed: any,
     baseNew: any,
+    certPrices: any,
     isInvalidZip: boolean,
     uniqueZips: string[],
-    transportData: {base_delivery: number, error?: string} | null,
+    transportData: {flexible: number, immediate: number, error?: string} | null,
+    tState: { isLoaded: boolean | null },
     history: any[],
     message: string
 ): string {
@@ -266,9 +246,8 @@ YOUR ONLY GOAL RIGHT NOW is to politely tell the customer that you couldn't find
             }
         }
         const rentShippingTotal = bestRentShipping !== null ? bestRentShipping * 2 : null;
-        const rentPricesUsed = apiResponse.rentUsed || { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
-        const rentPricesNew  = apiResponse.rentNew || { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
-        const rentPricesReefer = { "20' Funcional": 850, "40' Funcional": 1150 };
+        const rentPricesUsed = apiResponse.rentUsed || {};
+        const rentPricesNew  = apiResponse.rentNew || {};
 
         ctx = `ATTENTION! THE CUSTOMER HAS ALREADY PROVIDED THEIR ZIP CODE.
 IF THE CUSTOMER WANTS TO BUY WITH DELIVERY, GIVE THEM THESE PRICES (Delivery is already included):
@@ -284,16 +263,13 @@ IF THE CUSTOMER ASKS TO BUY AND PICK IT UP THEMSELVES (LOCAL PICKUP), GIVE THE P
 IF THE CUSTOMER WANTS TO RENT / LEASE, THESE ARE THE PRICES:
 - Monthly Rent Used: ${JSON.stringify(rentPricesUsed)}
 - Monthly Rent New: ${JSON.stringify(rentPricesNew)}
-- Monthly Rent Reefer (Refrigerado): ${JSON.stringify(rentPricesReefer)}
 - Logistics Cost (Delivery & Pickup - Round trip): $${rentShippingTotal !== null ? rentShippingTotal : "Not available"} (This is paid once upfront with the first month).
 
 GOLDEN RULE: Simply read the price from the corresponding table based on what the customer wants. Do not do any math or explain which city it comes from.
-EXPORT RULE (CARGO WORTHY / CW): If the customer asks for export or international use, you must add $300 to the BUY price internally. When giving the price, give the total sum of the certified container (WITHOUT adding delivery) and explain clearly that this is the total for a certified export container (Cargo Worthy). Also, politely ask for their Name, Phone Number, and Delivery Address so our team can contact them, coordinate shipping details, and provide the final logistics price.`;
+EXPORT RULE (CARGO WORTHY / CW): If the customer asks for export or international use, you MUST ADD the certificate fee to the BUY pickup price internally. 
+The certificate fees per depot are: ${JSON.stringify(certPrices)}. 
+When giving the price, give the total sum of the certified container (WITHOUT adding delivery) and explain clearly that this is the total for a certified export container (Cargo Worthy). Also, politely ask for their Name, Phone Number, and Delivery Address so our team can contact them, coordinate shipping details, and provide the final logistics price.`;
     } else {
-        const rentPricesUsed = { "20'": 150, "40' STD": 225, "40' HC": 250, "45'": 300 };
-        const rentPricesNew  = { "20'": 250, "40' STD": 325, "40' HC": 350, "45'": 400 };
-        const rentPricesReefer = { "20' Funcional": 850, "40' Funcional": 1150 };
-
         ctx = `CRITICAL INSTRUCTION: THE CUSTOMER HAS NOT PROVIDED THEIR ZIP CODE YET. 
 YOUR ONLY GOAL RIGHT NOW IS TO ASK FOR THE ZIP CODE. 
 DO NOT GIVE ANY PRICES YET! Simply reply politely confirming we have that container and ask for their zip code. Example: "To give you the exact total price with delivery to your location, please provide your zip code."
@@ -308,10 +284,7 @@ PICKUP EXCEPTION: If the customer EXPLICITLY tells you they want to pick up the 
 - Buy Pickup New by Depot: ${JSON.stringify(baseNew)}
 (Note: Refrigerated/Reefer containers are NOT available for local pickup).
 
-RENTAL PRICES (Hidden: do not use or offer unless the customer explicitly writes "rent", "alquilar" or "lease"):
-- Monthly Rent Used: ${JSON.stringify(rentPricesUsed)}
-- Monthly Rent New: ${JSON.stringify(rentPricesNew)}
-- Monthly Rent Reefer: ${JSON.stringify(rentPricesReefer)}`;
+RENTAL PRICES: You must ask for their zip code first to provide accurate rental logistics costs.`;
     }
 
     if (uniqueZips.length >= 3) {
@@ -320,31 +293,30 @@ RENTAL PRICES (Hidden: do not use or offer unless the customer explicitly writes
         if (transportData.error) {
             ctx += `\n\nTRANSPORT INSTRUCTION: Tell the customer you could not calculate the route between ${uniqueZips[0]} and ${uniqueZips[1]} and ask them to verify both zip codes.`;
         } else {
-            // State machine: detect what we already know from the conversation
-            const tState = extractTransportState(history, message);
-
             if (tState.isLoaded === null) {
-                // We don't know if it's empty or loaded yet
-                ctx += `\n\nTRANSPORT INSTRUCTION (DO EXACTLY THIS - NOTHING ELSE): Your ONLY task right now is to ask this ONE question: "¿El contenedor está vacío o cargado?" (or in English: "Is the container empty or loaded?"). Do not give any price. Do not ask anything else.`;
+                ctx += `\n\nTRANSPORT RULES: If a customer wants to move or transport a container, you need exactly 3 pieces of information to give a quote: 
+(1) Pickup Zip Code, (2) Delivery Zip Code, and (3) Whether the container is EMPTY or LOADED.
+If any of these are missing, politely ask the customer for all the missing information in a single message (e.g. "Para darle un precio exacto necesito saber su código postal de origen, el de entrega, y si el contenedor está vacío o cargado"). DO NOT GIVE ANY ESTIMATED PRICES until you have all 3 pieces of information.`;
             } else if (tState.isLoaded === true) {
-                // Loaded = always $800
-                const finalPrice = transportData.base_delivery + 800;
-                ctx += `\n\nTRANSPORT INSTRUCTION (DO EXACTLY THIS - NOTHING ELSE): The container is LOADED. Give the customer this exact final price for the transport: $${finalPrice}. This price is final and already includes everything. Do not ask any more questions about the floor or condition.`;
-            } else if (tState.isLoaded === false && tState.isFloorToFloor === null) {
-                // Empty but don't know if floor-to-floor
-                ctx += `\n\nTRANSPORT INSTRUCTION (DO EXACTLY THIS - NOTHING ELSE): The customer confirmed the container is EMPTY. Your ONLY task now is to ask this ONE question: "¿El contenedor se recoge del piso en el punto de origen y también se baja al piso en el punto de entrega?" (or in English: "Will the container be picked up from the ground at the origin AND also placed on the ground at the destination?"). Do not give any price yet.`;
-            } else if (tState.isLoaded === false && tState.isFloorToFloor === true) {
-                // Empty AND floor-to-floor = $150
-                const finalPrice = transportData.base_delivery + 150;
-                ctx += `\n\nTRANSPORT INSTRUCTION (DO EXACTLY THIS - NOTHING ELSE): The container is EMPTY and is floor-to-floor at both ends. Give the customer this exact final price for the transport: $${finalPrice}. This price is final and already includes everything.`;
-            } else if (tState.isLoaded === false && tState.isFloorToFloor === false) {
-                // Empty but NOT floor-to-floor = $800
-                const finalPrice = transportData.base_delivery + 800;
-                ctx += `\n\nTRANSPORT INSTRUCTION (DO EXACTLY THIS - NOTHING ELSE): The container is EMPTY but requires crane service. Give the customer this exact final price for the transport: $${finalPrice}. This price is final and already includes everything.`;
+                const flexPrice = transportData.flexible;
+                const immedPrice = transportData.immediate;
+                ctx += `\n\nTRANSPORT INSTRUCTION (DO EXACTLY THIS - NOTHING ELSE): The container is LOADED. Offer the customer these two transport options:
+1. Servicio Flexible: $${flexPrice} (Sujeto a disponibilidad de grúa en la zona).
+2. Servicio Inmediato: $${immedPrice} (Salida directa y garantizada).
+Explain clearly what each option means. Do not ask any more questions.`;
+            } else if (tState.isLoaded === false) {
+                const flexPrice = transportData.flexible + 150;
+                const immedPrice = transportData.immediate + 150;
+                ctx += `\n\nTRANSPORT INSTRUCTION (DO EXACTLY THIS - NOTHING ELSE): The container is EMPTY. Offer the customer these two transport options:
+1. Servicio Flexible: $${flexPrice} (Sujeto a disponibilidad de grúa en la zona).
+2. Servicio Inmediato: $${immedPrice} (Salida directa y garantizada).
+Explain clearly what each option means. Do not ask any more questions.`;
             }
         }
-    } else if (uniqueZips.length === 1) {
-        ctx += `\n\nTRANSPORT INSTRUCTION: If the customer wants to move a container, they only have ONE zip code (${uniqueZips[0]}). Ask them for the second zip code (destination/origin).`;
+    } else {
+        ctx += `\n\nTRANSPORT RULES: If a customer wants to move or transport a container, you need exactly 3 pieces of information to give a quote: 
+(1) Pickup Zip Code, (2) Delivery Zip Code, and (3) Whether the container is EMPTY or LOADED.
+If any of these are missing, politely ask the customer for all the missing information in a single message (e.g. "Para darle un precio exacto necesito saber su código postal de origen, el de entrega, y si el contenedor está vacío o cargado"). DO NOT GIVE ANY ESTIMATED PRICES until you have all 3 pieces of information.`;
     }
 
     ctx += `\n\nSTRICT LANGUAGE RULE: ALWAYS maintain the conversation in the language the customer initiated (analyze the history). IF THE INITIAL MESSAGE IS AMBIGUOUS OR HAS NO CLEAR LANGUAGE (for example, if the customer just writes "40ft" or "40ft 33139"), YOU MUST REPLY IN ENGLISH BY DEFAULT. If the customer started in Spanish and then uses common English terms like "zip code", "delivery", "pickup", "High Cube", etc., DO NOT switch to English. Continue replying in Spanish. You should only reply in English if the conversation started in English, if the initial message has no clear language, or if the customer explicitly asks you to speak English. NEVER switch languages mid-conversation just because you detected an isolated word in another language. NEVER ask what language they prefer.`;
@@ -412,17 +384,25 @@ serve(async (req) => {
             const parsed = buildPricesFromHubs(dynPrices.hubs);
             dynPrices.usedPrices = parsed.usedPrices;
             dynPrices.newPrices  = parsed.newPrices;
+            dynPrices.certPrices = parsed.certPrices;
             dynPrices.depots     = parsed.depots;
         }
 
         const baseUsed = roundPricesObj(dynPrices.usedPrices || {});
         const baseNew  = roundPricesObj(dynPrices.newPrices  || {});
+        const certPrices = dynPrices.certPrices || {};
 
         // 2. Extract all Zip Codes from history and message
         let fullText = history.map((h: any) => h.parts?.map((p: any) => p.text).join(' ')).join(' ');
         fullText += " " + message;
         const zipMatches = fullText.match(/(?<!\d)\d{5}(?!\d)/g) || [];
         const uniqueZips = Array.from(new Set(zipMatches));
+        
+        // Anti-Same-Zip-Code Bug: If only 1 zip, but user implies same zip code
+        const sameZipKeywords = ['mismo', 'same', 'aquí mismo', 'aqui mismo'];
+        if (uniqueZips.length === 1 && sameZipKeywords.some(k => fullText.toLowerCase().includes(k))) {
+            uniqueZips.push(uniqueZips[0]);
+        }
 
         // Use the last mentioned zip as the primary zip for Buy/Rent quotes
         const primaryZip = uniqueZips.length > 0 ? uniqueZips[uniqueZips.length - 1] : null;
@@ -435,35 +415,15 @@ serve(async (req) => {
             if (!apiResponse) isInvalidZip = true;
         }
 
-        // 3.5 Intercept Transport Quotes and redirect to call/email
-        const msgLower = message.toLowerCase();
-        
-        // Also check if any previous message in the conversation was about transport
-        const historyTextLower = history.map((h: any) => h.parts?.map((p: any) => p.text).join(' ')).join(' ').toLowerCase();
-        const fullConversationText = historyTextLower + ' ' + msgLower;
-        
-        const isTransportIntent = fullConversationText.includes('transport') || 
-                                  fullConversationText.includes('mover') || 
-                                  fullConversationText.includes('trasladar') || 
-                                  fullConversationText.includes('move');
-        
-        if (isTransportIntent || uniqueZips.length === 2) {
-            const textToCheck = (history[0]?.parts?.[0]?.text || message).toLowerCase();
-            const isSpanish = textToCheck.match(/[áéíóúñ¿¡]/i) || 
-                              /\b(quiero|mover|contenedor|hola|para|el|la|en|de|un|una|transportar|mudanza|cotizar|precio)\b/i.test(textToCheck);
-            
-            const reply = isSpanish 
-                ? `¡Hola! Para cotizar el servicio exclusivo de transporte o mudanza de tu contenedor, por favor comunícate directamente con nuestro equipo de logística:\n\n✉️ Email: rptulipantransport@gmail.com\n📞 Tel: +1 (786) 768-4409\n📞 Tel: +1 (786) 736-6288\n\nEstaremos encantados de ayudarte con todos los detalles de tu traslado.`
-                : `Hello! To get a quote for container transport or moving services, please contact our logistics team directly:\n\n✉️ Email: rptulipantransport@gmail.com\n📞 Tel: +1 (786) 768-4409\n📞 Tel: +1 (786) 736-6288\n\nWe will be happy to assist you with all the details of your move.`;
-                
-            return new Response(JSON.stringify({ reply, order_closed: null, address_error: null }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
-        }
-
         let transportData = null;
+        const tState = extractTransportState(history, message);
+        if (uniqueZips.length >= 2) {
+            if (tState.isLoaded !== null) {
+                transportData = await calculateTransport(uniqueZips[0], uniqueZips[1], tState.isLoaded, supabase);
+            }
+        }
         // 4. Build the full context (single source of truth for all rules)
-        const priceContext = buildPriceContext(primaryZip as string, apiResponse, baseUsed, baseNew, isInvalidZip, uniqueZips, transportData, history, message);
+        const priceContext = buildPriceContext(primaryZip as string, apiResponse, baseUsed, baseNew, certPrices, isInvalidZip, uniqueZips, transportData, tState, history, message);
 
         // 4. Call the existing 'chat' AI function
         const { data: chatData, error: chatError } = await supabase.functions.invoke('chat', {
