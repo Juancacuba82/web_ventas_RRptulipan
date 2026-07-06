@@ -224,6 +224,7 @@ function buildPriceContext(
     message: string
 ): string {
     let ctx = '';
+    let exportPricingStr = "Not calculated";
 
     if (isInvalidZip) {
         ctx = `CRITICAL INSTRUCTION: The customer provided a Zip Code (${zip}), but our system COULD NOT VERIFY IT or calculate shipping. It is likely an INVALID or non-existent zip code. 
@@ -235,6 +236,29 @@ YOUR ONLY GOAL RIGHT NOW is to politely tell the customer that you couldn't find
         const bestReefer   = apiResponse.bestReefer;
         const bestBaseUsed = flattenBestPrices(baseUsed);
         const bestBaseNew  = flattenBestPrices(baseNew);
+
+        exportPricingStr = "Not available";
+        if (bestUsed && bestBaseUsed && certPrices) {
+            const exportPricingObj: Record<string, any> = {};
+            for (const size in bestUsed) {
+                if (bestBaseUsed[size]) {
+                    const is20 = size.startsWith('20');
+                    const certFee = is20 ? (certPrices['20ft'] || 250) : (certPrices['40ft'] || 250);
+                    const baseCertPrice = bestBaseUsed[size] + certFee;
+                    
+                    const deliveryCost = bestUsed[size] - bestBaseUsed[size];
+                    const discount = is20 ? 100 : 150;
+                    const discountedDelivery = deliveryCost - discount;
+                    const grandTotal = baseCertPrice + discountedDelivery;
+                    
+                    exportPricingObj[size] = {
+                        "Export_Container_Price_NO_TRANSPORT": `$${baseCertPrice}`,
+                        "Total_Price_WITH_TRANSPORT": `$${grandTotal}`
+                    };
+                }
+            }
+            exportPricingStr = JSON.stringify(exportPricingObj, null, 2);
+        }
 
         // Nombres exactos como vienen en globalShippingCosts (sin los zip codes entre paréntesis)
         const allowedRentDepots = ["Jacksonville", "Titusville", "Tampa", "Miami", "Savannah", "Atlanta"];
@@ -318,11 +342,17 @@ If any of these are missing, politely ask the customer for all the missing infor
 
     ctx += `\n\nEXPORT RULE (INTERNATIONAL SHIPPING / CARGO WORTHY): 
 If the customer asks to send, ship, or export a container to another country (e.g. Nicaragua, Bahamas, overseas) OR mentions "export" / "Cargo Worthy":
-1. THIS IS A CONTAINER PURCHASE, NOT A TRANSPORT SERVICE. DO NOT apply transport rules.
-2. You MUST ADD the certificate fee to the BUY pickup price. The certificate fees per depot are: ${JSON.stringify(certPrices)}.
-3. Give the total price for the certified container (WITHOUT delivery). Explain clearly this is the price for a certified export container (Cargo Worthy).
-4. Clarify that we sell the certified container, but the customer handles the ocean freight/international shipping themselves or through a forwarder.
-5. Politely ask for their Name, Phone Number, and their Zip Code/Delivery Address in the US (like a port or forwarder) so we can quote the local delivery to that port.`;
+1. THIS IS A CONTAINER PURCHASE, NOT A TRANSPORT SERVICE. DO NOT apply normal transport rules. DO NOT apply the default delivery rule.
+2. YOU MUST FIRST KNOW THE SIZE: If the customer hasn't specified the size they want (e.g. 20', 40', 45'), YOU MUST ASK THEM FIRST. DO NOT list all the sizes and prices. Keep your message short.
+3. PRICING TABLE: Once you know the size and zip code, look at this exact pre-calculated pricing table:
+${exportPricingStr}
+4. STRICT PRICING RULE: 
+- Initially, you MUST ONLY give the "Export_Container_Price_NO_TRANSPORT" for their size. Tell the customer this is the total price for the certified container ready at the depot.
+- YOU HAVE STRICTLY FORBIDDEN to mention transport, delivery, or freight costs unless the customer explicitly asks for it (e.g. "how much to bring it to the port?").
+- IF AND ONLY IF the customer explicitly asks for transport, then you give them the "Total_Price_WITH_TRANSPORT".
+- NEVER break down the prices (e.g., do not say how much the certificate or transport is separately). Just give the final exact total number.
+5. Clarify that we sell the certified container, but the customer handles the ocean freight themselves.
+6. If they haven't provided it, politely ask for their Zip Code/Delivery Address in the US so we can calculate the exact local delivery if they need it.`;
 
     ctx += `\n\nSTRICT LANGUAGE RULE: ALWAYS maintain the conversation in the language the customer initiated (analyze the history). IF THE INITIAL MESSAGE IS AMBIGUOUS OR HAS NO CLEAR LANGUAGE (for example, if the customer just writes "40ft" or "40ft 33139"), YOU MUST REPLY IN ENGLISH BY DEFAULT. If the customer started in Spanish and then uses common English terms like "zip code", "delivery", "pickup", "High Cube", etc., DO NOT switch to English. Continue replying in Spanish. You should only reply in English if the conversation started in English, if the initial message has no clear language, or if the customer explicitly asks you to speak English. NEVER switch languages mid-conversation just because you detected an isolated word in another language. NEVER ask what language they prefer.`;
 

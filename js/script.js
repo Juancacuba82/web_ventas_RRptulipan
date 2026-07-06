@@ -165,7 +165,8 @@ async function sendLeadToSupabase(leadData) {
             created_by: assignedTo,
             source: 'website',
             status: 'PENDING',
-            date: new Date().toISOString().split('T')[0]
+            date: new Date().toISOString().split('T')[0],
+            next_call_date: new Date().toISOString().split('T')[0]
         };
 
         // AÃ±adir columnas personalizadas si vienen en los datos
@@ -235,6 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const translations = {
         en: {
+            "ai-restart-btn": "Restart",
             "nav-home": "Home",
             "nav-services": "Services",
             "nav-about": "About Us",
@@ -376,6 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "tax-warning": "* Taxes may apply depending on your tax status."
         },
         es: {
+            "ai-restart-btn": "Reiniciar",
             "nav-home": "Inicio",
             "nav-services": "Servicios",
             "nav-about": "Nosotros",
@@ -2510,6 +2513,7 @@ Phone: ${selections.contact.phone}
     const aiChatBtn = document.getElementById('ai-chat-btn');
     const aiChatWindow = document.getElementById('ai-chat-window');
     const aiChatClose = document.getElementById('ai-chat-close');
+    const aiChatRestart = document.getElementById('ai-chat-restart');
     const aiChatSend = document.getElementById('ai-chat-send');
     const aiChatInput = document.getElementById('ai-chat-input');
     const aiChatMessages = document.getElementById('ai-chat-messages');
@@ -2531,6 +2535,29 @@ Phone: ${selections.contact.phone}
             }, 300);
         });
 
+        if (aiChatRestart) {
+            aiChatRestart.addEventListener('click', () => {
+                const messages = aiChatMessages.querySelectorAll('.chat-message, .chat-buttons-container');
+                messages.forEach(msg => msg.remove());
+                
+                botState = {
+                    step: 0,
+                    lang: null,
+                    action: null,
+                    condition: null,
+                    size: null,
+                    type: null,
+                    reeferStatus: null,
+                    loadStatus: null,
+                    zip: null,
+                    zipOrigin: null,
+                    zipDest: null
+                };
+                showInputArea(false);
+                runBotStep();
+            });
+        }
+
         const appendMessage = (text, sender) => {
             const msgDiv = document.createElement('div');
             msgDiv.classList.add('chat-message', sender);
@@ -2539,84 +2566,472 @@ Phone: ${selections.contact.phone}
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
         };
 
-        const sendMessage = async () => {
-            const text = aiChatInput.value.trim();
-            if (!text) return;
+        // --- Nuevo Bot Estructurado (State Machine) ---
+        let botState = {
+            step: 0,
+            lang: null,
+            action: null,
+            condition: null,
+            size: null,
+            type: null,
+            reeferStatus: null,
+            loadStatus: null,
+            zip: null,
+            zipOrigin: null,
+            zipDest: null
+        };
 
-            appendMessage(text, 'user');
-            aiChatInput.value = '';
-            chatHistory.push({ role: 'user', parts: [{ text }] });
-
-            typingIndicator.classList.add('active');
-            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-
-            try {
-                if (!supabaseClient) throw new Error("Supabase is not initialized.");
-
-                // Detect ZIP in the current message and update globalLastZipCode
-                const zipMatch = text.match(/(?<!\d)\d{5}(?!\d)/);
-                if (zipMatch) globalLastZipCode = zipMatch[0];
-
-                // Call chat-v2 â€” the single shared brain for both chatbots
-                const { data, error } = await supabaseClient.functions.invoke('chat-v2', {
-                    body: {
-                        message: text,
-                        zip:     globalLastZipCode,
-                        history: chatHistory
-                    }
-                });
-
-                if (error) throw error;
-
-                const { reply, order_closed, address_error } = data;
-
-                let finalReply = address_error || reply;
-
-                // If order was successfully closed â€” handle web-specific actions
-                if (order_closed && !address_error) {
-                    // Send lead to Supabase DB
-                    if (typeof sendLeadToSupabase === 'function') {
-                        sendLeadToSupabase({
-                            name:          order_closed.name,
-                            phone:         order_closed.phone,
-                            delivery_place: order_closed.address,
-                            amount:        order_closed.price,
-                            size:          order_closed.size,
-                            service:       'Chatbot Sale',
-                            message:       'Order closed via Chatbot.'
-                        }).catch(e => console.error("DB Error on Chatbot close:", e));
-                    }
-
-                    // Open WhatsApp for the sales team
-                    let waText = `Â¡Hola! Me gustarÃ­a concretar mi pedido con los siguientes datos:\n\n`;
-                    waText += `ðŸ‘¤ Nombre: ${order_closed.name}\n`;
-                    waText += `ðŸ“ž TelÃ©fono: ${order_closed.phone}\n`;
-                    waText += `ðŸ“ DirecciÃ³n: ${order_closed.address}\n`;
-                    waText += `ðŸ“ TamaÃ±o: ${order_closed.size}\n`;
-                    waText += `ðŸ’° Precio estimado: $${order_closed.price}\n`;
-                    window.open(`https://wa.me/17867366292?text=${encodeURIComponent(waText)}`, '_blank');
-                }
-
-                // Simulate human typing speed
-                const typingDelay = Math.min(8000, Math.max(2500, finalReply.length * 40));
-
-                setTimeout(() => {
-                    typingIndicator.classList.remove('active');
-                    appendMessage(finalReply, 'bot');
-                    chatHistory.push({ role: 'model', parts: [{ text: finalReply }] });
-                }, typingDelay);
-
-            } catch (err) {
-                console.error("Chat error:", err);
-                typingIndicator.classList.remove('active');
-                appendMessage("Sorry, I am having trouble connecting right now.", 'bot');
-                chatHistory.pop();
+        const chatDict = {
+            'ES': {
+                step1_msg: "¡Hola! Soy tu asesor logístico de RP Tulipan. ¿En qué te puedo ayudar hoy?",
+                step1_btns: ['Comprar', 'Alquilar', 'Exportación', 'Transporte'],
+                step2_cond_msg: "¡Excelente! ¿Buscas un contenedor Nuevo (One Trip) o Usado (Cargo Worthy)?",
+                step2_cond_btns: ['Nuevo', 'Usado'],
+                step2_size_msg: "Claro, para cotizar el movimiento necesito saber de qué tamaño es el contenedor a mover.",
+                step3_size_msg: "Perfecto. Ahora indícame qué medida necesitas.",
+                step3_size_btns: ["20'", "40'", "45'"],
+                step3_5_type_msg: "¿Qué tipo de contenedor necesitas?",
+                step3_7_reefer_msg: "¿Lo necesitas con motor funcional o sin motor (solo térmico)?",
+                step3_7_reefer_btns: ['Funcional', 'No Funcional'],
+                step3_load_msg: "Para cotizar correctamente el movimiento, necesito saber si el contenedor está vacío o cargado.",
+                step3_load_btns: ['Vacío', 'Cargado'],
+                step4_trans_msg: "Casi listos. Por favor, escribe los DOS códigos postales: primero el de ORIGEN y luego el de DESTINO, separados por un espacio. Ejemplo: 33178 33906",
+                step4_trans_ph: "Ej: 33178 33906",
+                step4_other_msg: "¡Excelente! Para darte el precio exacto con entrega, por favor escribe el Zip Code (Código Postal) de donde quieres recibirlo.",
+                step4_other_ph: "Zip Code...",
+                err_trans: "Por favor ingresa exactamente DOS códigos postales de 5 números, separados por un espacio. Ejemplo: 33178 33906",
+                err_other: "El código postal debe tener exactamente 5 números. Por favor, inténtalo de nuevo.",
+                processing: "¡Gracias! Estamos procesando tu cotización... (Este es el fin de la Fase 1 visual)"
+            },
+            'EN': {
+                step1_msg: "I'm your logistics advisor. How can I help you today?",
+                step1_btns: ['Buy', 'Rent', 'Export', 'Transport'],
+                step2_cond_msg: "Excellent! Are you looking for a New (One Trip) or Used (Cargo Worthy) container?",
+                step2_cond_btns: ['New', 'Used'],
+                step2_size_msg: "Sure, to provide an accurate quote, what size is the container you need to move?",
+                step3_size_msg: "Perfect. Now, please let me know what size you need.",
+                step3_size_btns: ["20'", "40'", "45'"],
+                step3_5_type_msg: "What type of container do you need?",
+                step3_7_reefer_msg: "Do you need it with a working motor or non-working (insulated only)?",
+                step3_7_reefer_btns: ['Working', 'Non-Working'],
+                step3_load_msg: "To calculate the exact rate, is the container empty or loaded?",
+                step3_load_btns: ['Empty', 'Loaded'],
+                step4_trans_msg: "Almost done. Please type BOTH Zip Codes: first the ORIGIN and then the DESTINATION, separated by a space. Example: 33178 33906",
+                step4_trans_ph: "Ex: 33178 33906",
+                step4_other_msg: "Great! To give you the exact final price with delivery, please enter your 5-digit Delivery Zip Code.",
+                step4_other_ph: "Zip Code...",
+                err_trans: "Please enter exactly TWO 5-digit zip codes, separated by a space. Example: 33178 33906",
+                err_other: "The Zip Code must be exactly 5 digits. Please try again.",
+                processing: "Thank you! We are processing your quote... (End of visual Phase 1)"
             }
         };
 
-        aiChatSend.addEventListener('click', sendMessage);
+        const showInputArea = (show) => {
+            const area = document.querySelector('.ai-chat-input-area');
+            if (area) area.style.display = show ? 'flex' : 'none';
+        };
+
+        const showButtons = (options, callback) => {
+            const btnContainer = document.createElement('div');
+            btnContainer.classList.add('chat-buttons-container');
+            btnContainer.style.display = 'flex';
+            btnContainer.style.gap = '8px';
+            btnContainer.style.flexWrap = 'wrap';
+            btnContainer.style.marginTop = '10px';
+            btnContainer.style.marginBottom = '15px';
+
+            options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.textContent = opt;
+                btn.style.padding = '8px 15px';
+                btn.style.borderRadius = '20px';
+                btn.style.border = '1px solid #c8102e';
+                btn.style.backgroundColor = 'white';
+                btn.style.color = '#c8102e';
+                btn.style.cursor = 'pointer';
+                btn.style.fontWeight = 'bold';
+                
+                btn.addEventListener('click', () => {
+                    appendMessage(opt, 'user');
+                    btnContainer.remove();
+                    callback(opt, idx);
+                });
+                btnContainer.appendChild(btn);
+            });
+
+            aiChatMessages.insertBefore(btnContainer, typingIndicator);
+            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+        };
+
+        const runBotStep = () => {
+            showInputArea(false);
+            typingIndicator.classList.add('active');
+            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+
+            setTimeout(() => {
+                typingIndicator.classList.remove('active');
+                
+                if (botState.step === 0) {
+                    appendMessage("Hello! Welcome to RP Tulipan / ¡Hola! Bienvenido a RP Tulipan.", 'bot');
+                    showButtons(['English', 'Español'], (choice, idx) => {
+                        botState.lang = idx === 0 ? 'EN' : 'ES';
+                        botState.step = 1;
+                        runBotStep();
+                    });
+                }
+                else if (botState.step === 1) {
+                    const dict = chatDict[botState.lang];
+                    appendMessage(dict.step1_msg, 'bot');
+                    showButtons(dict.step1_btns, (choice, idx) => {
+                        // Standardize action names internally based on index
+                        const actions = ['Comprar', 'Alquilar', 'Exportación', 'Transporte'];
+                        botState.action = actions[idx];
+                        botState.step = 2;
+                        runBotStep();
+                    });
+                } 
+                else if (botState.step === 2) {
+                    const dict = chatDict[botState.lang];
+                    if (['Comprar', 'Alquilar', 'Exportación'].includes(botState.action)) {
+                        appendMessage(dict.step2_cond_msg, 'bot');
+                        showButtons(dict.step2_cond_btns, (choice, idx) => {
+                            botState.condition = idx === 0 ? 'Nuevo' : 'Usado';
+                            botState.step = 3;
+                            runBotStep();
+                        });
+                    } else if (botState.action === 'Transporte') {
+                        appendMessage(dict.step2_size_msg, 'bot');
+                        showButtons(dict.step3_size_btns, (choice) => {
+                            botState.size = choice;
+                            botState.step = 3;
+                            runBotStep();
+                        });
+                    }
+                }
+                else if (botState.step === 3) {
+                    const dict = chatDict[botState.lang];
+                    if (['Comprar', 'Alquilar', 'Exportación'].includes(botState.action)) {
+                        appendMessage(dict.step3_size_msg, 'bot');
+                        showButtons(dict.step3_size_btns, (choice) => {
+                            botState.size = choice;
+                            
+                            if (botState.action === 'Alquilar' || choice === "45'") {
+                                botState.type = 'Dry';
+                                botState.step = 4;
+                            } else {
+                                botState.step = 3.5;
+                            }
+                            
+                            runBotStep();
+                        });
+                    } else if (botState.action === 'Transporte') {
+                        appendMessage(dict.step3_load_msg, 'bot');
+                        showButtons(dict.step3_load_btns, (choice, idx) => {
+                            botState.loadStatus = idx === 0 ? 'Vacío' : 'Cargado';
+                            botState.step = 4;
+                            runBotStep();
+                        });
+                    }
+                }
+                else if (botState.step === 3.5) {
+                    const dict = chatDict[botState.lang];
+                    appendMessage(dict.step3_5_type_msg, 'bot');
+                    
+                    let typeBtns = ['Dry', 'Reefer'];
+                    if (botState.condition === 'Nuevo' && botState.action !== 'Alquilar') {
+                        typeBtns.push('Open Side', 'Double Door');
+                    }
+
+                    showButtons(typeBtns, (choice) => {
+                        botState.type = choice;
+                        if (choice === 'Reefer') {
+                            botState.step = 3.7;
+                        } else {
+                            botState.step = 4;
+                        }
+                        runBotStep();
+                    });
+                }
+                else if (botState.step === 3.7) {
+                    const dict = chatDict[botState.lang];
+                    appendMessage(dict.step3_7_reefer_msg, 'bot');
+                    showButtons(dict.step3_7_reefer_btns, (choice, idx) => {
+                        botState.reeferStatus = idx === 0 ? 'Funcional' : 'No Funcional';
+                        botState.step = 4;
+                        runBotStep();
+                    });
+                }
+                else if (botState.step === 4) {
+                    showInputArea(true);
+                    const dict = chatDict[botState.lang];
+                    if (botState.action === 'Transporte') {
+                        aiChatInput.placeholder = dict.step4_trans_ph;
+                        appendMessage(dict.step4_trans_msg, 'bot');
+                    } else {
+                        aiChatInput.placeholder = dict.step4_other_ph;
+                        appendMessage(dict.step4_other_msg, 'bot');
+                    }
+                    aiChatInput.focus();
+                    aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+                }
+            }, 800);
+        };
+
+        const handleUserInput = async () => {
+            const text = aiChatInput.value.trim();
+            if (!text) return;
+
+            if (botState.step === 7) {
+                if (text.length < 2) {
+                    appendMessage(text, 'user');
+                    aiChatInput.value = '';
+                    typingIndicator.classList.add('active');
+                    setTimeout(() => {
+                        typingIndicator.classList.remove('active');
+                        appendMessage(botState.lang === 'EN' ? "Please enter a valid name." : "Por favor ingresa un nombre válido.", 'bot');
+                        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+                    }, 600);
+                    return;
+                }
+                botState.leadName = text;
+                appendMessage(text, 'user');
+                aiChatInput.value = '';
+                typingIndicator.classList.add('active');
+                setTimeout(() => {
+                    typingIndicator.classList.remove('active');
+                    botState.step = 8;
+                    appendMessage(botState.lang === 'EN' 
+                        ? `Thank you, ${text}. Now, please enter your contact phone number.` 
+                        : `Gracias, ${text}. Ahora, por favor escribe tu número de teléfono de contacto.`, 'bot');
+                    aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+                }, 800);
+                return;
+            }
+
+            if (botState.step === 8) {
+                botState.leadPhone = text;
+                appendMessage(text, 'user');
+                aiChatInput.value = '';
+                showInputArea(false);
+                typingIndicator.classList.add('active');
+                
+                setTimeout(() => {
+                    typingIndicator.classList.remove('active');
+                    if (typeof sendLeadToSupabase === 'function') {
+                        sendLeadToSupabase({
+                            name:          botState.leadName,
+                            phone:         botState.leadPhone,
+                            delivery_place: botState.zip || botState.zipDest,
+                            amount:        botState.finalAmount,
+                            size:          botState.size,
+                            service:       botState.action,
+                            message:       'Order requested via Structured Chatbot.'
+                        }).catch(e => console.error("DB Error on Chatbot close:", e));
+                    }
+                    let waText = botState.lang === 'EN'
+                        ? `Hello! I would like to proceed with my order:\n\nName: ${botState.leadName}\nPhone: ${botState.leadPhone}\nAction: ${botState.action}\nSize: ${botState.size}\nZip: ${botState.zip || botState.zipDest}\nEstimated Price: ${botState.finalFormAmount}`
+                        : `¡Hola! Me gustaría concretar mi pedido:\n\nNombre: ${botState.leadName}\nTeléfono: ${botState.leadPhone}\nAcción: ${botState.action}\nTamaño: ${botState.size}\nZip: ${botState.zip || botState.zipDest}\nPrecio estimado: ${botState.finalFormAmount}`;
+                    window.open(`https://wa.me/17867366292?text=${encodeURIComponent(waText)}`, '_blank');
+                    
+                    setTimeout(() => {
+                        appendMessage(botState.lang === 'EN' ? "Perfect! We have redirected you to WhatsApp to finalize your order." : "¡Perfecto! Te hemos redirigido a WhatsApp para finalizar la gestión.", 'bot');
+                        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+                    }, 1000);
+                }, 800);
+                return;
+            }            if (botState.step === 4) {
+                const dict = chatDict[botState.lang];
+                if (botState.action === 'Transporte') {
+                    const zips = text.split(' ').filter(z => z.trim().length > 0);
+                    if (zips.length !== 2 || !/^\d{5}$/.test(zips[0]) || !/^\d{5}$/.test(zips[1])) {
+                        appendMessage(text, 'user');
+                        aiChatInput.value = '';
+                        typingIndicator.classList.add('active');
+                        setTimeout(() => {
+                            typingIndicator.classList.remove('active');
+                            appendMessage(dict.err_trans, 'bot');
+                            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+                        }, 600);
+                        return;
+                    }
+                    botState.zipOrigin = zips[0];
+                    botState.zipDest = zips[1];
+                } else {
+                    if (!/^\d{5}$/.test(text)) {
+                        appendMessage(text, 'user');
+                        aiChatInput.value = '';
+                        typingIndicator.classList.add('active');
+                        setTimeout(() => {
+                            typingIndicator.classList.remove('active');
+                            appendMessage(dict.err_other, 'bot');
+                            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+                        }, 600);
+                        return;
+                    }
+                    botState.zip = text;
+                }
+
+                appendMessage(text, 'user');
+                aiChatInput.value = '';
+                showInputArea(false);
+                typingIndicator.classList.add('active');
+                aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+
+                // Real call to calculate-quote
+                try {
+                    const isTransport = botState.action === 'Transporte' || botState.action === 'Transport';
+                    const isExport = botState.action === 'Exportación' || botState.action === 'Export';
+                    const isNew = botState.condition === 'Nuevo' || botState.condition === 'New';
+                    
+                    let sizeKey = '';
+                    if (botState.size === "20'") {
+                        if (botState.type === 'Reefer') sizeKey = botState.reeferStatus === 'Funcional' ? '20func' : '20nofunc';
+                        else if (botState.type === 'Open Side') sizeKey = '20os';
+                        else if (botState.type === 'Double Door') sizeKey = '20dd';
+                        else sizeKey = '20std';
+                    }
+                    else if (botState.size === "40'") {
+                        if (botState.type === 'Reefer') sizeKey = botState.reeferStatus === 'Funcional' ? '40func' : '40nofunc';
+                        else if (botState.type === 'Open Side') sizeKey = '40os';
+                        else if (botState.type === 'Double Door') sizeKey = '40dd';
+                        else sizeKey = '40hc';
+                    }
+                    else if (botState.size === "45'") sizeKey = '45hc';
+
+                    const reqBody = {
+                        operation_mode: botState.action === 'Alquilar' ? 'rent' : (isTransport ? 'transport_only' : 'sale'),
+                        condition: isNew ? 'new' : 'used',
+                        zip_origen: isTransport ? botState.zipOrigin : undefined,
+                        zip_destino: isTransport ? botState.zipDest : botState.zip,
+                        container_size: sizeKey,
+                        options: {
+                            export_certificate: isExport,
+                            extra_service: botState.loadStatus === 'Vacío',
+                            crane_service: botState.loadStatus === 'Cargado'
+                        }
+                    };
+
+                    const { data, error } = await supabaseClient.functions.invoke('calculate-quote', {
+                        body: reqBody
+                    });
+
+                    typingIndicator.classList.remove('active');
+                    
+                    if (error || (data && data.error)) {
+                        typingIndicator.classList.remove('active');
+                        appendMessage(botState.lang === 'EN' 
+                            ? "I'm sorry, we don't have coverage or valid pricing for that service in your area. Please check with an agent." 
+                            : "Lo siento, no encontramos cobertura o precio válido para este servicio en tu área. Por favor verifica con un agente.", 'bot');
+                        showInputArea(true);
+                        console.error("Supabase API Error:", error || data.error);
+                        return;
+                    }
+
+                    let finalPrice = data.total_price || data.totalPrice;
+                    let immediatePrice = data.immediate_price; // Only present for transport_only
+
+                    const handleFinalDecision = (idx, amount, formAmount) => {
+                        if (idx === 0) {
+                            botState.finalAmount = amount;
+                            botState.finalFormAmount = formAmount;
+                            botState.step = 7;
+                            appendMessage(botState.lang === 'EN' 
+                                ? "Excellent! Please enter your full name to start the order." 
+                                : "¡Excelente! Por favor, escribe tu nombre completo para iniciar la orden.", 'bot');
+                            showInputArea(true);
+                        } else {
+                            appendMessage(botState.lang === 'EN' ? "No problem. Let me know if you need anything else!" : "No hay problema. ¡Avísame si necesitas algo más!", 'bot');
+                        }
+                    };
+
+                    if (!finalPrice) {
+                        appendMessage(botState.lang === 'EN' 
+                            ? "I'm sorry, we couldn't find a price for that route/size. Please verify the ZIP code." 
+                            : "Lo siento, no encontramos precio para esa ruta/tamaño. Por favor verifica el código postal.", 'bot');
+                    } else if (isExport) {
+                        const basePrice = (data.container_price || 0) + (data.cert_fee || 0);
+                        const formattedBase = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(basePrice);
+                        
+                        botState.step = 5;
+                        const msg = botState.lang === 'EN' 
+                            ? `The price for the container ready for export (with certification) is **${formattedBase}** (without transport). Do you need us to transport it to the port or your address to load it first?`
+                            : `El precio del contenedor listo para exportación (con certificación) es de **${formattedBase}** (sin transporte). ¿Necesitas que te lo transportemos al puerto o a tu dirección para cargarlo primero?`;
+                        
+                        appendMessage(msg, 'bot');
+                        showButtons(botState.lang === 'EN' ? ['Yes, quote transport', 'No, I will handle it'] : ['Sí, cotizar transporte', 'No, yo me encargo'], (choice, idx) => {
+                            if (idx === 0) {
+                                const discount = botState.size === "20'" ? 100 : 150;
+                                const finalP = finalPrice - discount;
+                                const formP = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(finalP);
+                                
+                                const cMsg = botState.lang === 'EN'
+                                    ? `Excellent. Your total with transport included is **${formP}**. (A special $${discount} discount was applied!). Would you like to proceed and leave your contact details?`
+                                    : `Excelente. Tu total con transporte incluido es de **${formP}**. (¡Se aplicó un descuento especial de $${discount}!). ¿Te gustaría proceder con la compra y dejarnos tus datos de contacto?`;
+                                
+                                botState.step = 6;
+                                appendMessage(cMsg, 'bot');
+                                showButtons(botState.lang === 'EN' ? ['Yes, proceed', 'No, thanks'] : ['Sí, proceder', 'No, gracias'], (c, i) => handleFinalDecision(i, finalP, formP));
+                            } else {
+                                const cMsg = botState.lang === 'EN'
+                                    ? `Perfect. The total price for the container and certification is **${formattedBase}**. Would you like to proceed and leave your contact details?`
+                                    : `Perfecto. El precio total por el contenedor y la certificación es de **${formattedBase}**. ¿Te gustaría proceder con la compra y dejarnos tus datos de contacto?`;
+                                
+                                botState.step = 6;
+                                appendMessage(cMsg, 'bot');
+                                showButtons(botState.lang === 'EN' ? ['Yes, proceed', 'No, thanks'] : ['Sí, proceder', 'No, gracias'], (c, i) => handleFinalDecision(i, basePrice, formattedBase));
+                            }
+                        });
+                    } else {
+                        const formattedPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(finalPrice);
+                        const formattedImm = immediatePrice ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(immediatePrice) : null;
+                        
+                        let closingMsg = botState.lang === 'EN'
+                            ? `Great news! The total price for your ${botState.condition === 'Nuevo' ? 'New' : 'Used'} ${botState.size} container delivered to ${botState.zip} is **${formattedPrice}**.\n\nWould you like to proceed and leave your contact details to coordinate?`
+                            : `¡Excelente noticia! El precio total para tu contenedor ${botState.condition === 'Nuevo' ? 'Nuevo' : 'Usado'} de ${botState.size} entregado al Zip Code ${botState.zip} es de **${formattedPrice}**.\n\n¿Te gustaría proceder con la compra y dejarnos tus datos de contacto para coordinar?`;
+                            
+                        if (botState.action === 'Alquilar') {
+                            const rentMonthly = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(data.container_price || 0);
+                            const rentLogistics = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(data.delivery_cost || 0);
+                            
+                            closingMsg = botState.lang === 'EN'
+                                ? `Great news! We have availability to rent your ${botState.size} container to Zip Code ${botState.zip}.\n\n`
+                                  + `🔹 **Monthly Rent:** ${rentMonthly}\n`
+                                  + `🔹 **Logistics (Delivery & future pickup):** ${rentLogistics} (one-time fee)\n\n`
+                                  + `To start, the **initial payment** would be **${formattedPrice}**. The following months you only pay your ${rentMonthly} rent.\n\n`
+                                  + `Would you like to proceed with the rental and leave your contact details to coordinate?`
+                                : `¡Excelente noticia! Tenemos disponibilidad para renta de tu contenedor de ${botState.size} en el Zip Code ${botState.zip}.\n\n`
+                                  + `🔹 **Renta Mensual:** ${rentMonthly}\n`
+                                  + `🔹 **Logística (Entrega y Recogida futura):** ${rentLogistics} (pago único)\n\n`
+                                  + `Para iniciar, el **pago inicial** sería de **${formattedPrice}**. Los meses siguientes solo pagarías tu renta de ${rentMonthly}.\n\n`
+                                  + `¿Te gustaría proceder con la renta y dejarnos tus datos de contacto para coordinar?`;
+                        } else if (isTransport) {
+                            closingMsg = botState.lang === 'EN'
+                                ? `Great news! We have two transport options for your ${botState.size} container from ${botState.zipOrigin} to ${botState.zipDest}:\n\n`
+                                  + `🔹 **Flexible Delivery (${formattedPrice}):** We coordinate to pick it up while our trucks are already on a route near the origin. It may take a few extra days but saves you money.\n`
+                                  + `🔹 **Immediate Delivery (${formattedImm}):** We dispatch a truck directly from our base to pick it up immediately.\n\n`
+                                  + `Would you like to proceed with one of these options?`
+                                : `¡Excelente noticia! Tenemos dos opciones de transporte para tu contenedor de ${botState.size} desde ${botState.zipOrigin} hasta ${botState.zipDest}:\n\n`
+                                  + `🔹 **Envío Flexible (${formattedPrice}):** Coordinamos la recogida aprovechando que nuestros camiones estén en ruta cerca del origen. Puede tomar unos días más pero ahorras dinero.\n`
+                                  + `🔹 **Envío Inmediato (${formattedImm}):** Enviamos un camión directamente desde nuestra base para recogerlo de inmediato.\n\n`
+                                  + `¿Te gustaría proceder con alguna de estas opciones?`;
+                        }
+
+                        appendMessage(closingMsg, 'bot');
+                        showButtons(botState.lang === 'EN' ? ['Yes, proceed', 'No, thanks'] : ['Sí, proceder', 'No, gracias'], (choice, idx) => handleFinalDecision(idx, finalPrice, formattedPrice));
+                    }
+
+                } catch (err) {
+                    typingIndicator.classList.remove('active');
+                    console.error("Bot Error:", err);
+                    appendMessage("🚨 Error Técnico: " + (err.message || err), 'bot');
+                    showInputArea(true);
+                }
+            }
+        };
+
+        aiChatSend.addEventListener('click', handleUserInput);
         aiChatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
+            if (e.key === 'Enter') handleUserInput();
         });
 
         // Auto-open chat and greet
@@ -2624,14 +3039,7 @@ Phone: ${selections.contact.phone}
             if (chatHistory.length === 0) {
                 aiChatWindow.classList.add('active');
                 aiChatBtn.style.display = 'none';
-                
-                const greeting = "Hello! / ¡Hola! I'm your RP Tulipan logistics advisor. How can I help you today? / ¿En qué te puedo ayudar hoy?";
-                
-                typingIndicator.classList.add('active');
-                setTimeout(() => {
-                    typingIndicator.classList.remove('active');
-                    appendMessage(greeting, 'bot');
-                }, 1500);
+                runBotStep();
             }
         }, 3000); // Wait 3 seconds after page load
     }

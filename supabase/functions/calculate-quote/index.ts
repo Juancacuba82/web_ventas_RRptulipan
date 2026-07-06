@@ -9,13 +9,22 @@ const corsHeaders = {
 async function getCoordinates(zip: string): Promise<{lat: number, lon: number}> {
     const cleanZip = zip.replace(/\D/g, '').substring(0, 5);
     
-    // STRICTLY USE NOMINATIM TO MATCH WEBAPP EXACTLY
+    // First try strict postalcode
     const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${cleanZip}&countrycodes=us&limit=1`;
     const response = await fetch(url, { headers: { 'User-Agent': 'CalcLogistics-API/1.0' } });
     const data = await response.json();
     if (data && data.length > 0) {
         return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
     }
+    
+    // Fallback to free search (handles Zips that OSM only has as addresses, like 32191)
+    const urlFallback = `https://nominatim.openstreetmap.org/search?format=json&q=${cleanZip}+USA&limit=1`;
+    const responseFallback = await fetch(urlFallback, { headers: { 'User-Agent': 'CalcLogistics-API/1.0' } });
+    const dataFallback = await responseFallback.json();
+    if (dataFallback && dataFallback.length > 0) {
+        return { lat: parseFloat(dataFallback[0].lat), lon: parseFloat(dataFallback[0].lon) };
+    }
+    
     throw new Error('Coordinates not found for ' + zip);
 }
 
@@ -372,6 +381,11 @@ serve(async (req) => {
                     } else {
                         const rentData = condition === 'new' ? hub.rent?.new : hub.rent?.used;
                         containerPrice = rentData ? (rentData[container_size] || 0) : 0;
+                        
+                        // Fallback 1: Legacy rent structure
+                        if (containerPrice === 0 && hub.rent && typeof hub.rent[container_size] === 'number') {
+                            containerPrice = hub.rent[container_size];
+                        }
                     }
                     
                     // En renta cobramos envío de ida y vuelta

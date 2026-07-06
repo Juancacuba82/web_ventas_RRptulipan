@@ -1443,6 +1443,60 @@ body.with-countdown .buy-header {
     align-items: center;
 }
 
+.ai-chat-restart {
+    position: relative;
+    color: white;
+    cursor: pointer;
+    margin-right: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+    border: none;
+    background: transparent;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.ai-chat-restart:hover {
+    transform: scale(1.05);
+}
+
+.ai-chat-restart::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: #dc2b45; /* Blends well with the gradient */
+    border-radius: 20px;
+    z-index: -1;
+}
+
+.ai-chat-restart::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 400%;
+    height: 400%;
+    background: conic-gradient(transparent 0deg, transparent 260deg, rgba(255, 255, 255, 1) 360deg);
+    animation: rotate-light 2.5s linear infinite;
+    z-index: -2;
+}
+
+@keyframes rotate-light {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
 .ai-chat-header-info {
     display: flex;
     align-items: center;
