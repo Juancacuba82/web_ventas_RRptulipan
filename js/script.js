@@ -2584,7 +2584,9 @@ Phone: ${selections.contact.phone}
         const chatDict = {
             'ES': {
                 step1_msg: "¡Hola! Soy tu asesor logístico de RP Tulipan. ¿En qué te puedo ayudar hoy?",
-                step1_btns: ['Comprar', 'Alquilar', 'Exportación', 'Transporte'],
+                step1_btns: ['Comprar', 'Alquilar', 'Transporte'],
+                step1_5_msg: "¿Es para Almacenamiento o para Exportación?",
+                step1_5_btns: ['Almacenamiento', 'Exportación'],
                 step2_cond_msg: "¡Excelente! ¿Buscas un contenedor Nuevo (One Trip) o Usado (Cargo Worthy)?",
                 step2_cond_btns: ['Nuevo', 'Usado'],
                 step2_size_msg: "Claro, para cotizar el movimiento necesito saber de qué tamaño es el contenedor a mover.",
@@ -2605,7 +2607,9 @@ Phone: ${selections.contact.phone}
             },
             'EN': {
                 step1_msg: "I'm your logistics advisor. How can I help you today?",
-                step1_btns: ['Buy', 'Rent', 'Export', 'Transport'],
+                step1_btns: ['Buy', 'Rent', 'Transport'],
+                step1_5_msg: "Is it for Storage or Export?",
+                step1_5_btns: ['Storage', 'Export'],
                 step2_cond_msg: "Excellent! Are you looking for a New (One Trip) or Used (Cargo Worthy) container?",
                 step2_cond_btns: ['New', 'Used'],
                 step2_size_msg: "Sure, to provide an accurate quote, what size is the container you need to move?",
@@ -2684,8 +2688,24 @@ Phone: ${selections.contact.phone}
                     appendMessage(dict.step1_msg, 'bot');
                     showButtons(dict.step1_btns, (choice, idx) => {
                         // Standardize action names internally based on index
-                        const actions = ['Comprar', 'Alquilar', 'Exportación', 'Transporte'];
+                        const actions = ['Comprar', 'Alquilar', 'Transporte'];
                         botState.action = actions[idx];
+                        
+                        if (botState.action === 'Comprar') {
+                            botState.step = 1.5;
+                        } else {
+                            botState.step = 2;
+                        }
+                        runBotStep();
+                    });
+                }
+                else if (botState.step === 1.5) {
+                    const dict = chatDict[botState.lang];
+                    appendMessage(dict.step1_5_msg, 'bot');
+                    showButtons(dict.step1_5_btns, (choice, idx) => {
+                        if (idx === 1) {
+                            botState.action = 'Exportación';
+                        }
                         botState.step = 2;
                         runBotStep();
                     });
