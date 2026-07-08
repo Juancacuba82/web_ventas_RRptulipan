@@ -6,15 +6,23 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const memoryCache = new Map<string, any>();
+
 async function getCoordinates(zip: string): Promise<{lat: number, lon: number}> {
     const cleanZip = zip.replace(/\D/g, '').substring(0, 5);
+    const cacheKey = 'coord_' + cleanZip;
+    if (memoryCache.has(cacheKey)) {
+        return memoryCache.get(cacheKey);
+    }
     
     // First try strict postalcode
     const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${cleanZip}&countrycodes=us&limit=1`;
     const response = await fetch(url, { headers: { 'User-Agent': 'CalcLogistics-API/1.0' } });
     const data = await response.json();
     if (data && data.length > 0) {
-        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        memoryCache.set(cacheKey, coords);
+        return coords;
     }
     
     // Fallback to free search (handles Zips that OSM only has as addresses, like 32191)
@@ -22,28 +30,53 @@ async function getCoordinates(zip: string): Promise<{lat: number, lon: number}> 
     const responseFallback = await fetch(urlFallback, { headers: { 'User-Agent': 'CalcLogistics-API/1.0' } });
     const dataFallback = await responseFallback.json();
     if (dataFallback && dataFallback.length > 0) {
-        return { lat: parseFloat(dataFallback[0].lat), lon: parseFloat(dataFallback[0].lon) };
+        const coords = { lat: parseFloat(dataFallback[0].lat), lon: parseFloat(dataFallback[0].lon) };
+        memoryCache.set(cacheKey, coords);
+        return coords;
     }
     
     throw new Error('Coordinates not found for ' + zip);
 }
 
+function getStraightLineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 3958.8; // Radius of the earth in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return R * c; 
+}
+
 async function getDrivingDistanceMiles(origin: string | {lat: number, lon: number}, dest: string | {lat: number, lon: number}): Promise<number> {
+    const originCoords = typeof origin === 'string' ? await getCoordinates(origin) : origin;
+    const destCoords = typeof dest === 'string' ? await getCoordinates(dest) : dest;
+    
+    const cacheKey = `dist_${originCoords.lat},${originCoords.lon}_${destCoords.lat},${destCoords.lon}`;
+    if (memoryCache.has(cacheKey)) {
+        return memoryCache.get(cacheKey);
+    }
+
     try {
-        const originCoords = typeof origin === 'string' ? await getCoordinates(origin) : origin;
-        const destCoords = typeof dest === 'string' ? await getCoordinates(dest) : dest;
         const url = `https://router.project-osrm.org/route/v1/driving/${originCoords.lon},${originCoords.lat};${destCoords.lon},${destCoords.lat}?overview=false`;
         
         const response = await fetch(url);
         const data = await response.json();
         
         if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-            const distanceMeters = data.routes[0].distance;
-            return distanceMeters / 1609.344;
+            const distanceMiles = data.routes[0].distance / 1609.344;
+            memoryCache.set(cacheKey, distanceMiles);
+            return distanceMiles;
         }
         throw new Error('OSRM Route Failed');
     } catch (e) {
-        throw new Error('Routing Error');
+        console.warn('OSRM failed, falling back to straight-line distance x 1.35');
+        const straightMiles = getStraightLineDistance(originCoords.lat, originCoords.lon, destCoords.lat, destCoords.lon);
+        const estimatedMiles = straightMiles * 1.35;
+        memoryCache.set(cacheKey, estimatedMiles);
+        return estimatedMiles;
     }
 }
 
@@ -230,7 +263,7 @@ serve(async (req) => {
                 })
             );
 
-            const stdSizes = ["20std", "40std", "40hc", "45hc", "20os", "40os", "20dd", "40dd"];
+            const stdSizes = ["20std", "40std", "40hc", "45hc", "20side", "40side", "20dd", "40dd"];
             const reeferSizes = ["20func", "20nofunc", "40func", "40nofunc"];
             
             const bestUsed: Record<string, number> = {};

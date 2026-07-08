@@ -2535,6 +2535,14 @@ Phone: ${selections.contact.phone}
             }, 300);
         });
 
+        // Auto-format phone number in step 8
+        aiChatInput.addEventListener('input', function(e) {
+            if (botState.step === 8) {
+                let x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/);
+                e.target.value = !x[2] ? x[1] : x[1] + '-' + x[2] + (x[3] ? '-' + x[3] : '');
+            }
+        });
+
         if (aiChatRestart) {
             aiChatRestart.addEventListener('click', () => {
                 const messages = aiChatMessages.querySelectorAll('.chat-message, .chat-buttons-container');
@@ -2820,6 +2828,7 @@ Phone: ${selections.contact.phone}
                 setTimeout(() => {
                     typingIndicator.classList.remove('active');
                     botState.step = 8;
+                    aiChatInput.placeholder = "786-768-4409";
                     appendMessage(botState.lang === 'EN' 
                         ? `Thank you, ${text}. Now, please enter your contact phone number.` 
                         : `Gracias, ${text}. Ahora, por favor escribe tu número de teléfono de contacto.`, 'bot');
@@ -2906,13 +2915,13 @@ Phone: ${selections.contact.phone}
                     let sizeKey = '';
                     if (botState.size === "20'") {
                         if (botState.type === 'Reefer') sizeKey = botState.reeferStatus === 'Funcional' ? '20func' : '20nofunc';
-                        else if (botState.type === 'Open Side') sizeKey = '20os';
+                        else if (botState.type === 'Open Side') sizeKey = '20side';
                         else if (botState.type === 'Double Door') sizeKey = '20dd';
                         else sizeKey = '20std';
                     }
                     else if (botState.size === "40'") {
                         if (botState.type === 'Reefer') sizeKey = botState.reeferStatus === 'Funcional' ? '40func' : '40nofunc';
-                        else if (botState.type === 'Open Side') sizeKey = '40os';
+                        else if (botState.type === 'Open Side') sizeKey = '40side';
                         else if (botState.type === 'Double Door') sizeKey = '40dd';
                         else sizeKey = '40hc';
                     }
@@ -2940,9 +2949,9 @@ Phone: ${selections.contact.phone}
                     if (error || (data && data.error)) {
                         typingIndicator.classList.remove('active');
                         appendMessage(botState.lang === 'EN' 
-                            ? "I'm sorry, we don't have coverage or valid pricing for that service in your area. Please check with an agent." 
-                            : "Lo siento, no encontramos cobertura o precio válido para este servicio en tu área. Por favor verifica con un agente.", 'bot');
-                        showInputArea(true);
+                            ? "Oops! It looks like we are out of stock for that specific model in your area. I invite you to click the 'Restart' button (at the top right) to try a different size or condition. We surely have another great option for you!" 
+                            : "¡Ups! Parece que se nos agotó el inventario para ese modelo en específico en tu zona. Te invito a hacer clic en el botón 'Restart' (arriba a la derecha) para intentar con otra medida u otra condición. ¡Seguro tenemos otra excelente opción para ti!", 'bot');
+                        showInputArea(false);
                         console.error("Supabase API Error:", error || data.error);
                         return;
                     }
@@ -2959,6 +2968,7 @@ Phone: ${selections.contact.phone}
                                 ? "Excellent! Please enter your full name to start the order." 
                                 : "¡Excelente! Por favor, escribe tu nombre completo para iniciar la orden.", 'bot');
                             showInputArea(true);
+                            aiChatInput.placeholder = botState.lang === 'EN' ? "John Doe" : "Juan Perez";
                         } else {
                             appendMessage(botState.lang === 'EN' ? "No problem. Let me know if you need anything else!" : "No hay problema. ¡Avísame si necesitas algo más!", 'bot');
                         }
@@ -2966,35 +2976,42 @@ Phone: ${selections.contact.phone}
 
                     if (!finalPrice) {
                         appendMessage(botState.lang === 'EN' 
-                            ? "I'm sorry, we couldn't find a price for that route/size. Please verify the ZIP code." 
-                            : "Lo siento, no encontramos precio para esa ruta/tamaño. Por favor verifica el código postal.", 'bot');
+                            ? "Oops! It looks like we are out of stock for that specific model in your area. I invite you to click the 'Restart' button (at the top right) to try a different size or condition. We surely have another great option for you!" 
+                            : "¡Ups! Parece que se nos agotó el inventario para ese modelo en específico en tu zona. Te invito a hacer clic en el botón 'Restart' (arriba a la derecha) para intentar con otra medida u otra condición. ¡Seguro tenemos otra excelente opción para ti!", 'bot');
+                        showInputArea(false);
                     } else if (isExport) {
-                        const basePrice = (data.container_price || 0) + (data.cert_fee || 0);
+                        const isSpecialBox = ['Reefer', 'Open Side', 'Double Door'].includes(botState.type);
+                        const basePrice = (data.container_price || 0) + (isSpecialBox ? 0 : (data.cert_fee || 0));
                         const formattedBase = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(basePrice);
+                        const discount = botState.size === "20'" ? 100 : 150;
+                        const finalPriceToUse = isSpecialBox ? finalPrice - (data.cert_fee || 0) : finalPrice;
                         
                         botState.step = 5;
+                        const certTextEN = isSpecialBox ? '' : ' (with certification)';
+                        const certTextES = isSpecialBox ? '' : ' (con certificación)';
                         const msg = botState.lang === 'EN' 
-                            ? `The price for the container ready for export (with certification) is **${formattedBase}** (without transport). Do you need us to transport it to the port or your address to load it first?`
-                            : `El precio del contenedor listo para exportación (con certificación) es de **${formattedBase}** (sin transporte). ¿Necesitas que te lo transportemos al puerto o a tu dirección para cargarlo primero?`;
+                            ? `The price for the container ready for export${certTextEN} is **${formattedBase}** (without transport). If you book the transport with us, we will apply a $${discount} discount on the container. Do you need us to transport it to the port or your address to load it first?`
+                            : `El precio del contenedor listo para exportación${certTextES} es de **${formattedBase}** (sin transporte). Si haces el transporte con nosotros, te aplicamos un descuento de $${discount} en el contenedor. ¿Necesitas que te lo transportemos al puerto o a tu dirección para cargarlo primero?`;
                         
                         appendMessage(msg, 'bot');
                         showButtons(botState.lang === 'EN' ? ['Yes, quote transport', 'No, I will handle it'] : ['Sí, cotizar transporte', 'No, yo me encargo'], (choice, idx) => {
                             if (idx === 0) {
-                                const discount = botState.size === "20'" ? 100 : 150;
-                                const finalP = finalPrice - discount;
+                                const finalP = finalPriceToUse - discount;
                                 const formP = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(finalP);
                                 
                                 const cMsg = botState.lang === 'EN'
-                                    ? `Excellent. Your total with transport included is **${formP}**. (A special $${discount} discount was applied!). Would you like to proceed and leave your contact details?`
-                                    : `Excelente. Tu total con transporte incluido es de **${formP}**. (¡Se aplicó un descuento especial de $${discount}!). ¿Te gustaría proceder con la compra y dejarnos tus datos de contacto?`;
+                                    ? `Excellent. To calculate the exact transport cost to your location and apply your discount, please leave your contact details below and an agent will call you shortly.`
+                                    : `Excelente. Para calcular el costo exacto del transporte hasta su ubicación y aplicarle el descuento, por favor déjenos sus datos de contacto a continuación y un agente le llamará en breve.`;
                                 
                                 botState.step = 6;
                                 appendMessage(cMsg, 'bot');
                                 showButtons(botState.lang === 'EN' ? ['Yes, proceed', 'No, thanks'] : ['Sí, proceder', 'No, gracias'], (c, i) => handleFinalDecision(i, finalP, formP));
                             } else {
+                                const certTextFinalEN = isSpecialBox ? 'container' : 'container and certification';
+                                const certTextFinalES = isSpecialBox ? 'el contenedor' : 'el contenedor y la certificación';
                                 const cMsg = botState.lang === 'EN'
-                                    ? `Perfect. The total price for the container and certification is **${formattedBase}**. Would you like to proceed and leave your contact details?`
-                                    : `Perfecto. El precio total por el contenedor y la certificación es de **${formattedBase}**. ¿Te gustaría proceder con la compra y dejarnos tus datos de contacto?`;
+                                    ? `Perfect. The total price for the ${certTextFinalEN} is **${formattedBase}**. Would you like to proceed and leave your contact details?`
+                                    : `Perfecto. El precio total por ${certTextFinalES} es de **${formattedBase}**. ¿Te gustaría proceder con la compra y dejarnos tus datos de contacto?`;
                                 
                                 botState.step = 6;
                                 appendMessage(cMsg, 'bot');
