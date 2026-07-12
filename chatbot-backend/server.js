@@ -1,6 +1,6 @@
-require('dotenv').config();
-const express = require('express');
-const axios = require('axios');
+﻿require("dotenv").config();
+const express = require("express");
+const axios = require("axios");
 
 const app = express();
 app.use(express.json());
@@ -11,15 +11,14 @@ const META_PAGE_ACCESS_TOKEN = process.env.META_PAGE_ACCESS_TOKEN;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-// 1. ENDPOINT GET: Verificación de Webhook para Meta
-app.get('/webhook', (req, res) => {
-    let mode = req.query['hub.mode'];
-    let token = req.query['hub.verify_token'];
-    let challenge = req.query['hub.challenge'];
-
+// 1. ENDPOINT GET: Verificacion de Webhook para Meta
+app.get("/webhook", (req, res) => {
+    const mode = req.query["hub.mode"];
+    const token = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
     if (mode && token) {
-        if (mode === 'subscribe' && token === META_VERIFY_TOKEN) {
-            console.log('WEBHOOK_VERIFIED');
+        if (mode === "subscribe" && token === META_VERIFY_TOKEN) {
+            console.log("WEBHOOK_VERIFIED");
             res.status(200).send(challenge);
         } else {
             res.sendStatus(403);
@@ -28,59 +27,65 @@ app.get('/webhook', (req, res) => {
 });
 
 // 2. ENDPOINT POST: Recibir mensajes entrantes
-app.post('/webhook', async (req, res) => {
-    let body = req.body;
-
-    if (body.object === 'page') {
-        // Facebook/Messenger agrupa los mensajes en 'entries'
-        for (let entry of body.entry) {
-            let webhook_event = entry.messaging[0];
-            let sender_psid = webhook_event.sender.id; // ID del cliente
-            
-            if (webhook_event.message && webhook_event.message.text) {
-                let text = webhook_event.message.text;
-                console.log(`Mensaje recibido de ${sender_psid}: ${text}`);
-                
-                // Enviar el mensaje a Supabase (mismo cerebro que la web)
-                await handleMessage(sender_psid, text);
+app.post("/webhook", async (req, res) => {
+    const body = req.body;
+    if (body.object === "page") {
+        for (const entry of body.entry) {
+            const event = entry.messaging[0];
+            const sender_psid = event.sender.id;
+            if (event.message && event.message.text) {
+                console.log(`Mensaje de ${sender_psid}: ${event.message.text}`);
+                await handleMessage(sender_psid, event.message.text);
             }
         }
-        res.status(200).send('EVENT_RECEIVED');
+        res.status(200).send("EVENT_RECEIVED");
     } else {
         res.sendStatus(404);
     }
 });
 
-// 3. Función para procesar con Supabase y responder
+// 3. Delegar al cerebro maestro chatbot-core y ejecutar acciones
 async function handleMessage(sender_psid, text) {
     try {
-        // A. Consultar la Edge Function de Supabase
-        const supabaseResponse = await axios.post(`${SUPABASE_URL}/functions/v1/chat`, {
-            message: text,
-            chatHistory: [] // Simplificado para la primera versión (luego podemos añadir memoria por PSID)
-        }, {
-            headers: {
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'apikey': SUPABASE_ANON_KEY,
-                'Content-Type': 'application/json'
+        const coreResponse = await axios.post(
+            `${SUPABASE_URL}/functions/v1/chatbot-core`,
+            { sender_id: sender_psid, message: text },
+            {
+                headers: {
+                    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                    "apikey": SUPABASE_ANON_KEY,
+                    "Content-Type": "application/json"
+                }
             }
-        });
+        );
 
-        const botReply = supabaseResponse.data.reply;
+        const actions = coreResponse.data.actions || [];
 
-        // B. Enviar la respuesta de vuelta usando la Graph API de Meta
-        await axios.post(`https://graph.facebook.com/v19.0/me/messages?access_token=${META_PAGE_ACCESS_TOKEN}`, {
-            recipient: { id: sender_psid },
-            message: { text: botReply }
-        });
+        for (const action of actions) {
+            const msgPayload = (action.type === "quick_replies" && action.options && action.options.length)
+                ? {
+                    text: action.text,
+                    quick_replies: action.options.map(opt => ({
+                        content_type: "text",
+                        title: opt,
+                        payload: opt
+                    }))
+                  }
+                : { text: action.text };
 
-        console.log(`Respuesta enviada a ${sender_psid} con éxito.`);
+            await axios.post(
+                `https://graph.facebook.com/v19.0/me/messages?access_token=${META_PAGE_ACCESS_TOKEN}`,
+                { recipient: { id: sender_psid }, message: msgPayload }
+            );
+        }
+
+        console.log(`Respuestas enviadas a ${sender_psid} con exito.`);
     } catch (error) {
-        console.error('Error al procesar el mensaje o enviar la respuesta:', error.response ? error.response.data : error.message);
+        console.error("Error:", error.response ? error.response.data : error.message);
     }
 }
 
 app.listen(PORT, () => {
-    console.log(`Servidor de Chatbot corriendo en http://localhost:${PORT}`);
-    console.log(`Configura tu Webhook en Meta apuntando a tu URL pública terminada en /webhook`);
+    console.log(`Servidor Chatbot corriendo en http://localhost:${PORT}`);
+    console.log("Cerebro maestro: chatbot-core en Supabase.");
 });

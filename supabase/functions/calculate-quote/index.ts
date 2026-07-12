@@ -165,8 +165,26 @@ serve(async (req) => {
                 if (zip_origen) immedOriginCoords = await getCoordinates(zip_origen);
             } catch(e) {}
             
-            const originHub = hubs.find((h: any) => h.zip === zip_origen);
-            const deliveryRanges = originHub ? originHub.deliveryRanges : null;
+            let closest_hub_for_rates = hubs.find((h: any) => h.zip === zip_origen);
+            if (!closest_hub_for_rates) {
+                const distancePromisesRates = activeHubs.map((hub: any) => {
+                    if (hub.zip === '32780') return Promise.resolve({hub, dist: Infinity});
+                    const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
+                    return getDrivingDistanceMiles(hubCoords, immedOriginCoords)
+                        .then(d => ({hub, dist: d}))
+                        .catch(() => ({hub, dist: Infinity}));
+                });
+                const hubDistancesRates = await Promise.all(distancePromisesRates);
+                let min_dist_for_rates = Infinity;
+                for (const item of hubDistancesRates) {
+                    if (item.dist < min_dist_for_rates) {
+                        min_dist_for_rates = item.dist;
+                        closest_hub_for_rates = item.hub;
+                    }
+                }
+            }
+            
+            const deliveryRanges = closest_hub_for_rates ? closest_hub_for_rates.deliveryRanges : null;
             
             let baseDelivery = calculateDeliveryFee(dist, deliveryRates, is20ft, route20ftDiscount, deliveryRanges);
             let total = baseDelivery + extraServiceFee + craneServiceFee;
@@ -424,12 +442,14 @@ serve(async (req) => {
                     // En renta cobramos envío de ida y vuelta
                     deliveryCost = deliveryCost * 2;
                 } else if (isReefer) {
-                    if (hub.reefer && hub.reefer[reeferKey]) {
-                        containerPrice = hub.reefer[reeferKey];
+                    if (hub.reefer) {
+                        containerPrice = hub.reefer[reeferKey] || hub.reefer[reeferKey.toUpperCase()] || 0;
                     }
                 } else {
                     const priceData = condition === 'new' ? hub.new : hub.used;
-                    containerPrice = priceData ? (priceData[container_size] || 0) : 0;
+                    if (priceData) {
+                        containerPrice = priceData[container_size] || priceData[container_size.toUpperCase()] || priceData[container_size.toLowerCase()] || 0;
+                    }
                 }
 
                 if (containerPrice === 0) continue;

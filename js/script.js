@@ -2509,18 +2509,23 @@ Phone: ${selections.contact.phone}
     updateLanguage(currentLang);
     showView('home');
 
-    // AI Chat Logic
-    const aiChatBtn = document.getElementById('ai-chat-btn');
-    const aiChatWindow = document.getElementById('ai-chat-window');
-    const aiChatClose = document.getElementById('ai-chat-close');
-    const aiChatRestart = document.getElementById('ai-chat-restart');
-    const aiChatSend = document.getElementById('ai-chat-send');
-    const aiChatInput = document.getElementById('ai-chat-input');
+    // ───────────────────────────────────────────────────────
+    // AI Chat Logic — powered by chatbot-core (Cerebro Maestro)
+    // ───────────────────────────────────────────────────────
+    const aiChatBtn      = document.getElementById('ai-chat-btn');
+    const aiChatWindow   = document.getElementById('ai-chat-window');
+    const aiChatClose    = document.getElementById('ai-chat-close');
+    const aiChatRestart  = document.getElementById('ai-chat-restart');
+    const aiChatSend     = document.getElementById('ai-chat-send');
+    const aiChatInput    = document.getElementById('ai-chat-input');
     const aiChatMessages = document.getElementById('ai-chat-messages');
     const typingIndicator = document.getElementById('ai-typing-indicator');
 
-    let chatHistory = []; // Mantener memoria de la conversaciÃ³n
-    let globalLastZipCode = null; // Guardar el Ãºltimo zip code ingresado (tambiÃ©n usado por la UI)
+    // Generate a unique session ID per browser so chatbot-core can track state
+    if (!localStorage.getItem('rpt_chat_sender_id')) {
+        localStorage.setItem('rpt_chat_sender_id', 'web_' + Math.random().toString(36).substr(2, 12));
+    }
+    const SENDER_ID = localStorage.getItem('rpt_chat_sender_id');
 
     if (aiChatBtn && aiChatWindow) {
         aiChatBtn.addEventListener('click', () => {
@@ -2530,540 +2535,93 @@ Phone: ${selections.contact.phone}
 
         aiChatClose.addEventListener('click', () => {
             aiChatWindow.classList.remove('active');
-            setTimeout(() => {
-                aiChatBtn.style.display = 'flex';
-            }, 300);
-        });
-
-        // Auto-format phone number in step 8
-        aiChatInput.addEventListener('input', function(e) {
-            if (botState.step === 8) {
-                let x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/);
-                e.target.value = !x[2] ? x[1] : x[1] + '-' + x[2] + (x[3] ? '-' + x[3] : '');
-            }
+            setTimeout(() => { aiChatBtn.style.display = 'flex'; }, 300);
         });
 
         if (aiChatRestart) {
             aiChatRestart.addEventListener('click', () => {
-                const messages = aiChatMessages.querySelectorAll('.chat-message, .chat-buttons-container');
-                messages.forEach(msg => msg.remove());
-                
-                botState = {
-                    step: 0,
-                    lang: null,
-                    action: null,
-                    condition: null,
-                    size: null,
-                    type: null,
-                    reeferStatus: null,
-                    loadStatus: null,
-                    zip: null,
-                    zipOrigin: null,
-                    zipDest: null
-                };
-                showInputArea(false);
-                runBotStep();
+                // Clear all chat messages
+                const msgs = aiChatMessages.querySelectorAll('.chat-message, .chat-buttons-container');
+                msgs.forEach(m => m.remove());
+                // Generate a fresh session ID so the core resets
+                localStorage.setItem('rpt_chat_sender_id', 'web_' + Math.random().toString(36).substr(2, 12));
+                location.reload();
             });
         }
 
+        // ── Render helpers ────────────────────────────────────
         const appendMessage = (text, sender) => {
-            const msgDiv = document.createElement('div');
-            msgDiv.classList.add('chat-message', sender);
-            msgDiv.textContent = text;
-            aiChatMessages.insertBefore(msgDiv, typingIndicator);
+            const div = document.createElement('div');
+            div.classList.add('chat-message', sender);
+            div.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+            aiChatMessages.insertBefore(div, typingIndicator);
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
         };
 
-        // --- Nuevo Bot Estructurado (State Machine) ---
-        let botState = {
-            step: 0,
-            lang: null,
-            action: null,
-            condition: null,
-            size: null,
-            type: null,
-            reeferStatus: null,
-            loadStatus: null,
-            zip: null,
-            zipOrigin: null,
-            zipDest: null
-        };
+        const showQuickReplies = (options) => {
+            const old = aiChatMessages.querySelector('.chat-buttons-container');
+            if (old) old.remove();
 
-        const chatDict = {
-            'ES': {
-                step1_msg: "¡Hola! Soy tu asesor logístico de RP Tulipan. ¿En qué te puedo ayudar hoy?",
-                step1_btns: ['Comprar', 'Alquilar', 'Transporte'],
-                step1_5_msg: "¿Es para Almacenamiento o para Exportación?",
-                step1_5_btns: ['Almacenamiento', 'Exportación'],
-                step2_cond_msg: "¡Excelente! ¿Buscas un contenedor Nuevo (One Trip) o Usado (Cargo Worthy)?",
-                step2_cond_btns: ['Nuevo', 'Usado'],
-                step2_size_msg: "Claro, para cotizar el movimiento necesito saber de qué tamaño es el contenedor a mover.",
-                step3_size_msg: "Perfecto. Ahora indícame qué medida necesitas.",
-                step3_size_btns: ["20'", "40'", "45'"],
-                step3_5_type_msg: "¿Qué tipo de contenedor necesitas?",
-                step3_7_reefer_msg: "¿Lo necesitas con motor funcional o sin motor (solo térmico)?",
-                step3_7_reefer_btns: ['Funcional', 'No Funcional'],
-                step3_load_msg: "Para cotizar correctamente el movimiento, necesito saber si el contenedor está vacío o cargado.",
-                step3_load_btns: ['Vacío', 'Cargado'],
-                step4_trans_msg: "Casi listos. Por favor, escribe los DOS códigos postales: primero el de ORIGEN y luego el de DESTINO, separados por un espacio. Ejemplo: 33178 33906",
-                step4_trans_ph: "Ej: 33178 33906",
-                step4_other_msg: "¡Excelente! Para darte el precio exacto con entrega, por favor escribe el Zip Code (Código Postal) de donde quieres recibirlo.",
-                step4_other_ph: "Zip Code...",
-                err_trans: "Por favor ingresa exactamente DOS códigos postales de 5 números, separados por un espacio. Ejemplo: 33178 33906",
-                err_other: "El código postal debe tener exactamente 5 números. Por favor, inténtalo de nuevo.",
-                processing: "¡Gracias! Estamos procesando tu cotización... (Este es el fin de la Fase 1 visual)"
-            },
-            'EN': {
-                step1_msg: "I'm your logistics advisor. How can I help you today?",
-                step1_btns: ['Buy', 'Rent', 'Transport'],
-                step1_5_msg: "Is it for Storage or Export?",
-                step1_5_btns: ['Storage', 'Export'],
-                step2_cond_msg: "Excellent! Are you looking for a New (One Trip) or Used (Cargo Worthy) container?",
-                step2_cond_btns: ['New', 'Used'],
-                step2_size_msg: "Sure, to provide an accurate quote, what size is the container you need to move?",
-                step3_size_msg: "Perfect. Now, please let me know what size you need.",
-                step3_size_btns: ["20'", "40'", "45'"],
-                step3_5_type_msg: "What type of container do you need?",
-                step3_7_reefer_msg: "Do you need it with a working motor or non-working (insulated only)?",
-                step3_7_reefer_btns: ['Working', 'Non-Working'],
-                step3_load_msg: "To calculate the exact rate, is the container empty or loaded?",
-                step3_load_btns: ['Empty', 'Loaded'],
-                step4_trans_msg: "Almost done. Please type BOTH Zip Codes: first the ORIGIN and then the DESTINATION, separated by a space. Example: 33178 33906",
-                step4_trans_ph: "Ex: 33178 33906",
-                step4_other_msg: "Great! To give you the exact final price with delivery, please enter your 5-digit Delivery Zip Code.",
-                step4_other_ph: "Zip Code...",
-                err_trans: "Please enter exactly TWO 5-digit zip codes, separated by a space. Example: 33178 33906",
-                err_other: "The Zip Code must be exactly 5 digits. Please try again.",
-                processing: "Thank you! We are processing your quote... (End of visual Phase 1)"
-            }
-        };
+            const container = document.createElement('div');
+            container.classList.add('chat-buttons-container');
+            container.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;margin-bottom:15px;';
 
-        const showInputArea = (show) => {
-            const area = document.querySelector('.ai-chat-input-area');
-            if (area) area.style.display = show ? 'flex' : 'none';
-        };
-
-        const showButtons = (options, callback) => {
-            const btnContainer = document.createElement('div');
-            btnContainer.classList.add('chat-buttons-container');
-            btnContainer.style.display = 'flex';
-            btnContainer.style.gap = '8px';
-            btnContainer.style.flexWrap = 'wrap';
-            btnContainer.style.marginTop = '10px';
-            btnContainer.style.marginBottom = '15px';
-
-            options.forEach((opt, idx) => {
+            options.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.textContent = opt;
-                btn.style.padding = '8px 15px';
-                btn.style.borderRadius = '20px';
-                btn.style.border = '1px solid #c8102e';
-                btn.style.backgroundColor = 'white';
-                btn.style.color = '#c8102e';
-                btn.style.cursor = 'pointer';
-                btn.style.fontWeight = 'bold';
-                
+                btn.style.cssText = 'padding:8px 15px;border-radius:20px;border:1px solid #c8102e;background:white;color:#c8102e;cursor:pointer;font-weight:bold;';
                 btn.addEventListener('click', () => {
+                    container.remove();
                     appendMessage(opt, 'user');
-                    btnContainer.remove();
-                    callback(opt, idx);
+                    sendToCore(opt);
                 });
-                btnContainer.appendChild(btn);
+                container.appendChild(btn);
             });
 
-            aiChatMessages.insertBefore(btnContainer, typingIndicator);
+            aiChatMessages.insertBefore(container, typingIndicator);
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
         };
 
-        const runBotStep = () => {
-            showInputArea(false);
+        // ── Core API call ─────────────────────────────────────
+        const sendToCore = async (text) => {
             typingIndicator.classList.add('active');
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
 
-            setTimeout(() => {
+            try {
+                const senderId = localStorage.getItem('rpt_chat_sender_id');
+                const { data, error } = await supabaseClient.functions.invoke('chatbot-core', {
+                    body: { sender_id: senderId, message: text }
+                });
+
                 typingIndicator.classList.remove('active');
-                
-                if (botState.step === 0) {
-                    appendMessage("Hello! Welcome to RP Tulipan / ¡Hola! Bienvenido a RP Tulipan.", 'bot');
-                    showButtons(['English', 'Español'], (choice, idx) => {
-                        botState.lang = idx === 0 ? 'EN' : 'ES';
-                        botState.step = 1;
-                        runBotStep();
-                    });
-                }
-                else if (botState.step === 1) {
-                    const dict = chatDict[botState.lang];
-                    appendMessage(dict.step1_msg, 'bot');
-                    showButtons(dict.step1_btns, (choice, idx) => {
-                        // Standardize action names internally based on index
-                        const actions = ['Comprar', 'Alquilar', 'Transporte'];
-                        botState.action = actions[idx];
-                        
-                        if (botState.action === 'Comprar') {
-                            botState.step = 1.5;
-                        } else {
-                            botState.step = 2;
-                        }
-                        runBotStep();
-                    });
-                }
-                else if (botState.step === 1.5) {
-                    const dict = chatDict[botState.lang];
-                    appendMessage(dict.step1_5_msg, 'bot');
-                    showButtons(dict.step1_5_btns, (choice, idx) => {
-                        if (idx === 1) {
-                            botState.action = 'Exportación';
-                        }
-                        botState.step = 2;
-                        runBotStep();
-                    });
-                } 
-                else if (botState.step === 2) {
-                    const dict = chatDict[botState.lang];
-                    if (['Comprar', 'Alquilar', 'Exportación'].includes(botState.action)) {
-                        appendMessage(dict.step2_cond_msg, 'bot');
-                        showButtons(dict.step2_cond_btns, (choice, idx) => {
-                            botState.condition = idx === 0 ? 'Nuevo' : 'Usado';
-                            botState.step = 3;
-                            runBotStep();
-                        });
-                    } else if (botState.action === 'Transporte') {
-                        appendMessage(dict.step2_size_msg, 'bot');
-                        showButtons(dict.step3_size_btns, (choice) => {
-                            botState.size = choice;
-                            botState.step = 3;
-                            runBotStep();
-                        });
-                    }
-                }
-                else if (botState.step === 3) {
-                    const dict = chatDict[botState.lang];
-                    if (['Comprar', 'Alquilar', 'Exportación'].includes(botState.action)) {
-                        appendMessage(dict.step3_size_msg, 'bot');
-                        showButtons(dict.step3_size_btns, (choice) => {
-                            botState.size = choice;
-                            
-                            if (botState.action === 'Alquilar' || choice === "45'") {
-                                botState.type = 'Dry';
-                                botState.step = 4;
-                            } else {
-                                botState.step = 3.5;
-                            }
-                            
-                            runBotStep();
-                        });
-                    } else if (botState.action === 'Transporte') {
-                        appendMessage(dict.step3_load_msg, 'bot');
-                        showButtons(dict.step3_load_btns, (choice, idx) => {
-                            botState.loadStatus = idx === 0 ? 'Vacío' : 'Cargado';
-                            botState.step = 4;
-                            runBotStep();
-                        });
-                    }
-                }
-                else if (botState.step === 3.5) {
-                    const dict = chatDict[botState.lang];
-                    appendMessage(dict.step3_5_type_msg, 'bot');
-                    
-                    let typeBtns = ['Dry', 'Reefer'];
-                    if (botState.condition === 'Nuevo' && botState.action !== 'Alquilar') {
-                        typeBtns.push('Open Side', 'Double Door');
-                    }
 
-                    showButtons(typeBtns, (choice) => {
-                        botState.type = choice;
-                        if (choice === 'Reefer') {
-                            botState.step = 3.7;
-                        } else {
-                            botState.step = 4;
-                        }
-                        runBotStep();
-                    });
-                }
-                else if (botState.step === 3.7) {
-                    const dict = chatDict[botState.lang];
-                    appendMessage(dict.step3_7_reefer_msg, 'bot');
-                    showButtons(dict.step3_7_reefer_btns, (choice, idx) => {
-                        botState.reeferStatus = idx === 0 ? 'Funcional' : 'No Funcional';
-                        botState.step = 4;
-                        runBotStep();
-                    });
-                }
-                else if (botState.step === 4) {
-                    showInputArea(true);
-                    const dict = chatDict[botState.lang];
-                    if (botState.action === 'Transporte') {
-                        aiChatInput.placeholder = dict.step4_trans_ph;
-                        appendMessage(dict.step4_trans_msg, 'bot');
-                    } else {
-                        aiChatInput.placeholder = dict.step4_other_ph;
-                        appendMessage(dict.step4_other_msg, 'bot');
-                    }
-                    aiChatInput.focus();
-                    aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-                }
-            }, 800);
-        };
-
-        const handleUserInput = async () => {
-            const text = aiChatInput.value.trim();
-            if (!text) return;
-
-            if (botState.step === 7) {
-                if (text.length < 2) {
-                    appendMessage(text, 'user');
-                    aiChatInput.value = '';
-                    typingIndicator.classList.add('active');
-                    setTimeout(() => {
-                        typingIndicator.classList.remove('active');
-                        appendMessage(botState.lang === 'EN' ? "Please enter a valid name." : "Por favor ingresa un nombre válido.", 'bot');
-                        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-                    }, 600);
+                if (error || !data?.actions) {
+                    appendMessage('Lo siento, hubo un error. Por favor escribe "reiniciar" o haz clic en Restart.', 'bot');
                     return;
                 }
-                botState.leadName = text;
-                appendMessage(text, 'user');
-                aiChatInput.value = '';
-                typingIndicator.classList.add('active');
-                setTimeout(() => {
-                    typingIndicator.classList.remove('active');
-                    botState.step = 8;
-                    aiChatInput.placeholder = "786-768-4409";
-                    appendMessage(botState.lang === 'EN' 
-                        ? `Thank you, ${text}. Now, please enter your contact phone number.` 
-                        : `Gracias, ${text}. Ahora, por favor escribe tu número de teléfono de contacto.`, 'bot');
-                    aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-                }, 800);
-                return;
-            }
 
-            if (botState.step === 8) {
-                botState.leadPhone = text;
-                appendMessage(text, 'user');
-                aiChatInput.value = '';
-                showInputArea(false);
-                typingIndicator.classList.add('active');
-                
-                setTimeout(() => {
-                    typingIndicator.classList.remove('active');
-                    if (typeof sendLeadToSupabase === 'function') {
-                        sendLeadToSupabase({
-                            name:          botState.leadName,
-                            phone:         botState.leadPhone,
-                            delivery_place: botState.zip || botState.zipDest,
-                            amount:        botState.finalAmount,
-                            size:          botState.size,
-                            service:       botState.action,
-                            message:       'Order requested via Structured Chatbot.'
-                        }).catch(e => console.error("DB Error on Chatbot close:", e));
-                    }
-                    let waText = botState.lang === 'EN'
-                        ? `Hello! I would like to proceed with my order:\n\nName: ${botState.leadName}\nPhone: ${botState.leadPhone}\nAction: ${botState.action}\nSize: ${botState.size}\nZip: ${botState.zip || botState.zipDest}\nEstimated Price: ${botState.finalFormAmount}`
-                        : `¡Hola! Me gustaría concretar mi pedido:\n\nNombre: ${botState.leadName}\nTeléfono: ${botState.leadPhone}\nAcción: ${botState.action}\nTamaño: ${botState.size}\nZip: ${botState.zip || botState.zipDest}\nPrecio estimado: ${botState.finalFormAmount}`;
-                    window.open(`https://wa.me/17867366292?text=${encodeURIComponent(waText)}`, '_blank');
-                    
-                    setTimeout(() => {
-                        appendMessage(botState.lang === 'EN' ? "Perfect! We have redirected you to WhatsApp to finalize your order." : "¡Perfecto! Te hemos redirigido a WhatsApp para finalizar la gestión.", 'bot');
-                        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-                    }, 1000);
-                }, 800);
-                return;
-            }            if (botState.step === 4) {
-                const dict = chatDict[botState.lang];
-                if (botState.action === 'Transporte') {
-                    const zips = text.split(' ').filter(z => z.trim().length > 0);
-                    if (zips.length !== 2 || !/^\d{5}$/.test(zips[0]) || !/^\d{5}$/.test(zips[1])) {
-                        appendMessage(text, 'user');
-                        aiChatInput.value = '';
-                        typingIndicator.classList.add('active');
-                        setTimeout(() => {
-                            typingIndicator.classList.remove('active');
-                            appendMessage(dict.err_trans, 'bot');
-                            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-                        }, 600);
-                        return;
-                    }
-                    botState.zipOrigin = zips[0];
-                    botState.zipDest = zips[1];
-                } else {
-                    if (!/^\d{5}$/.test(text)) {
-                        appendMessage(text, 'user');
-                        aiChatInput.value = '';
-                        typingIndicator.classList.add('active');
-                        setTimeout(() => {
-                            typingIndicator.classList.remove('active');
-                            appendMessage(dict.err_other, 'bot');
-                            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-                        }, 600);
-                        return;
-                    }
-                    botState.zip = text;
-                }
-
-                appendMessage(text, 'user');
-                aiChatInput.value = '';
-                showInputArea(false);
-                typingIndicator.classList.add('active');
-                aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
-
-                // Real call to calculate-quote
-                try {
-                    const isTransport = botState.action === 'Transporte' || botState.action === 'Transport';
-                    const isExport = botState.action === 'Exportación' || botState.action === 'Export';
-                    const isNew = botState.condition === 'Nuevo' || botState.condition === 'New';
-                    
-                    let sizeKey = '';
-                    if (botState.size === "20'") {
-                        if (botState.type === 'Reefer') sizeKey = botState.reeferStatus === 'Funcional' ? '20func' : '20nofunc';
-                        else if (botState.type === 'Open Side') sizeKey = '20side';
-                        else if (botState.type === 'Double Door') sizeKey = '20dd';
-                        else sizeKey = '20std';
-                    }
-                    else if (botState.size === "40'") {
-                        if (botState.type === 'Reefer') sizeKey = botState.reeferStatus === 'Funcional' ? '40func' : '40nofunc';
-                        else if (botState.type === 'Open Side') sizeKey = '40side';
-                        else if (botState.type === 'Double Door') sizeKey = '40dd';
-                        else sizeKey = '40hc';
-                    }
-                    else if (botState.size === "45'") sizeKey = '45hc';
-
-                    const reqBody = {
-                        operation_mode: botState.action === 'Alquilar' ? 'rent' : (isTransport ? 'transport_only' : 'sale'),
-                        condition: isNew ? 'new' : 'used',
-                        zip_origen: isTransport ? botState.zipOrigin : undefined,
-                        zip_destino: isTransport ? botState.zipDest : botState.zip,
-                        container_size: sizeKey,
-                        options: {
-                            export_certificate: isExport,
-                            extra_service: botState.loadStatus === 'Vacío',
-                            crane_service: botState.loadStatus === 'Cargado'
-                        }
-                    };
-
-                    const { data, error } = await supabaseClient.functions.invoke('calculate-quote', {
-                        body: reqBody
-                    });
-
-                    typingIndicator.classList.remove('active');
-                    
-                    if (error || (data && data.error)) {
-                        typingIndicator.classList.remove('active');
-                        appendMessage(botState.lang === 'EN' 
-                            ? "Oops! It looks like we are out of stock for that specific model in your area. I invite you to click the 'Restart' button (at the top right) to try a different size or condition. We surely have another great option for you!" 
-                            : "¡Ups! Parece que se nos agotó el inventario para ese modelo en específico en tu zona. Te invito a hacer clic en el botón 'Restart' (arriba a la derecha) para intentar con otra medida u otra condición. ¡Seguro tenemos otra excelente opción para ti!", 'bot');
-                        showInputArea(false);
-                        console.error("Supabase API Error:", error || data.error);
-                        return;
-                    }
-
-                    let finalPrice = data.total_price || data.totalPrice;
-                    let immediatePrice = data.immediate_price; // Only present for transport_only
-
-                    const handleFinalDecision = (idx, amount, formAmount) => {
-                        if (idx === 0) {
-                            botState.finalAmount = amount;
-                            botState.finalFormAmount = formAmount;
-                            botState.step = 7;
-                            appendMessage(botState.lang === 'EN' 
-                                ? "Excellent! Please enter your full name to start the order." 
-                                : "¡Excelente! Por favor, escribe tu nombre completo para iniciar la orden.", 'bot');
-                            showInputArea(true);
-                            aiChatInput.placeholder = botState.lang === 'EN' ? "John Doe" : "Juan Perez";
-                        } else {
-                            appendMessage(botState.lang === 'EN' ? "No problem. Let me know if you need anything else!" : "No hay problema. ¡Avísame si necesitas algo más!", 'bot');
-                        }
-                    };
-
-                    if (!finalPrice) {
-                        appendMessage(botState.lang === 'EN' 
-                            ? "Oops! It looks like we are out of stock for that specific model in your area. I invite you to click the 'Restart' button (at the top right) to try a different size or condition. We surely have another great option for you!" 
-                            : "¡Ups! Parece que se nos agotó el inventario para ese modelo en específico en tu zona. Te invito a hacer clic en el botón 'Restart' (arriba a la derecha) para intentar con otra medida u otra condición. ¡Seguro tenemos otra excelente opción para ti!", 'bot');
-                        showInputArea(false);
-                    } else if (isExport) {
-                        const isSpecialBox = ['Reefer', 'Open Side', 'Double Door'].includes(botState.type);
-                        const basePrice = (data.container_price || 0) + (isSpecialBox ? 0 : (data.cert_fee || 0));
-                        const formattedBase = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(basePrice);
-                        const discount = botState.size === "20'" ? 100 : 150;
-                        const finalPriceToUse = isSpecialBox ? finalPrice - (data.cert_fee || 0) : finalPrice;
-                        
-                        botState.step = 5;
-                        const certTextEN = isSpecialBox ? '' : ' (with certification)';
-                        const certTextES = isSpecialBox ? '' : ' (con certificación)';
-                        const msg = botState.lang === 'EN' 
-                            ? `The price for the container ready for export${certTextEN} is **${formattedBase}** (without transport). If you book the transport with us, we will apply a $${discount} discount on the container. Do you need us to transport it to the port or your address to load it first?`
-                            : `El precio del contenedor listo para exportación${certTextES} es de **${formattedBase}** (sin transporte). Si haces el transporte con nosotros, te aplicamos un descuento de $${discount} en el contenedor. ¿Necesitas que te lo transportemos al puerto o a tu dirección para cargarlo primero?`;
-                        
-                        appendMessage(msg, 'bot');
-                        showButtons(botState.lang === 'EN' ? ['Yes, quote transport', 'No, I will handle it'] : ['Sí, cotizar transporte', 'No, yo me encargo'], (choice, idx) => {
-                            if (idx === 0) {
-                                const finalP = finalPriceToUse - discount;
-                                const formP = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(finalP);
-                                
-                                const cMsg = botState.lang === 'EN'
-                                    ? `Excellent. To calculate the exact transport cost to your location and apply your discount, please leave your contact details below and an agent will call you shortly.`
-                                    : `Excelente. Para calcular el costo exacto del transporte hasta su ubicación y aplicarle el descuento, por favor déjenos sus datos de contacto a continuación y un agente le llamará en breve.`;
-                                
-                                botState.step = 6;
-                                appendMessage(cMsg, 'bot');
-                                showButtons(botState.lang === 'EN' ? ['Yes, proceed', 'No, thanks'] : ['Sí, proceder', 'No, gracias'], (c, i) => handleFinalDecision(i, finalP, formP));
-                            } else {
-                                const certTextFinalEN = isSpecialBox ? 'container' : 'container and certification';
-                                const certTextFinalES = isSpecialBox ? 'el contenedor' : 'el contenedor y la certificación';
-                                const cMsg = botState.lang === 'EN'
-                                    ? `Perfect. The total price for the ${certTextFinalEN} is **${formattedBase}**. Would you like to proceed and leave your contact details?`
-                                    : `Perfecto. El precio total por ${certTextFinalES} es de **${formattedBase}**. ¿Te gustaría proceder con la compra y dejarnos tus datos de contacto?`;
-                                
-                                botState.step = 6;
-                                appendMessage(cMsg, 'bot');
-                                showButtons(botState.lang === 'EN' ? ['Yes, proceed', 'No, thanks'] : ['Sí, proceder', 'No, gracias'], (c, i) => handleFinalDecision(i, basePrice, formattedBase));
-                            }
-                        });
+                for (const action of data.actions) {
+                    if (action.type === 'quick_replies' && action.options && action.options.length) {
+                        appendMessage(action.text, 'bot');
+                        showQuickReplies(action.options);
                     } else {
-                        const formattedPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(finalPrice);
-                        const formattedImm = immediatePrice ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(immediatePrice) : null;
-                        
-                        let closingMsg = botState.lang === 'EN'
-                            ? `Great news! The total price for your ${botState.condition === 'Nuevo' ? 'New' : 'Used'} ${botState.size} container delivered to ${botState.zip} is **${formattedPrice}**.\n\nWould you like to proceed and leave your contact details to coordinate?`
-                            : `¡Excelente noticia! El precio total para tu contenedor ${botState.condition === 'Nuevo' ? 'Nuevo' : 'Usado'} de ${botState.size} entregado al Zip Code ${botState.zip} es de **${formattedPrice}**.\n\n¿Te gustaría proceder con la compra y dejarnos tus datos de contacto para coordinar?`;
-                            
-                        if (botState.action === 'Alquilar') {
-                            const rentMonthly = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(data.container_price || 0);
-                            const rentLogistics = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(data.delivery_cost || 0);
-                            
-                            closingMsg = botState.lang === 'EN'
-                                ? `Great news! We have availability to rent your ${botState.size} container to Zip Code ${botState.zip}.\n\n`
-                                  + `🔹 **Monthly Rent:** ${rentMonthly}\n`
-                                  + `🔹 **Logistics (Delivery & future pickup):** ${rentLogistics} (one-time fee)\n\n`
-                                  + `To start, the **initial payment** would be **${formattedPrice}**. The following months you only pay your ${rentMonthly} rent.\n\n`
-                                  + `Would you like to proceed with the rental and leave your contact details to coordinate?`
-                                : `¡Excelente noticia! Tenemos disponibilidad para renta de tu contenedor de ${botState.size} en el Zip Code ${botState.zip}.\n\n`
-                                  + `🔹 **Renta Mensual:** ${rentMonthly}\n`
-                                  + `🔹 **Logística (Entrega y Recogida futura):** ${rentLogistics} (pago único)\n\n`
-                                  + `Para iniciar, el **pago inicial** sería de **${formattedPrice}**. Los meses siguientes solo pagarías tu renta de ${rentMonthly}.\n\n`
-                                  + `¿Te gustaría proceder con la renta y dejarnos tus datos de contacto para coordinar?`;
-                        } else if (isTransport) {
-                            closingMsg = botState.lang === 'EN'
-                                ? `Great news! We have two transport options for your ${botState.size} container from ${botState.zipOrigin} to ${botState.zipDest}:\n\n`
-                                  + `🔹 **Flexible Delivery (${formattedPrice}):** We coordinate to pick it up while our trucks are already on a route near the origin. It may take a few extra days but saves you money.\n`
-                                  + `🔹 **Immediate Delivery (${formattedImm}):** We dispatch a truck directly from our base to pick it up immediately.\n\n`
-                                  + `Would you like to proceed with one of these options?`
-                                : `¡Excelente noticia! Tenemos dos opciones de transporte para tu contenedor de ${botState.size} desde ${botState.zipOrigin} hasta ${botState.zipDest}:\n\n`
-                                  + `🔹 **Envío Flexible (${formattedPrice}):** Coordinamos la recogida aprovechando que nuestros camiones estén en ruta cerca del origen. Puede tomar unos días más pero ahorras dinero.\n`
-                                  + `🔹 **Envío Inmediato (${formattedImm}):** Enviamos un camión directamente desde nuestra base para recogerlo de inmediato.\n\n`
-                                  + `¿Te gustaría proceder con alguna de estas opciones?`;
-                        }
-
-                        appendMessage(closingMsg, 'bot');
-                        showButtons(botState.lang === 'EN' ? ['Yes, proceed', 'No, thanks'] : ['Sí, proceder', 'No, gracias'], (choice, idx) => handleFinalDecision(idx, finalPrice, formattedPrice));
+                        appendMessage(action.text, 'bot');
                     }
-
-                } catch (err) {
-                    typingIndicator.classList.remove('active');
-                    console.error("Bot Error:", err);
-                    appendMessage("🚨 Error Técnico: " + (err.message || err), 'bot');
-                    showInputArea(true);
                 }
+            } catch (err) {
+                typingIndicator.classList.remove('active');
+                console.error('chatbot-core error:', err);
+                appendMessage('Error de conexión. Por favor inténtalo de nuevo.', 'bot');
             }
+        };
+
+        // ── Text input ────────────────────────────────────────
+        const handleUserInput = () => {
+            const text = aiChatInput.value.trim();
+            if (!text) return;
+            aiChatInput.value = '';
+            appendMessage(text, 'user');
+            sendToCore(text);
         };
 
         aiChatSend.addEventListener('click', handleUserInput);
@@ -3071,14 +2629,13 @@ Phone: ${selections.contact.phone}
             if (e.key === 'Enter') handleUserInput();
         });
 
-        // Auto-open chat and greet
+        // ── Auto-open and greet on page load ─────────────────
         setTimeout(() => {
-            if (chatHistory.length === 0) {
-                aiChatWindow.classList.add('active');
-                aiChatBtn.style.display = 'none';
-                runBotStep();
-            }
-        }, 3000); // Wait 3 seconds after page load
+            aiChatWindow.classList.add('active');
+            aiChatBtn.style.display = 'none';
+            sendToCore('hola');
+        }, 1000);
     }
 
 });
+
