@@ -166,20 +166,16 @@ serve(async (req) => {
             } catch(e) {}
             
             let closest_hub_for_rates = hubs.find((h: any) => h.zip === zip_origen);
-            if (!closest_hub_for_rates) {
-                const distancePromisesRates = activeHubs.map((hub: any) => {
-                    if (hub.zip === '32780') return Promise.resolve({hub, dist: Infinity});
-                    const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
-                    return getDrivingDistanceMiles(hubCoords, immedOriginCoords)
-                        .then(d => ({hub, dist: d}))
-                        .catch(() => ({hub, dist: Infinity}));
-                });
-                const hubDistancesRates = await Promise.all(distancePromisesRates);
+            if (!closest_hub_for_rates && immedOriginCoords && immedOriginCoords.lat) {
                 let min_dist_for_rates = Infinity;
-                for (const item of hubDistancesRates) {
-                    if (item.dist < min_dist_for_rates) {
-                        min_dist_for_rates = item.dist;
-                        closest_hub_for_rates = item.hub;
+                for (const hub of activeHubs) {
+                    if (hub.zip === '32780') continue;
+                    const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : null;
+                    if (!hubCoords) continue;
+                    const d = getStraightLineDistance(immedOriginCoords.lat, immedOriginCoords.lon, hubCoords.lat, hubCoords.lon);
+                    if (d < min_dist_for_rates) {
+                        min_dist_for_rates = d;
+                        closest_hub_for_rates = hub;
                     }
                 }
             }
@@ -209,32 +205,27 @@ serve(async (req) => {
                 
                 // Si la grua sale de Miami, la yarda obligatoriamente tiene que ser Miami
                 if (options.crane_service) {
-                    const miamiHub = activeHubs.find((h: any) => h.name.toLowerCase().includes('miami')) || { lat: 25.8640, lon: -80.4074, name: 'Miami Hub', zip: '33178' };
-                    const hubCoords = (miamiHub.lat && miamiHub.lon) ? {lat: miamiHub.lat, lon: miamiHub.lon} : miamiHub.zip;
-                    const d = await getDrivingDistanceMiles(hubCoords, immedOriginCoords).catch(() => Infinity);
-                    hubDistances = [{ hub: miamiHub, dist: d }];
-                } else {
-                    const distancePromises = activeHubs.map((hub: any) => {
-                        // Skip Titusville as per business logic (usually not used for dispatch)
-                        if (hub.zip === '32780') return Promise.resolve({hub, dist: Infinity});
-                        const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
-                        return getDrivingDistanceMiles(hubCoords, immedOriginCoords)
-                            .then(d => ({hub, dist: d}))
-                            .catch(() => ({hub, dist: Infinity}));
-                    });
-                    hubDistances = await Promise.all(distancePromises);
-                }
-                
-                for (const item of hubDistances) {
-                    if (item.dist < minDistToPickup) {
-                        minDistToPickup = item.dist;
-                        closest_yard = item.hub;
-                        closest_yard_zip = item.hub.zip;
+                    closest_yard = activeHubs.find((h: any) => h.name.toLowerCase().includes('miami')) || { lat: 25.8640, lon: -80.4074, name: 'Miami Hub', zip: '33178' };
+                    closest_yard_zip = closest_yard.zip;
+                } else if (immedOriginCoords && immedOriginCoords.lat) {
+                    for (const hub of activeHubs) {
+                        if (hub.zip === '32780') continue;
+                        const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : null;
+                        if (!hubCoords) continue;
+                        const d = getStraightLineDistance(immedOriginCoords.lat, immedOriginCoords.lon, hubCoords.lat, hubCoords.lon);
+                        if (d < minDistToPickup) {
+                            minDistToPickup = d;
+                            closest_yard = hub;
+                            closest_yard_zip = hub.zip;
+                        }
                     }
                 }
 
-                if (closest_yard && minDistToPickup !== Infinity) {
-                    immediate_distance = minDistToPickup + dist;
+                if (closest_yard) {
+                    const yardCoords = (closest_yard.lat && closest_yard.lon) ? {lat: closest_yard.lat, lon: closest_yard.lon} : closest_yard.zip;
+                    const d = await getDrivingDistanceMiles(yardCoords, immedOriginCoords).catch(() => Infinity);
+                    if (d !== Infinity) {
+                        immediate_distance = d + dist;
                     // Usually yard dispatch uses global rates, or its own ranges if we want.
                     // We'll use global rates as fallback if it has no ranges
                     const yardRanges = closest_yard.deliveryRanges || null;
@@ -247,6 +238,7 @@ serve(async (req) => {
                         immedTotal = ceiledImmed;
                     }
                     immediate_price = immedTotal;
+                    }
                 }
             } catch (e) {
                 console.warn("Could not calculate immediate price:", e);
@@ -269,112 +261,7 @@ serve(async (req) => {
         // 2. MODO: MATRIZ COMPLETA (CHATBOT O LISTADOS DE WEBSITE)
         // ─────────────────────────────────────────────────────────────────────────────
         if (!container_size) {
-            if (!zip_destino) throw new Error("zip_destino es requerido para generar la matriz");
-
-            let destCoords = zip_destino;
-            try { destCoords = await getCoordinates(zip_destino); } catch(e) {}
-
-            const distances = await Promise.all(
-                activeHubs.map((hub: any) => {
-                    const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
-                    return getDrivingDistanceMiles(hubCoords, destCoords).catch(() => 999999);
-                })
-            );
-
-            const stdSizes = ["20std", "40std", "40hc", "45hc", "20side", "40side", "20dd", "40dd"];
-            const reeferSizes = ["20func", "20nofunc", "40func", "40nofunc"];
-            
-            const bestUsed: Record<string, number> = {};
-            const bestNew: Record<string, number> = {};
-            const bestReefer: Record<string, number> = {};
-            const shippingCosts: Record<string, number> = {};
-
-            activeHubs.forEach((hub: any, index: number) => {
-                const dist = distances[index];
-                if (dist === 999999) return;
-                
-                // NO 20ft discount for sales!
-                const deliveryCost = calculateDeliveryFee(dist, deliveryRates, false, 0, hub.deliveryRanges);
-                
-                shippingCosts[hub.name] = deliveryCost; 
-
-                stdSizes.forEach(size => {
-                    const is20 = size.startsWith('20');
-                    const localCertFee = options.export_certificate ? (is20 ? (hub.certCosts?.['20ft'] || 250) : (hub.certCosts?.['40ft'] || 250)) : 0;
-                    if (hub.used && hub.used[size] > 0) {
-                        let total = hub.used[size] + deliveryCost + craneServiceFee + localCertFee;
-                        if (features.redondeo_25) total = Math.ceil(total / 25) * 25;
-                        if (!bestUsed[size] || total < bestUsed[size]) bestUsed[size] = total;
-                    }
-                    if (hub.new && hub.new[size] > 0) {
-                        let total = hub.new[size] + deliveryCost + craneServiceFee + localCertFee;
-                        if (features.redondeo_25) total = Math.ceil(total / 25) * 25;
-                        if (!bestNew[size] || total < bestNew[size]) bestNew[size] = total;
-                    }
-                });
-
-                reeferSizes.forEach(size => {
-                    const is20 = size.startsWith('20');
-                    const localCertFee = options.export_certificate ? (is20 ? (hub.certCosts?.['20ft'] || 250) : (hub.certCosts?.['40ft'] || 250)) : 0;
-                    if (hub.reefer && hub.reefer[size] > 0) {
-                        let total = hub.reefer[size] + deliveryCost + craneServiceFee + localCertFee;
-                        if (features.redondeo_25) total = Math.ceil(total / 25) * 25;
-                        if (!bestReefer[size] || total < bestReefer[size]) bestReefer[size] = total;
-                    }
-                });
-            });
-
-            // Extract base rent prices from the first active hub that has them
-            let baseRentUsed = { "20std": 150, "40std": 225, "40hc": 250, "45hc": 300 }; // Fallbacks
-            let baseRentNew = { "20std": 250, "40std": 325, "40hc": 350, "45hc": 400 };
-            const hubWithRent = activeHubs.find((h: any) => h.rent && h.rent.used);
-            if (hubWithRent && hubWithRent.rent) {
-                if (hubWithRent.rent.used) baseRentUsed = { ...baseRentUsed, ...hubWithRent.rent.used };
-                if (hubWithRent.rent.new) baseRentNew = { ...baseRentNew, ...hubWithRent.rent.new };
-            }
-
-            const mappedUsed = {
-                "20'": bestUsed["20std"],
-                "40' STD": bestUsed["40std"],
-                "40' HC": bestUsed["40hc"],
-                "45'": bestUsed["45hc"]
-            };
-            const mappedNew = {
-                "20'": bestNew["20std"],
-                "40' STD": bestNew["40std"],
-                "40' HC": bestNew["40hc"],
-                "45'": bestNew["45hc"]
-            };
-            const mappedReefer = {
-                "20' Funcional": bestReefer["20func"],
-                "20' Sin A/C": bestReefer["20nofunc"],
-                "40' Funcional": bestReefer["40func"],
-                "40' Sin A/C": bestReefer["40nofunc"]
-            };
-            const mappedRentUsed = {
-                "20'": baseRentUsed["20std"] || 150,
-                "40' STD": baseRentUsed["40std"] || 225,
-                "40' HC": baseRentUsed["40hc"] || 250,
-                "45'": baseRentUsed["45hc"] || 300
-            };
-            const mappedRentNew = {
-                "20'": baseRentNew["20std"] || 250,
-                "40' STD": baseRentNew["40std"] || 325,
-                "40' HC": baseRentNew["40hc"] || 350,
-                "45'": baseRentNew["45hc"] || 400
-            };
-
-            return new Response(JSON.stringify({
-                bestUsed: mappedUsed,
-                bestNew: mappedNew,
-                bestReefer: mappedReefer,
-                rentUsed: mappedRentUsed,
-                rentNew: mappedRentNew,
-                rawUsed: bestUsed, 
-                rawNew: bestNew,
-                rawReefer: bestReefer,
-                shippingCosts: shippingCosts
-            }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+            return new Response(JSON.stringify({ error: "Este endpoint ya no soporta cálculos de matriz completa para optimizar tiempos. Por favor usa 'operation_mode' con un 'container_size' específico." }), { status: 400, headers: corsHeaders });
         }
 
         // ─────────────────────────────────────────────────────────────────────────────
@@ -403,44 +290,31 @@ serve(async (req) => {
             let destCoords = zip_destino;
             try { destCoords = await getCoordinates(zip_destino); } catch(e) {}
 
-            const hubDistances = await Promise.all(
-                activeHubs.map(async (hub: any) => {
-                    try {
-                        const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
-                        const dist = await getDrivingDistanceMiles(hubCoords, destCoords);
-                        return { hub, dist };
-                    } catch (e) {
-                        return { hub, dist: Infinity };
-                    }
-                })
-            );
+            let candidates: any[] = [];
 
-            // 3. Evaluar el mejor puerto
-            for (const item of hubDistances) {
-                if (item.dist === Infinity) continue;
+            // 1. Evaluar todos los puertos usando estimación de línea recta * 1.35
+            for (const hub of activeHubs) {
+                const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : null;
+                if (!hubCoords || !destCoords.lat) continue;
                 
-                const hub = item.hub;
-                let deliveryCost = calculateDeliveryFee(item.dist, deliveryRates, false, 0, hub.deliveryRanges);
+                const straightMiles = getStraightLineDistance(hubCoords.lat, hubCoords.lon, destCoords.lat, destCoords.lon);
+                const estimatedMiles = straightMiles * 1.35;
                 
-                // Fetch container price from the exact size
+                let estimatedDeliveryCost = calculateDeliveryFee(estimatedMiles, deliveryRates, false, 0, hub.deliveryRanges);
+                
                 let containerPrice = 0;
                 
                 if (operation_mode === 'rent') {
-                    // For rent, use global rent rates (if available in settings or hardcoded). Usually rent prices are global.
                     if (isReefer) {
                         containerPrice = 0;
                     } else {
                         const rentData = condition === 'new' ? hub.rent?.new : hub.rent?.used;
                         containerPrice = rentData ? (rentData[container_size] || 0) : 0;
-                        
-                        // Fallback 1: Legacy rent structure
                         if (containerPrice === 0 && hub.rent && typeof hub.rent[container_size] === 'number') {
                             containerPrice = hub.rent[container_size];
                         }
                     }
-                    
-                    // En renta cobramos envío de ida y vuelta
-                    deliveryCost = deliveryCost * 2;
+                    estimatedDeliveryCost = estimatedDeliveryCost * 2;
                 } else if (isReefer) {
                     if (hub.reefer) {
                         containerPrice = hub.reefer[reeferKey] || hub.reefer[reeferKey.toUpperCase()] || 0;
@@ -454,22 +328,39 @@ serve(async (req) => {
 
                 if (containerPrice === 0) continue;
                 
-                let subtotal = containerPrice + deliveryCost;
-                
-                // Apply Redondeo 25 exactly like Webapp Mode 1
-                if (features.redondeo_25) {
-                    const ceiledSub = Math.ceil(subtotal / 25) * 25;
-                    deliveryCost += (ceiledSub - subtotal);
-                    subtotal = ceiledSub;
-                }
-                
-                const localCertFee = options.export_certificate ? (is20ft ? (hub.certCosts?.['20ft'] || 250) : (hub.certCosts?.['40ft'] || 250)) : 0;
-                const totalPrice = subtotal + craneServiceFee + localCertFee + extraServiceFee;
+                let estimatedSubtotal = containerPrice + estimatedDeliveryCost;
+                candidates.push({ hub, containerPrice, estimatedSubtotal });
+            }
 
-                if (totalPrice < bestTotalPrice) {
+            // 2. Escoger el ganador y hacer una única llamada a OSRM
+            if (candidates.length > 0) {
+                candidates.sort((a, b) => a.estimatedSubtotal - b.estimatedSubtotal);
+                const bestCandidate = candidates[0];
+                const hub = bestCandidate.hub;
+                const containerPrice = bestCandidate.containerPrice;
+
+                const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : hub.zip;
+                const actualDist = await getDrivingDistanceMiles(hubCoords, destCoords).catch(() => Infinity);
+
+                if (actualDist !== Infinity) {
+                    let deliveryCost = calculateDeliveryFee(actualDist, deliveryRates, false, 0, hub.deliveryRanges);
+                    
+                    if (operation_mode === 'rent') deliveryCost = deliveryCost * 2;
+
+                    let subtotal = containerPrice + deliveryCost;
+                    
+                    if (features.redondeo_25) {
+                        const ceiledSub = Math.ceil(subtotal / 25) * 25;
+                        deliveryCost += (ceiledSub - subtotal);
+                        subtotal = ceiledSub;
+                    }
+                    
+                    const localCertFee = options.export_certificate ? (is20ft ? (hub.certCosts?.['20ft'] || 250) : (hub.certCosts?.['40ft'] || 250)) : 0;
+                    const totalPrice = subtotal + craneServiceFee + localCertFee + extraServiceFee;
+
                     bestTotalPrice = totalPrice;
                     bestHub = hub;
-                    bestDistance = item.dist;
+                    bestDistance = actualDist;
                     bestDeliveryCost = deliveryCost;
                     bestContainerPrice = containerPrice;
                     bestCertFee = localCertFee;

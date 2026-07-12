@@ -1,4 +1,4 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3"
 import { sendMessage, sendQuickReplies } from "./meta-api.ts"
 
@@ -62,8 +62,7 @@ serve(async (req) => {
                                     const txt = event.message.text.trim().toLowerCase();
                                     const customerId = event.recipient.id;
                                     if (txt.includes("//activar") || txt.includes("//activate") || txt.includes("// reiniciar") || txt.includes("//restart")) {
-                                        await updateSession(customerId, { step: 0.1 });
-                                        await sendQuickReplies(customerId, "Hello! Welcome to RP Tulipan / ¡Hola! Bienvenido a RP Tulipan.", ["English", "Español"]);
+                                        await updateSession(customerId, { step: 0 });
                                     } else if (txt.startsWith("//")) {
                                         await updateSession(customerId, { step: -1 });
                                     }
