@@ -2633,7 +2633,7 @@ Phone: ${selections.contact.phone}
         setTimeout(() => {
             aiChatWindow.classList.add('active');
             aiChatBtn.style.display = 'none';
-            sendToCore('hola');
+            sendToCore('hello');
         }, 1000);
     }
 

@@ -15,25 +15,49 @@ async function getCoordinates(zip: string): Promise<{lat: number, lon: number}> 
         return memoryCache.get(cacheKey);
     }
     
-    // First try strict postalcode
-    const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${cleanZip}&countrycodes=us&limit=1`;
-    const response = await fetch(url, { headers: { 'User-Agent': 'CalcLogistics-API/1.0' } });
-    const data = await response.json();
-    if (data && data.length > 0) {
-        const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-        memoryCache.set(cacheKey, coords);
-        return coords;
+    // 1. Zippopotam.us (Primary - No strict rate limits, highly reliable for US zips)
+    try {
+        const urlZip = `https://api.zippopotam.us/us/${cleanZip}`;
+        const responseZip = await fetch(urlZip);
+        if (responseZip.ok) {
+            const dataZip = await responseZip.json();
+            if (dataZip && dataZip.places && dataZip.places.length > 0) {
+                const coords = { lat: parseFloat(dataZip.places[0].latitude), lon: parseFloat(dataZip.places[0].longitude) };
+                memoryCache.set(cacheKey, coords);
+                return coords;
+            }
+        }
+    } catch (e) {
+        console.warn('Zippopotam.us failed, falling back to Nominatim');
     }
+
+    // 2. Fallback to Nominatim OSM strict postalcode
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&postalcode=${cleanZip}&countrycodes=us&limit=1`;
+        const response = await fetch(url, { headers: { 'User-Agent': 'CalcLogistics-API/1.0' } });
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.length > 0) {
+                const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+                memoryCache.set(cacheKey, coords);
+                return coords;
+            }
+        }
+    } catch(e) {}
     
-    // Fallback to free search (handles Zips that OSM only has as addresses, like 32191)
-    const urlFallback = `https://nominatim.openstreetmap.org/search?format=json&q=${cleanZip}+USA&limit=1`;
-    const responseFallback = await fetch(urlFallback, { headers: { 'User-Agent': 'CalcLogistics-API/1.0' } });
-    const dataFallback = await responseFallback.json();
-    if (dataFallback && dataFallback.length > 0) {
-        const coords = { lat: parseFloat(dataFallback[0].lat), lon: parseFloat(dataFallback[0].lon) };
-        memoryCache.set(cacheKey, coords);
-        return coords;
-    }
+    // 3. Fallback to Nominatim OSM free search
+    try {
+        const urlFallback = `https://nominatim.openstreetmap.org/search?format=json&q=${cleanZip}+USA&limit=1`;
+        const responseFallback = await fetch(urlFallback, { headers: { 'User-Agent': 'CalcLogistics-API/1.0' } });
+        if (responseFallback.ok) {
+            const dataFallback = await responseFallback.json();
+            if (dataFallback && dataFallback.length > 0) {
+                const coords = { lat: parseFloat(dataFallback[0].lat), lon: parseFloat(dataFallback[0].lon) };
+                memoryCache.set(cacheKey, coords);
+                return coords;
+            }
+        }
+    } catch(e) {}
     
     throw new Error('Coordinates not found for ' + zip);
 }
@@ -123,6 +147,10 @@ serve(async (req) => {
         const condition = payload.condition; 
         const operation_mode = payload.operation_mode || "sale"; 
         const options = payload.options || {};
+        const quantity = Math.max(1, parseInt(payload.quantity) || 1);
+        // Truck logic: 1 truck = 1x40' OR 2x20'. For 2x20': containers=2, trucks=1.
+        const is20ftSize = container_size && (container_size.startsWith('20') || container_size === '20std' || container_size.startsWith('20'));
+        const trucksNeeded = is20ftSize ? Math.ceil(quantity / 2) : quantity;
 
         const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
         const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -372,16 +400,23 @@ serve(async (req) => {
             return new Response(JSON.stringify({ error: "No available hubs, containers, or route impossible" }), { status: 400, headers: corsHeaders });
         }
 
+        // Apply quantity multiplier
+        const totalContainerPrice = bestContainerPrice * quantity;
+        const totalDeliveryCost = bestDeliveryCost * trucksNeeded;
+        const totalPrice = totalContainerPrice + totalDeliveryCost + craneServiceFee + extraServiceFee + bestCertFee;
+
         return new Response(JSON.stringify({
             origin_hub: bestHub.name,
             origin_zip: bestHub.zip,
             distance_miles: bestDistance,
-            delivery_cost: bestDeliveryCost,
-            container_price: bestContainerPrice,
+            delivery_cost: totalDeliveryCost,
+            container_price: totalContainerPrice,
             crane_service_fee: craneServiceFee,
             extra_service_fee: extraServiceFee,
             cert_fee: bestCertFee,
-            total_price: bestTotalPrice
+            total_price: totalPrice,
+            quantity: quantity,
+            trucks_needed: trucksNeeded
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
