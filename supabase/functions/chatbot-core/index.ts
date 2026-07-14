@@ -90,7 +90,7 @@ COMPANY KNOWLEDGE (use this to answer questions naturally — never make things 
 - NEW CONTAINERS: We DO have brand new (One-Trip) containers available in all sizes (20ft, 40ft, 45ft) and types (including standard Dry). NEVER say we don't have new containers.
 - PAYMENT: Cash on Delivery (COD). We accept cash, Zelle, check, or credit card at delivery. NO financing.
 - DELIVERY TIME: 1-3 business days after order confirmation.
-- PHOTOS: If the user asks for photos, DO NOT invent excuses. You MUST reply EXACTLY with this message based on the language (it includes an HTML button). EN: "We cannot send you the exact photo of the unit because the port depots are automated and the stacks are constantly moving for logistics and security. However, here are real photos of the quality range we delivered last week in your area. Your unit will look exactly within this standard of paint, minor dents, and sealing.<br><br><a href='https://rpcontainer.com/#gallery' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Gallery</a>". ES: "No podemos enviarle la foto de la unidad exacta porque los depósitos portuarios están automatizados y las pilas se mueven constantemente por logística y seguridad. Sin embargo, aquí tiene fotos reales del rango de calidad que entregamos la semana pasada en su zona. Su unidad se verá exactamente dentro de este estándar de pintura, golpes menores y sellado.<br><br><a href='https://rpcontainer.com/#gallery' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Galería</a>".
+- PHOTOS: If the user asks for photos, DO NOT invent excuses. You MUST reply EXACTLY with this message based on the language. EN: "We cannot send you the exact photo of the unit because the port depots are automated and the stacks are constantly moving for logistics and security. However, here are real photos of the quality range we delivered last week in your area. Your unit will look exactly within this standard of paint, minor dents, and sealing. View our gallery here: https://rpcontainer.com/#gallery". ES: "No podemos enviarle la foto de la unidad exacta porque los depósitos portuarios están automatizados y las pilas se mueven constantemente por logística y seguridad. Sin embargo, aquí tiene fotos reales del rango de calidad que entregamos la semana pasada en su zona. Su unidad se verá exactamente dentro de este estándar de pintura, golpes menores y sellado. Vea nuestra galería aquí: https://rpcontainer.com/#gallery".
 - CONDITION (Used): All used containers are Wind & Water Tight (WWT). Structurally sound, no leaks, doors seal properly. DO NOT proactively mention the guarantee here.
 - FLOORS: Used containers have hardwood or bamboo floors in good structural condition.
 - PRICE IN ADS: Ads show the container price at the port only. Delivery cost varies by zip code distance, so we cannot advertise one price. Our quote is FINAL: container + flatbed delivery, no hidden fees.
@@ -193,7 +193,7 @@ async function callAI(history: Array<{role: string, content: string}>): Promise<
 }
 
 // ─── DETECCIÓN RÁPIDA SIN IA ──────────────────────────────────────────────────
-function quickDetect(input: string): any | null {
+function quickDetect(input: string, senderId: string): any | null {
     const lo = input.toLowerCase().trim();
     const cleaned = lo.replace(/[^\w\sñáéíóú]/gi, '').trim();
 
@@ -219,6 +219,23 @@ function quickDetect(input: string): any | null {
     if (cancelWords.includes(cleaned)) return { intent: "cancel", extracted_data: {} };
 
     if (/^\d{5}$/.test(lo)) return { intent: "quote", extracted_data: { zip: lo } };
+
+    // ── Detección de petición de fotos ────────────────────────────────────────
+    const photoKeywords = ["foto", "fotos", "photo", "photos", "picture", "pictures", "imagen", "imagenes", "imágenes", "ver el contenedor", "see the container", "show me", "muéstrame", "muestrame", "gallery", "galería", "galeria"];
+    if (photoKeywords.some(kw => lo.includes(kw))) {
+        const isES = lo.match(/\b(foto|fotos|imagen|imagenes|imágenes|ver el contenedor|muestrame|muéstrame|galería|galeria)\b/);
+        const isWeb = senderId.startsWith("web_");
+        
+        let photoMsgEN = "We cannot send you the exact photo of the unit because the port depots are automated and the stacks are constantly moving for logistics and security. However, here are real photos of recent deliveries in your area.\n\n**Please note:** Our gallery showcases both BRAND NEW and USED containers. If you purchase a used unit, it will be structurally sound, wind/water tight with intact seals, but it will have minor dents and surface rust normal for its age. View our gallery here:\n\nhttps://rpcontainer.com/#gallery";
+        let photoMsgES = "No podemos enviarle la foto de la unidad exacta porque los depósitos portuarios están automatizados y las pilas se mueven constantemente por logística y seguridad. Sin embargo, aquí tiene fotos reales de entregas recientes en su zona.\n\n**Nota importante:** Nuestra galería muestra contenedores tanto NUEVOS como USADOS. Si usted compra una unidad usada, esta será estructuralmente sólida y estará 100% sellada (sin goteras), pero presentará golpes menores y óxido superficial normal para su edad. Vea nuestra galería aquí:\n\nhttps://rpcontainer.com/#gallery";
+        
+        if (isWeb) {
+            photoMsgEN = "We cannot send you the exact photo of the unit because the port depots are automated and the stacks are constantly moving for logistics and security. However, here are real photos of recent deliveries in your area.\n\n**Please note:** Our gallery showcases both BRAND NEW and USED containers. If you purchase a used unit, it will be structurally sound, wind/water tight with intact seals, but it will have minor dents and surface rust normal for its age.<br><br><a href='https://rpcontainer.com/#gallery' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Gallery</a>";
+            photoMsgES = "No podemos enviarle la foto de la unidad exacta porque los depósitos portuarios están automatizados y las pilas se mueven constantemente por logística y seguridad. Sin embargo, aquí tiene fotos reales de entregas recientes en su zona.\n\n**Nota importante:** Nuestra galería muestra contenedores tanto NUEVOS como USADOS. Si usted compra una unidad usada, esta será estructuralmente sólida y estará 100% sellada (sin goteras), pero presentará golpes menores y óxido superficial normal para su edad.<br><br><a href='https://rpcontainer.com/#gallery' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Galería</a>";
+        }
+
+        return { intent: "general_chat", lang: isES ? "ES" : "EN", extracted_data: {}, ai_reply: isES ? photoMsgES : photoMsgEN };
+    }
 
     return null;
 }
@@ -302,7 +319,7 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
     recentHistory.push({ role: "user", content: input });
 
     // ── Detección rápida (sin tokens de IA) o llamada a IA ──
-    let extracted = quickDetect(input);
+    let extracted = quickDetect(input, senderId);
     if (!extracted) {
         extracted = await callAI(recentHistory);
         if (!extracted) extracted = { intent: "quote", lang, extracted_data: {} };
