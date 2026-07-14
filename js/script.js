@@ -2591,7 +2591,10 @@ Phone: ${selections.contact.phone}
 
     // Initial language sync and view setup
     updateLanguage(currentLang);
-    showView('home');
+    const validHashViews = ['home', 'gallery', 'buy', 'rent', 'trans', 'crane'];
+    if (!window.location.hash || !validHashViews.includes(window.location.hash.substring(1))) {
+        showView('home');
+    }
 
     // ───────────────────────────────────────────────────────
     // AI Chat Logic — powered by chatbot-core (Cerebro Maestro)
