@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3"
-import { sendMessage, sendQuickReplies } from "./meta-api.ts"
+import { sendMessage, sendQuickReplies, sendButtonMessage } from "./meta-api.ts"
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -21,7 +21,19 @@ async function handleMessage(senderId: string, messageText: string) {
             if (action.type === "quick_replies" && action.options?.length) {
                 await sendQuickReplies(senderId, action.text, action.options);
             } else {
-                await sendMessage(senderId, action.text);
+                // Detect HTML link to convert to FB button template
+                const htmlLinkRegex = /<a[\s\S]*?href=['"]([^'"]*)['"][\s\S]*?>([\s\S]*?)<\/a>/i;
+                const match = action.text.match(htmlLinkRegex);
+                if (match) {
+                    const buttonUrl = match[1];
+                    const buttonTitle = match[2].replace(/<[^>]+>/g, ''); // strip any inner HTML
+                    let cleanText = action.text.replace(htmlLinkRegex, '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim();
+                    if (!cleanText) cleanText = "Haga clic abajo:";
+                    await sendButtonMessage(senderId, cleanText, buttonTitle, buttonUrl);
+                } else {
+                    const cleanText = action.text.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '');
+                    await sendMessage(senderId, cleanText);
+                }
             }
         }
     } catch (e) {

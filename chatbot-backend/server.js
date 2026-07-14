@@ -1,4 +1,4 @@
-﻿require("dotenv").config();
+require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 
@@ -62,16 +62,47 @@ async function handleMessage(sender_psid, text) {
         const actions = coreResponse.data.actions || [];
 
         for (const action of actions) {
-            const msgPayload = (action.type === "quick_replies" && action.options && action.options.length)
-                ? {
+            let msgPayload;
+            
+            if (action.type === "quick_replies" && action.options && action.options.length) {
+                msgPayload = {
                     text: action.text,
                     quick_replies: action.options.map(opt => ({
                         content_type: "text",
                         title: opt,
                         payload: opt
                     }))
-                  }
-                : { text: action.text };
+                };
+            } else {
+                // Detect HTML link to convert to FB button template
+                const htmlLinkRegex = /<a[\s\S]*?href=['"]([^'"]*)['"][\s\S]*?>([\s\S]*?)<\/a>/i;
+                const match = action.text.match(htmlLinkRegex);
+                
+                if (match) {
+                    const buttonUrl = match[1];
+                    const buttonTitle = match[2].replace(/<[^>]+>/g, ''); // strip any inner HTML
+                    let cleanText = action.text.replace(htmlLinkRegex, '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim();
+                    if (!cleanText) cleanText = "Haga clic abajo:";
+                    
+                    msgPayload = {
+                        attachment: {
+                            type: "template",
+                            payload: {
+                                template_type: "button",
+                                text: cleanText.substring(0, 640),
+                                buttons: [{
+                                    type: "web_url",
+                                    url: buttonUrl,
+                                    title: buttonTitle.substring(0, 20)
+                                }]
+                            }
+                        }
+                    };
+                } else {
+                    const cleanText = action.text.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '');
+                    msgPayload = { text: cleanText };
+                }
+            }
 
             await axios.post(
                 `https://graph.facebook.com/v19.0/me/messages?access_token=${META_PAGE_ACCESS_TOKEN}`,
