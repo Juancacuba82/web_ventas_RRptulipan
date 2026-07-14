@@ -2718,8 +2718,11 @@ Phone: ${selections.contact.phone}
 
         // ── Auto-open and greet on page load ─────────────────
         setTimeout(() => {
-            aiChatWindow.classList.add('active');
-            aiChatBtn.style.display = 'none';
+            // Do not auto-open the chat if the user navigated directly to the gallery
+            if (window.location.hash !== '#gallery') {
+                aiChatWindow.classList.add('active');
+                aiChatBtn.style.display = 'none';
+            }
             sendToCore('hello');
         }, 1000);
     }
