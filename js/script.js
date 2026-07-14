@@ -605,6 +605,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nav.classList.contains('nav-active')) {
             burger.click();
         }
+
+        // Update the browser URL without refreshing the page
+        if (viewName === 'home') {
+            history.pushState(null, null, window.location.pathname);
+        } else {
+            history.pushState(null, null, '#' + viewName);
+        }
     };
 
     // Handle URL Hash for direct links
