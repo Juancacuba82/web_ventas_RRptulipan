@@ -65,6 +65,11 @@ serve(async (req) => {
                                         await updateSession(customerId, { step: 0 });
                                     } else if (txt.startsWith("//")) {
                                         await updateSession(customerId, { step: -1 });
+                                    } else {
+                                        // Forward the human message to chatbot-core to keep the AI's context updated
+                                        await supabase.functions.invoke("chatbot-core", {
+                                            body: { sender_id: customerId, message: event.message.text, is_human: true }
+                                        });
                                     }
                                 }
                                 continue;
@@ -73,8 +78,12 @@ serve(async (req) => {
                             let text = "";
                             if (event.message.quick_reply?.payload) text = event.message.quick_reply.payload;
                             else if (event.message.text) text = event.message.text;
+                            else if (event.message.sticker_id) {
+                                text = "ok"; // Treat stickers (like thumbs up) as a cancel intent
+                            }
                             else if (event.message.attachments) {
-                                await sendMessage(senderId, "Por favor, escríbeme en texto la medida y el código postal (Zip Code) para poder cotizarte. (Aún no puedo escuchar audios ni ver imágenes).");
+                                await updateSession(senderId, { step: -1 });
+                                await sendMessage(senderId, "He recibido una imagen, pero soy un asistente virtual y no puedo verla. Por favor, descríbeme en texto lo que buscas si quieres continuar, si no espere a que un humano le atienda.");
                                 continue;
                             }
                             if (text) await handleMessage(senderId, text);

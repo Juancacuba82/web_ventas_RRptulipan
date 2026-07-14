@@ -27,7 +27,7 @@ const chatDict: Record<string, any> = {
         ask_reefer_status: "¿Lo necesitas con el motor de refrigeración Funcionando o No Funcionando?",
         ask_reefer_status_btns: ["Funcionando", "No Funcionando"],
         proceed_btns: ["Sí, proceder", "No, gracias"],
-        no_thanks: "No hay problema. ¡Avísame si necesitas algo más!",
+        no_thanks: ["¡De nada!", "¡Que tengas un buen día!", "¡Estamos a tu orden!"],
         ask_name: "¡Excelente! Por favor, escribe tu nombre completo para iniciar la orden.",
         ask_phone: "Gracias, {name}. Ahora, por favor escribe tu número de teléfono de contacto.",
         order_done: "¡Perfecto! Hemos recibido tu solicitud. Un agente te contactará en breve por teléfono o WhatsApp para finalizar los detalles. ¡Que tengas un gran día!",
@@ -62,7 +62,7 @@ const chatDict: Record<string, any> = {
         ask_reefer_status: "Do you need the refrigeration motor Working or Not Working?",
         ask_reefer_status_btns: ["Working", "Not Working"],
         proceed_btns: ["Yes, proceed", "No, thanks"],
-        no_thanks: "No problem. Let me know if you need anything else!",
+        no_thanks: ["You're welcome!", "Have a great day!", "We are at your service!"],
         ask_name: "Excellent! Please enter your full name to start the order.",
         ask_phone: "Thank you, {name}. Now, please enter your contact phone number.",
         order_done: "Perfect! We have received your request. An agent will contact you shortly by phone or WhatsApp to finalize the details. Have a great day!",
@@ -91,7 +91,7 @@ COMPANY KNOWLEDGE (use this to answer questions naturally — never make things 
 - PAYMENT: Cash on Delivery (COD). We accept cash, Zelle, check, or credit card at delivery. NO financing.
 - DELIVERY TIME: 1-3 business days after order confirmation.
 - PHOTOS: The driver sends photos/videos of the specific container BEFORE departing to the customer's location.
-- CONDITION (Used): All used containers are Wind & Water Tight (WWT). Structurally sound, no leaks, doors seal properly. We offer a 6-month WWT guarantee.
+- CONDITION (Used): All used containers are Wind & Water Tight (WWT). Structurally sound, no leaks, doors seal properly. DO NOT proactively mention the guarantee here.
 - FLOORS: Used containers have hardwood or bamboo floors in good structural condition.
 - PRICE IN ADS: Ads show the container price at the port only. Delivery cost varies by zip code distance, so we cannot advertise one price. Our quote is FINAL: container + flatbed delivery, no hidden fees.
 - DISCOUNTS: Prices are already the lowest wholesale port prices with zero hidden margins. No additional discounts available.
@@ -100,8 +100,9 @@ COMPANY KNOWLEDGE (use this to answer questions naturally — never make things 
 - SIZES: 20ft, 40ft standard, 45ft high cube. We do NOT carry 10ft (must be custom-cut from a 20ft, costs MORE).
 - 10FT: We don't stock them. Recommend the 20ft instead — it's cheaper and ready to go.
 - REEFERS: Available Working (Functional) or Not Working (No AC), and also brand New.
-- GUARANTEES: 6-month Wind and Water Tight structural guarantee on all used containers.
+- GUARANTEES: NEVER mention or offer a guarantee/warranty unless the customer explicitly asks about it. If they ask, explain that we ONLY offer a 6-month Wind and Water Tight structural guarantee on all used containers, and NO OTHER guarantees are provided.
 - CONTACT INFO: Phone numbers: 786-768-4409 | 786-736-6288. Email: rptulipantransport@gmail.com. IMPORTANT: You ARE authorized to give these phone numbers and email to the customer when they ask to speak to a human, ask for a phone number, or want to call us. Do not refuse to give the phone number.
+- INTERNATIONAL/EXPORT SHIPPING: We do not handle international shipping directly. If a customer asks if we ship to another country (like Cuba, Jamaica, etc.), explain EXACTLY this: "We do not provide direct international shipping. However, we can transport the container to your designated port or shipping agency within the USA. If you book this domestic transport with us, we can offer you a special discount on the container price! Because export logistics are complex, we cannot provide export quotes via chat. Please call us at 786-768-4409 or 786-736-6288 to discuss the details and get a custom quote."
 
 SLANG/JARGON (interpret these correctly):
 - "need closer", "can you do better", "bottom line", "best price", "lowest", "closer deal", "military discount", "senior discount", "any discounts" → customer wants a price reduction → explain our pricing policy warmly.
@@ -152,7 +153,7 @@ EXTRACTION RULES:
 - "move"/"transport"/"mover"/"transporte"/"haul"/"relocate" → action "Transporte".
 - "working"/"funcionando"/"with ac"/"with motor" → reefer_status "Funcionando". "not working"/"no funciona"/"no ac"/"sin motor"/"broken" → reefer_status "No Funcionando".
 - "empty"/"vacio"/"vacio" → load_status "Vacio". "loaded"/"cargado"/"lleno"/"full" → load_status "Cargado".
-- Extract 5-digit zip codes exactly. If two zips: first is zip_origin, second is zip_dest. Otherwise use zip.
+- Extract 5-digit zip codes exactly. CRITICAL: NEVER extract a 3 or 4-digit number (e.g., 1400) as a zip code. If a customer sends a number like "1400" next to a size, DO NOT assume what it means. Treat this as general_chat and ASK the customer what they mean by that number (e.g. "What do you mean by 1400?"). Once they explain it's a price, then explain our pricing policy. If two zips: first is zip_origin, second is zip_dest. Otherwise use zip.
 - Only populate fields you can confidently extract. Use null for everything else.`;
 
 // ─── HELPERS DE SUPABASE ──────────────────────────────────────────────────────
@@ -214,7 +215,7 @@ function quickDetect(input: string): any | null {
     if (["cargado", "loaded"].includes(lo)) return { intent: "quote", extracted_data: { load_status: "Cargado" } };
     if (["sí, proceder", "yes, proceed", "yes", "sí", "si"].includes(lo)) return { intent: "proceed", extracted_data: {} };
 
-    const cancelWords = ["no gracias", "no thanks", "no", "gracias", "thanks", "thank you", "bye", "adios", "adiós", "ok", "okay", "okey", "vale", "listo", "stop", "parar", "alto", "detente"];
+    const cancelWords = ["no gracias", "no thanks", "no", "gracias", "thanks", "thank you", "bye", "adios", "adiós", "ok", "okay", "okey", "vale", "listo", "stop", "parar", "alto", "detente", "good", "bien", "perfect", "perfecto", "great", "awesome", "genial"];
     if (cancelWords.includes(cleaned)) return { intent: "cancel", extracted_data: {} };
 
     if (/^\d{5}$/.test(lo)) return { intent: "quote", extracted_data: { zip: lo } };
@@ -223,10 +224,19 @@ function quickDetect(input: string): any | null {
 }
 
 // ─── LÓGICA PRINCIPAL ─────────────────────────────────────────────────────────
-async function processMessage(senderId: string, messageText: string): Promise<Action[]> {
+async function processMessage(senderId: string, messageText: string, isHuman: boolean = false): Promise<Action[]> {
     const input = messageText.replace(/^@meta ai\s*/i, "").trim();
     const actions: Action[] = [];
     const session = await getSession(senderId);
+
+    if (isHuman) {
+        const rawHistory = session.history || [];
+        const updatedHistory = Array.isArray(rawHistory) ? rawHistory.slice(-9) : [];
+        updatedHistory.push({ role: "assistant", content: messageText });
+        await updateSession(senderId, { history: updatedHistory });
+        return [];
+    }
+
     let step = Number(session.step) || 0;
 
     // Modo silencio (agente humano activo con //)
@@ -316,6 +326,12 @@ async function processMessage(senderId: string, messageText: string): Promise<Ac
     if (data.reefer_status) updates.reefer_status = data.reefer_status;
     if (data.load_status) updates.load_status = data.load_status;
     if (data.quantity && data.quantity > 0) updates.quantity = data.quantity;
+    
+    // Strict safeguard against invalid zip codes extracted by AI
+    if (data.zip_origin && !/^\d{5}$/.test(data.zip_origin.toString())) data.zip_origin = null;
+    if (data.zip_dest && !/^\d{5}$/.test(data.zip_dest.toString())) data.zip_dest = null;
+    if (data.zip && !/^\d{5}$/.test(data.zip.toString())) data.zip = null;
+
     if (data.zip_origin) updates.zip_origin = data.zip_origin;
     if (data.zip_dest) updates.zip_dest = data.zip_dest;
     if (data.zip) {
@@ -343,8 +359,18 @@ async function processMessage(senderId: string, messageText: string): Promise<Ac
 
     // ── INTENT: CANCEL ──
     if (extracted.intent === "cancel") {
+        // Option A: If we are already in an idle state (previously cancelled), don't reply again
+        if (!session.action && !session.size && !session.zip) {
+            return [];
+        }
+
         await updateSession(senderId, { step: 0, action: null, size: null, zip: null, condition: null, type: null, reefer_status: null, quantity: null, history: null });
-        actions.push({ type: "text", text: dictCurrent.no_thanks });
+        
+        // Option D: Randomize goodbye message
+        const goodbyes = Array.isArray(dictCurrent.no_thanks) ? dictCurrent.no_thanks : [dictCurrent.no_thanks];
+        const randomMsg = goodbyes[Math.floor(Math.random() * goodbyes.length)];
+
+        actions.push({ type: "text", text: randomMsg });
         return actions;
     }
 
@@ -518,12 +544,12 @@ serve(async (req) => {
     if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
 
     try {
-        const { sender_id, message } = await req.json();
+        const { sender_id, message, is_human } = await req.json();
         if (!sender_id || !message) {
             return new Response(JSON.stringify({ error: "sender_id and message are required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
         }
 
-        const actions = await processMessage(sender_id, message);
+        const actions = await processMessage(sender_id, message, is_human);
         return new Response(JSON.stringify({ actions }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
     } catch (e) {
         console.error("chatbot-core error:", e);
