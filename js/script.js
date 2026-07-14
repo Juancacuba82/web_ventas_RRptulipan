@@ -607,6 +607,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Handle URL Hash for direct links
+    if (window.location.hash) {
+        const hashView = window.location.hash.substring(1);
+        const validViews = ['home', 'gallery', 'buy', 'rent', 'trans', 'crane'];
+        if (validViews.includes(hashView)) {
+            showView(hashView);
+        }
+    }
+
     navGallery.addEventListener('click', (e) => {
         e.preventDefault();
         showView('gallery');
