@@ -2755,8 +2755,8 @@ Phone: ${selections.contact.phone}
 
         // ── Auto-open and greet on page load ─────────────────
         setTimeout(() => {
-            // Do not auto-open the chat if the user navigated directly to the gallery
-            if (window.location.hash !== '#gallery') {
+            // Do not auto-open the chat if the user navigated directly to the gallery or dimensions
+            if (window.location.hash !== '#gallery' && window.location.hash !== '#container-dimensions') {
                 aiChatWindow.classList.add('active');
                 aiChatBtn.style.display = 'none';
             }
