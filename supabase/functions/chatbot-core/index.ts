@@ -193,7 +193,7 @@ async function callAI(history: Array<{role: string, content: string}>): Promise<
 }
 
 // ─── DETECCIÓN RÁPIDA SIN IA ──────────────────────────────────────────────────
-function quickDetect(input: string, senderId: string): any | null {
+function quickDetect(input: string, senderId: string, session: any): any | null {
     const lo = input.toLowerCase().trim();
     const cleaned = lo.replace(/[^\w\sñáéíóú]/gi, '').trim();
 
@@ -220,9 +220,9 @@ function quickDetect(input: string, senderId: string): any | null {
 
     if (/^\d{5}$/.test(lo)) return { intent: "quote", extracted_data: { zip: lo } };
 
-    // ── Detección de petición de fotos ────────────────────────────────────────
+    // ── Detección de petición de fotos (Solo si NO es Transporte) ─────────────
     const photoKeywords = ["foto", "fotos", "photo", "photos", "picture", "pictures", "imagen", "imagenes", "imágenes", "ver el contenedor", "see the container", "show me", "muéstrame", "muestrame", "gallery", "galería", "galeria"];
-    if (photoKeywords.some(kw => lo.includes(kw))) {
+    if (session?.action !== "Transporte" && photoKeywords.some(kw => lo.includes(kw))) {
         const isES = lo.match(/\b(foto|fotos|imagen|imagenes|imágenes|ver el contenedor|muestrame|muéstrame|galería|galeria)\b/);
         const isWeb = senderId.startsWith("web_");
         
@@ -235,6 +235,24 @@ function quickDetect(input: string, senderId: string): any | null {
         }
 
         return { intent: "general_chat", lang: isES ? "ES" : "EN", extracted_data: {}, ai_reply: isES ? photoMsgES : photoMsgEN };
+    }
+
+    // ── Detección de petición de medidas (Solo si NO es Transporte) ─────────────
+    const dimensionKeywords = ["medida", "medidas", "mide", "alto", "ancho", "largo", "tamaño", "dimensiones", "dimension", "dimensions", "height", "width", "length", "size", "tall", "long", "wide", "measurements"];
+    const isJustSizeChoice = /^((20|40|45)('|(ft)|( pies))?)$/.test(lo);
+    if (!isJustSizeChoice && session?.action !== "Transporte" && dimensionKeywords.some(kw => lo.includes(kw))) {
+        const isES = lo.match(/\b(medida|medidas|mide|alto|ancho|largo|tamaño|dimensiones)\b/);
+        const isWeb = senderId.startsWith("web_");
+        
+        let dimMsgEN = "Our containers come in standard shipping sizes. To make it easy for you, we have prepared visual guides with the exact internal and external dimensions (Length, Width, Height, and Payload Capacity) for all our sizes.\n\nYou can view all the measurements directly on our website here:\n\nhttps://rpcontainer.com/#container-dimensions";
+        let dimMsgES = "Nuestros contenedores vienen en medidas estándar de envío. Para hacérselo más fácil, hemos preparado guías visuales con las medidas exactas internas y externas (Largo, Ancho, Alto y Capacidad de Carga) de todos nuestros tamaños.\n\nPuede ver todas las medidas directamente en nuestra página web aquí:\n\nhttps://rpcontainer.com/#container-dimensions";
+        
+        if (isWeb) {
+            dimMsgEN = "Our containers come in standard shipping sizes. To make it easy for you, we have prepared visual guides with the exact internal and external dimensions (Length, Width, Height, and Payload Capacity) for all our sizes.\n\nYou can view all the measurements directly on our website here:<br><br><a href='https://rpcontainer.com/#container-dimensions' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>View Dimensions</a>";
+            dimMsgES = "Nuestros contenedores vienen en medidas estándar de envío. Para hacérselo más fácil, hemos preparado guías visuales con las medidas exactas internas y externas (Largo, Ancho, Alto y Capacidad de Carga) de todos nuestros tamaños.\n\nPuede ver todas las medidas directamente en nuestra página web aquí:<br><br><a href='https://rpcontainer.com/#container-dimensions' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Ver Medidas</a>";
+        }
+
+        return { intent: "general_chat", lang: isES ? "ES" : "EN", extracted_data: {}, ai_reply: isES ? dimMsgES : dimMsgEN };
     }
 
     return null;
@@ -319,7 +337,7 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
     recentHistory.push({ role: "user", content: input });
 
     // ── Detección rápida (sin tokens de IA) o llamada a IA ──
-    let extracted = quickDetect(input, senderId);
+    let extracted = quickDetect(input, senderId, session);
     if (!extracted) {
         extracted = await callAI(recentHistory);
         if (!extracted) extracted = { intent: "quote", lang, extracted_data: {} };
@@ -327,6 +345,22 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
 
     if (extracted.lang) lang = extracted.lang;
     const data = extracted.extracted_data || {};
+
+    // ── Prevenir recálculo redundante en el paso 6 ──
+    if (step === 6 && extracted.intent === "quote") {
+        const changedPricingVar = 
+            (data.size && data.size !== session.size) ||
+            (data.zip && data.zip !== session.zip) ||
+            (data.zip_origin && data.zip_origin !== session.zip_origin) ||
+            (data.zip_dest && data.zip_dest !== session.zip_dest) ||
+            (data.condition && data.condition !== session.condition) ||
+            (data.type && data.type !== session.type) ||
+            (data.quantity && data.quantity !== session.quantity);
+        
+        if (!changedPricingVar) {
+            extracted.intent = "general_chat";
+        }
+    }
 
     // ── OVERRIDE: Forzar detección de medida si la IA falla ──
     const lo = input.toLowerCase();

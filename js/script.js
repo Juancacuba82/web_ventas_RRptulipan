@@ -241,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "nav-services": "Services",
             "nav-about": "About Us",
             "nav-gallery": "Gallery",
+            "nav-dimensions": "Dimensions",
             "nav-contact": "Contact",
             "hero-title": "Modern Container Solutions",
             "hero-p": "Global logistics made simple. We sell, rent, and transport high-quality containers tailored to your business needs.",
@@ -575,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoHome = document.querySelectorAll('#logo-home, .logo-home');
     const homeLinks = document.querySelectorAll('.nav-link, #nav-home');
 
-    const showView = (viewName) => {
+    const showView = (viewName, preserveHash = false) => {
         homeView.style.display = viewName === 'home' ? 'block' : 'none';
         galleryView.style.display = viewName === 'gallery' ? 'block' : 'none';
         buyView.style.display = viewName === 'buy' ? 'block' : 'none';
@@ -601,14 +602,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (viewName === 'trans') renderTransView();
         if (viewName === 'crane') renderCraneView();
 
-        window.scrollTo(0, 0);
+        if (!preserveHash) {
+            window.scrollTo(0, 0);
+        }
+        
         if (nav.classList.contains('nav-active')) {
             burger.click();
         }
 
         // Update the browser URL without refreshing the page
         if (viewName === 'home') {
-            history.pushState(null, null, window.location.pathname);
+            if (!preserveHash) {
+                history.pushState(null, null, window.location.pathname);
+            }
         } else {
             history.pushState(null, null, '#' + viewName);
         }
@@ -643,8 +649,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     homeLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            showView('home');
+        link.addEventListener('click', (e) => {
+            const target = link.getAttribute('href');
+            if (!target || target === '#home' || target === '#') {
+                showView('home');
+            } else {
+                showView('home', true);
+                setTimeout(() => {
+                    try {
+                        const el = document.querySelector(target);
+                        if (el) {
+                            const y = el.getBoundingClientRect().top + window.scrollY - 80;
+                            window.scrollTo({ top: y, behavior: 'smooth' });
+                        }
+                    } catch(err) {}
+                }, 50);
+            }
         });
     });
 
@@ -2592,7 +2612,18 @@ Phone: ${selections.contact.phone}
     // Initial language sync and view setup
     updateLanguage(currentLang);
     const validHashViews = ['home', 'gallery', 'buy', 'rent', 'trans', 'crane'];
-    if (!window.location.hash || !validHashViews.includes(window.location.hash.substring(1))) {
+    if (window.location.hash && !validHashViews.includes(window.location.hash.substring(1))) {
+        showView('home', true);
+        setTimeout(() => {
+            try {
+                const el = document.querySelector(window.location.hash);
+                if (el) {
+                    const y = el.getBoundingClientRect().top + window.scrollY - 80;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                }
+            } catch(e) {}
+        }, 100);
+    } else if (!window.location.hash || window.location.hash === '#home') {
         showView('home');
     }
 
