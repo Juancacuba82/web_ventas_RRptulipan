@@ -136,7 +136,7 @@ OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO
 INTENT RULES:
 - "quote": Customer is giving NEW data (size, zip, condition) to advance a quote, explicitly requesting a new price calculation, or asking for a delivery fee/cost. CRITICAL: If the customer provides a Zip Code and a size asking for a price/fee, the intent MUST ALWAYS be "quote" so the system can calculate it. NEVER use "general_chat" for this.
 - "general_chat": Customer is asking a general question (quality, payment, guarantees) WITHOUT requesting a new price for a specific zip code. If they provide a Zip Code to get a price, use "quote". Never say we can't quote delivery until they confirm.
-- "cancel": Customer says bye, thanks, stop, not interested, too expensive, ok (alone with no other info).
+- "cancel": Customer says bye, thanks, stop, not interested, too expensive, ok (alone with no other info). CRITICAL: For ai_reply, if they thank you (e.g. gracias, thanks), reply with "¡De nada!" (or "You're welcome!"). If they just cancel, say bye, or say ok, reply with "¡Gracias!" (or "Thank you!").
 - "proceed": Customer explicitly CONFIRMS they want to place the order AFTER receiving a final price quote (e.g., yes, si, proceed, let's do it, I'll take it). Do NOT use this if they are just starting a request like "I want to rent a 20ft".
 
 EXTRACTION RULES:
@@ -214,9 +214,6 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
     if (["vacío", "empty", "vacio"].includes(lo)) return { intent: "quote", extracted_data: { load_status: "Vacio" } };
     if (["cargado", "loaded"].includes(lo)) return { intent: "quote", extracted_data: { load_status: "Cargado" } };
     if (["sí, proceder", "yes, proceed", "yes", "sí", "si"].includes(lo)) return { intent: "proceed", extracted_data: {} };
-
-    const cancelWords = ["no gracias", "no thanks", "no", "gracias", "thanks", "thank you", "bye", "adios", "adiós", "ok", "okay", "okey", "vale", "listo", "stop", "parar", "alto", "detente", "good", "bien", "perfect", "perfecto", "great", "awesome", "genial"];
-    if (cancelWords.includes(cleaned)) return { intent: "cancel", extracted_data: {} };
 
     if (/^\d{5}$/.test(lo)) return { intent: "quote", extracted_data: { zip: lo } };
 
@@ -417,11 +414,9 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
 
         await updateSession(senderId, { step: 0, action: null, size: null, zip: null, condition: null, type: null, reefer_status: null, quantity: null, history: null });
         
-        // Option D: Randomize goodbye message
-        const goodbyes = Array.isArray(dictCurrent.no_thanks) ? dictCurrent.no_thanks : [dictCurrent.no_thanks];
-        const randomMsg = goodbyes[Math.floor(Math.random() * goodbyes.length)];
+        const msg = extracted.ai_reply || (lang === "EN" ? "Thank you!" : "¡Gracias!");
 
-        actions.push({ type: "text", text: randomMsg });
+        actions.push({ type: "text", text: msg });
         return actions;
     }
 
