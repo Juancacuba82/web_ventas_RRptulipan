@@ -319,6 +319,11 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-opt-45": "45' High Cube",
             "buy-opt-int": "Shipping",
             "buy-opt-local": "Storage",
+            "buy-opt-export-buy": "Buy",
+            "buy-opt-export-rent": "Rent",
+            "buy-step-export-action": "Buy or Rent?",
+            "buy-step-export-port": "Destination Port",
+            "buy-port-placeholder": "e.g., Kingston, Jamaica",
             "buy-opt-cw": "Used (CW)",
             "buy-opt-new-cond": "New (One Trip)",
             "buy-opt-wwt": "Used (WWT)",
@@ -461,6 +466,11 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-opt-45": "45' High Cube",
             "buy-opt-int": "Shipping",
             "buy-opt-local": "Storage",
+            "buy-opt-export-buy": "Comprar",
+            "buy-opt-export-rent": "Alquilar",
+            "buy-step-export-action": "¿Comprar o Alquilar?",
+            "buy-step-export-port": "Puerto de Destino",
+            "buy-port-placeholder": "Ej., Mariel, Cuba",
             "buy-opt-cw": "Usado (CW)",
             "buy-opt-new-cond": "Nuevo (One Trip)",
             "buy-opt-wwt": "Usado (WWT)",
@@ -869,6 +879,26 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
 
+                        <!-- Step 1.5: Export Action -->
+                        <div class="buy-step" id="${mode}-step-export-action" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="condition"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step-export-action">${t["buy-step-export-action"]}</h3>
+                            <div class="options-grid">
+                                <div class="option-card" data-value="Buy"><i class="fas fa-shopping-cart"></i><span>${t["buy-opt-export-buy"]}</span></div>
+                                <div class="option-card" data-value="Rent"><i class="fas fa-handshake"></i><span>${t["buy-opt-export-rent"]}</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Step 1.6: Export Port -->
+                        <div class="buy-step" id="${mode}-step-export-port" style="display:none;">
+                            <button class="btn-back back-btn-action" data-prev="export-action"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
+                            <h3 data-i18n="buy-step-export-port">${t["buy-step-export-port"]}</h3>
+                            <div class="form-group" style="margin-top: 20px;">
+                                <input type="text" id="${mode}-export-port" placeholder="${t["buy-port-placeholder"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 25px;">
+                                <button class="btn btn-primary" id="${mode}-btn-port-next" style="width: 100%;" disabled>${t["buy-btn-next"]}</button>
+                            </div>
+                        </div>
+
                         <!-- Step 2: Size -->
                         <div class="buy-step" id="${mode}-step-size" style="display:none;">
                             <button class="btn-back back-btn-action" data-prev="condition"><i class="fas fa-arrow-left"></i> ${t["buy-back"]}</button>
@@ -1065,7 +1095,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const PROMO_DISCOUNT = 0;
 
-        const selections = { size: null, quantity: 1, condition: mode === 'rent' ? 'Local' : null, 'container-condition': null, type: mode === 'rent' ? 'Dry' : null, 'delivery-mode': mode === 'rent' ? 'Delivery' : null, 'logistics-details': null, 'payment-method': null, contact: {}, distance: 0, shippingCost: 0, pricePerUnit: 0, bestDepot: null, allDistances: {} };
+        const selections = { size: null, quantity: 1, condition: mode === 'rent' ? 'Local' : null, 'export-action': null, 'export-port': null, 'container-condition': null, type: mode === 'rent' ? 'Dry' : null, 'delivery-mode': mode === 'rent' ? 'Delivery' : null, 'logistics-details': null, 'payment-method': null, contact: {}, distance: 0, shippingCost: 0, pricePerUnit: 0, bestDepot: null, allDistances: {} };
         let steps = mode === 'buy' 
             ? ['condition'] 
             : ['logistics-details', 'size', 'qty', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
@@ -1298,6 +1328,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             nextBtn.addEventListener('click', async () => {
                 const zip = zipInput.value.trim();
+                
+                if (selections['export-action'] === 'Rent') {
+                    // For export rent, any US zip code is fine, no need to calculate depot distances
+                    // Just validate it looks like a zip
+                    if (!/^\d{5}$/.test(zip)) {
+                        alert(currentLang === 'en' ? "Please enter a valid 5-digit US Zip Code." : "Por favor, introduzca un código postal válido de EE.UU. de 5 dígitos.");
+                        return;
+                    }
+                    selections['logistics-details'] = zip;
+                    
+                    viewEl.querySelector(`#${mode}-step-logistics-details`).style.display = 'none';
+                    currentIndex++;
+                    const nextStep = steps[currentIndex];
+                    prepareStep(nextStep);
+                    const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
+                    nextEl.style.display = 'block';
+                    nextEl.classList.add('fade-in');
+                    return;
+                }
+                
                 if (!zip || zip.length < 5) {
                     Swal.fire({
                         icon: 'error',
@@ -1336,6 +1386,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const apiCondition = isNew ? "new" : "used";
             const isDelivery = selections['delivery-mode'] === 'Delivery';
             
+            // If exporting and renting, we don't fetch pricing from API
+            if (selections.condition === 'International' && selections['export-action'] === 'Rent') {
+                selections.subtotal = 0;
+                selections.total = 0;
+                selections.discount = 0;
+                selections.exportFee = 0;
+                selections.shippingTotal = 0;
+                selections.pricePerUnit = 0;
+                
+                const container = viewEl.querySelector('.price-preview-details');
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px;">
+                        <p style="font-size: 1.1rem; color: #333; margin-bottom: 15px;">
+                            ${currentLang === 'en' 
+                                ? "Since you prefer to rent, the shipping line handling the ocean freight sets the rental price for the container." 
+                                : "Como prefieres alquilar, la naviera que realiza el envío marítimo es quien establece el precio del alquiler del contenedor."}
+                        </p>
+                        <p style="font-size: 1rem; color: #555;">
+                            ${currentLang === 'en'
+                                ? "Proceed to the next step so a specialist can contact you with the exact final quote."
+                                : "Continúe al siguiente paso para que un especialista se contacte con la cotización final exacta."}
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
             const apiPayload = {
                 zip_destino: selections.zip,
                 container_size: apiSize,
@@ -1413,6 +1490,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="summary-item"><strong>Size:</strong> <span>${selections.size}</span></div>
                     <div class="summary-item"><strong>${t["summary-quantity"] || 'Quantity'}:</strong> <span style="font-weight: 700; color: var(--primary-color);">${selections.quantity}</span></div>
                     <div class="summary-item"><strong>Type of Service:</strong> <span>${selections.condition || '-'}</span></div>
+                    ${selections.condition === 'International' ? `<div class="summary-item"><strong>Export Action:</strong> <span>${selections['export-action']}</span></div><div class="summary-item"><strong>Destination Port:</strong> <span>${selections['export-port']}</span></div>` : ''}
                     <div class="summary-item"><strong>Condition:</strong> <span>${selections['container-condition'] || '-'}</span></div>
                     <div class="summary-item"><strong>Climate:</strong> <span>${selections.type || 'Dry'}</span></div>
                     <div class="summary-item"><strong>Payment:</strong> <span>${selections['payment-method'] || '-'}</span></div>
@@ -1480,6 +1558,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (stepId === 'type') updateClimateOptions();
             if (stepId === 'container-condition') updateConditionOptions(selections.condition);
             if (stepId === 'price') showPricePreview();
+            
+            if (stepId === 'export-port') {
+                const portInput = viewEl.querySelector(`#${mode}-export-port`);
+                const portNextBtn = viewEl.querySelector(`#${mode}-btn-port-next`);
+                if (portInput && portNextBtn && !portNextBtn.dataset.bound) {
+                    portNextBtn.dataset.bound = 'true';
+                    portInput.addEventListener('input', () => {
+                        portNextBtn.disabled = !portInput.value.trim();
+                    });
+
+                    portNextBtn.addEventListener('click', () => {
+                        selections['export-port'] = portInput.value.trim();
+                        viewEl.querySelector(`#${mode}-step-export-port`).style.display = 'none';
+                        currentIndex++;
+                        const nextStep = steps[currentIndex];
+                        prepareStep(nextStep);
+                        const nextEl = viewEl.querySelector(`#${mode}-step-${nextStep}`);
+                        nextEl.style.display = 'block';
+                        nextEl.classList.add('fade-in');
+                    });
+                }
+            }
         };
 
         viewEl.querySelectorAll('.qty-btn').forEach(btn => {
@@ -1506,7 +1606,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (stepId === 'condition') {
                     if (card.dataset.value === 'International') {
-                        steps = ['condition', 'logistics-details', 'size', 'qty', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
+                        steps = ['condition', 'export-action', 'logistics-details', 'export-port', 'size', 'qty', 'container-condition', 'type', 'payment-method', 'price', 'contact'];
                         selections['delivery-mode'] = 'Pickup';
                     } else {
                         // Storage sequence
@@ -1567,7 +1667,7 @@ Distance: ${selections.distance.toFixed(1)} miles
 Shipping Cost: $${selections.shippingCost}
 Size: ${selections.size}
 Quantity: ${selections.quantity}
-Type of Service: ${selections.condition}
+Type of Service: ${selections.condition}${selections.condition === 'International' ? `\nExport Action: ${selections['export-action']}\nDestination Port: ${selections['export-port']}` : ''}
 Condition: ${selections['container-condition']}
 Climate: ${selections.type}
 Payment: ${selections['payment-method']}

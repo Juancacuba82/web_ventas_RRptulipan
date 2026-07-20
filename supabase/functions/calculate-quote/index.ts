@@ -351,6 +351,13 @@ serve(async (req) => {
                     const priceData = condition === 'new' ? hub.new : hub.used;
                     if (priceData) {
                         containerPrice = priceData[container_size] || priceData[container_size.toUpperCase()] || priceData[container_size.toLowerCase()] || 0;
+                        if (containerPrice === 0) {
+                            // Try to find ANY key containing 45
+                            const fortyFiveKey = Object.keys(priceData).find(k => k.includes("45"));
+                            if (fortyFiveKey) {
+                                containerPrice = priceData[fortyFiveKey] || 0;
+                            }
+                        }
                     }
                 }
 
@@ -405,6 +412,12 @@ serve(async (req) => {
         const totalDeliveryCost = bestDeliveryCost * trucksNeeded;
         const totalPrice = totalContainerPrice + totalDeliveryCost + craneServiceFee + extraServiceFee + bestCertFee;
 
+        let nonDiscountedPrice;
+        if (is20ftSize && quantity >= 2) {
+            const totalDeliveryCostNoDiscount = bestDeliveryCost * quantity;
+            nonDiscountedPrice = totalContainerPrice + totalDeliveryCostNoDiscount + craneServiceFee + extraServiceFee + bestCertFee;
+        }
+
         return new Response(JSON.stringify({
             origin_hub: bestHub.name,
             origin_zip: bestHub.zip,
@@ -415,6 +428,7 @@ serve(async (req) => {
             extra_service_fee: extraServiceFee,
             cert_fee: bestCertFee,
             total_price: totalPrice,
+            non_discounted_price: nonDiscountedPrice,
             quantity: quantity,
             trucks_needed: trucksNeeded
         }), {

@@ -16,10 +16,17 @@ const chatDict: Record<string, any> = {
         step3_size_btns: ["20'", "40'", "45'"],
         calculating: "Calculando precio exacto... ⏳",
         ask_zip: "¿Cuál es tu código postal (Zip Code) de 5 dígitos para la entrega?",
-        no_stock: "¡Ups! Sin disponibilidad en esa zona para esa medida. Escribe 'Reiniciar' para intentar con otra.",
+        no_stock: "Lo siento, pero parece que en este momento no tenemos disponibilidad de esa medida o tipo de contenedor en tu área. ¿Te gustaría que cotice un tamaño diferente?",
         calc_error: "Error calculando. Escribe 'reiniciar'.",
         ask_export_type: "¿Para qué usarás el contenedor?",
         ask_export_btns: ["Almacenamiento", "Exportación"],
+        ask_export_buy_rent: "¿Deseas comprar el contenedor o prefieres que la naviera te lo alquile para el envío marítimo?",
+        ask_export_buy_rent_btns: ["Comprar", "Alquilar"],
+        ask_export_zip: "¿En qué Zip Code (código postal) de EE. UU. necesitas que te dejemos el contenedor para que lo cargues?",
+        ask_export_port: "¿A qué puerto y país de destino enviaremos el contenedor? (Ej. Mariel, Cuba)",
+        export_buy_price: "El precio de venta del contenedor es **{price}** (incluye certificado de exportación). Para darte el costo total exacto que incluye el envío marítimo y terrestre, necesitamos contactarte.",
+        export_rent_msg: "Como prefieres alquilar, la naviera que realiza el envío marítimo es quien establece el precio del alquiler del contenedor.",
+        export_final_msg: "¡Excelente! Ya tenemos toda la información. Por favor, escribe tu nombre completo para que un especialista te llame con la cotización final exacta.",
         ask_condition: "¿Lo prefieres Nuevo o Usado?",
         ask_condition_btns: ["Nuevo", "Usado"],
         ask_type: "¿Qué tipo de contenedor buscas?",
@@ -27,7 +34,6 @@ const chatDict: Record<string, any> = {
         ask_reefer_status: "¿Lo necesitas con el motor de refrigeración Funcionando o No Funcionando?",
         ask_reefer_status_btns: ["Funcionando", "No Funcionando"],
         proceed_btns: ["Sí, proceder", "No, gracias"],
-        no_thanks: ["¡De nada!", "¡Que tengas un buen día!", "¡Estamos a tu orden!"],
         ask_name: "¡Excelente! Por favor, escribe tu nombre completo para iniciar la orden.",
         ask_phone: "Gracias, {name}. Ahora, por favor escribe tu número de teléfono de contacto.",
         order_done: "¡Perfecto! Hemos recibido tu solicitud. Un agente te contactará en breve por teléfono o WhatsApp para finalizar los detalles. ¡Que tengas un gran día!",
@@ -39,9 +45,8 @@ const chatDict: Record<string, any> = {
         price_transport_single: "El precio por mover tu contenedor de {size} ({load}) desde el Zip Code {origin} hasta el Zip Code {dest} es de **{price}**.\n\n¿Te gustaría proceder?",
         price_rent: "¡Excelente noticia! Tenemos disponibilidad para renta en {zip}.\n\n🔹 Renta Mensual: {monthly}\n🔹 Logística (Entrega y Recogida futura): {logistics} (pago único)\n\nEl pago inicial sería de {price}. ¿Proceder?",
         price_export: "Perfecto. El precio total por el contenedor es de **{price}**. ¿Te gustaría proceder con la compra?",
-        price_sale: "¡Excelente noticia! El precio total por {qty}contenedor{qty_plural_es} {type} {cond} de {size} entregado{qty_plural_s} en {zip} es **{price}**.\n\n¿Te gustaría proceder?",
+        price_sale: "El precio total por {qty}contenedor{qty_plural_es} {type} {cond} de {size} entregado{qty_plural_s} en {zip} es **{price}**.\n\n¿Te gustaría proceder?",
         faq_prompt: "\n\n*(Por favor responde la pregunta anterior o toca un botón para continuar con tu cotización)*",
-        far_zone: "El Zip Code {zip} queda fuera de nuestra zona de entrega estándar, pero hacemos entregas nacionales con tarifas especiales. ¡Llámanos al 786-768-4409!",
         fallback: "Para darte un precio exacto, dime qué medida de contenedor necesitas (ej. 20 o 40 pies) y tu Zip Code de entrega.",
     },
     "EN": {
@@ -51,10 +56,17 @@ const chatDict: Record<string, any> = {
         step3_size_btns: ["20'", "40'", "45'"],
         calculating: "Calculating exact price... ⏳",
         ask_zip: "What is your 5-digit delivery Zip Code?",
-        no_stock: "Oops! No availability in that area for that size. Type 'Restart' to try another size.",
+        no_stock: "I'm sorry, but it looks like we currently don't have stock for that specific container size or type in your area. Would you like me to quote a different size?",
         calc_error: "Calculation error. Type 'restart'.",
         ask_export_type: "What will you use the container for?",
         ask_export_btns: ["Storage", "Export"],
+        ask_export_buy_rent: "Do you want to buy the container or prefer to rent it from the shipping line for the ocean freight?",
+        ask_export_buy_rent_btns: ["Buy", "Rent"],
+        ask_export_zip: "What is the US Zip Code where you need us to drop off the container for loading?",
+        ask_export_port: "What is the destination port and country for the container? (e.g., Kingston, Jamaica)",
+        export_buy_price: "The sale price of the container is **{price}** (includes export certificate). To give you the exact total cost including ocean and inland freight, we need to contact you.",
+        export_rent_msg: "Since you prefer to rent, the shipping line handling the ocean freight sets the rental price for the container.",
+        export_final_msg: "Excellent! We have all the information. Please enter your full name so a specialist can call you with the exact final quote.",
         ask_condition: "Do you prefer New or Used?",
         ask_condition_btns: ["New", "Used"],
         ask_type: "What type of container are you looking for?",
@@ -62,7 +74,6 @@ const chatDict: Record<string, any> = {
         ask_reefer_status: "Do you need the refrigeration motor Working or Not Working?",
         ask_reefer_status_btns: ["Working", "Not Working"],
         proceed_btns: ["Yes, proceed", "No, thanks"],
-        no_thanks: ["You're welcome!", "Have a great day!", "We are at your service!"],
         ask_name: "Excellent! Please enter your full name to start the order.",
         ask_phone: "Thank you, {name}. Now, please enter your contact phone number.",
         order_done: "Perfect! We have received your request. An agent will contact you shortly by phone or WhatsApp to finalize the details. Have a great day!",
@@ -74,9 +85,8 @@ const chatDict: Record<string, any> = {
         price_transport_single: "The price to move your {size} ({load}) container from Zip Code {origin} to Zip Code {dest} is **{price}**.\n\nWould you like to proceed?",
         price_rent: "Great news! We have availability to rent to {zip}.\n\n🔹 Monthly Rent: {monthly}\n🔹 Logistics (Delivery & future pickup): {logistics} (one-time fee)\n\nInitial payment would be {price}. Proceed?",
         price_export: "Perfect. The total price for the container is **{price}**. Would you like to proceed?",
-        price_sale: "Great news! The total price for {qty}{cond} {type} {size} container{qty_plural_s} delivered to {zip} is **{price}**.\n\nWould you like to proceed?",
+        price_sale: "The total price for {qty}{cond} {type} {size} container{qty_plural_s} delivered to {zip} is **{price}**.\n\nWould you like to proceed?",
         faq_prompt: "\n\n*(Please answer the previous question or tap a button to continue with your quote)*",
-        far_zone: "We noticed that Zip Code {zip} is outside our standard local delivery zone. However, we do long-distance deliveries nationwide with special rates! Please call us at 786-768-4409.",
         fallback: "To give you an exact price right away, please tell me what container size you need (e.g. 20 or 40 ft) and your delivery Zip Code.",
     }
 };
@@ -90,10 +100,10 @@ COMPANY KNOWLEDGE (use this to answer questions naturally — never make things 
 - NEW CONTAINERS: We DO have brand new (One-Trip) containers available in all sizes (20ft, 40ft, 45ft) and types (including standard Dry). NEVER say we don't have new containers.
 - PAYMENT: Cash on Delivery (COD). We accept cash, Zelle, check, or credit card at delivery. NO financing.
 - DELIVERY TIME: 1-3 business days after order confirmation.
-- PHOTOS: If the user asks for photos, DO NOT invent excuses. You MUST reply EXACTLY with this message based on the language. EN: "We cannot send you the exact photo of the unit because the port depots are automated and the stacks are constantly moving for logistics and security. However, here are real photos of the quality range we delivered last week in your area. Your unit will look exactly within this standard of paint, minor dents, and sealing. View our gallery here: https://rpcontainer.com/#gallery". ES: "No podemos enviarle la foto de la unidad exacta porque los depósitos portuarios están automatizados y las pilas se mueven constantemente por logística y seguridad. Sin embargo, aquí tiene fotos reales del rango de calidad que entregamos la semana pasada en su zona. Su unidad se verá exactamente dentro de este estándar de pintura, golpes menores y sellado. Vea nuestra galería aquí: https://rpcontainer.com/#gallery".
+- PHOTOS: If the user asks for photos, DO NOT invent excuses. You MUST reply EXACTLY with this message based on the language. EN: "We cannot send you photos of the exact unit right now because the port depots are automated and the stacks move constantly for security. However, on the day of your delivery, our driver will send you detailed photos of the exact container selected for you, and we will wait for your approval before proceeding with the trip to your property. This guarantees your total satisfaction! In the meantime, you can view real photos of recent deliveries in your area. Please note: Our gallery showcases both BRAND NEW and USED containers. If you purchase a used unit, it will be structurally sound and wind/water tight, but it will have minor dents and surface rust normal for its age. View our gallery here: https://rpcontainer.com/#gallery". ES: "No podemos enviarle fotos de la unidad exacta en este momento porque los depósitos portuarios están automatizados y los contenedores se mueven constantemente por seguridad. Sin embargo, el día programado para su entrega, nuestro chofer le enviará fotos detalladas del contenedor exacto seleccionado para usted, y esperaremos su aprobación antes de proceder con el viaje a su propiedad. ¡Así garantizamos su total satisfacción! Mientras tanto, puede ver fotos reales de entregas recientes en su zona. Nota importante: Nuestra galería muestra contenedores tanto NUEVOS como USADOS. Si compra una unidad usada, esta será estructuralmente sólida y estará 100% sellada (sin goteras), pero presentará golpes menores y óxido superficial normal para su edad. Vea nuestra galería aquí: https://rpcontainer.com/#gallery".
 - CONDITION (Used): All used containers are Wind & Water Tight (WWT). Structurally sound, no leaks, doors seal properly. DO NOT proactively mention the guarantee here.
 - FLOORS: Used containers have hardwood or bamboo floors in good structural condition.
-- PRICE IN ADS: Ads show the container price at the port only. Delivery cost varies by zip code distance, so we cannot advertise one price. Our quote is FINAL: container + flatbed delivery, no hidden fees.
+- PRICE IN ADS: Ads show the container price at the port only. Delivery cost varies by zip code distance, so we cannot advertise one price. Our quote is FINAL: container + flatbed delivery, no hidden fees. CRITICAL: NEVER invent, calculate, or provide a price yourself in ai_reply. The system will calculate the exact price using a database if you set intent to "quote". If the user asks for a price or asks "how much is X", ALWAYS set intent to "quote".
 - DISCOUNTS: Prices are already the lowest wholesale port prices with zero hidden margins. No additional discounts available.
 - MILITARY/SENIOR/FIRST RESPONDER: We do not offer special discounts. Our prices are already the best in the market.
 - LOCATIONS/HUBS: Distribution centers in Miami, Tampa, Titusville, Jacksonville, Savannah, and Atlanta.
@@ -102,7 +112,7 @@ COMPANY KNOWLEDGE (use this to answer questions naturally — never make things 
 - REEFERS: Available Working (Functional) or Not Working (No AC), and also brand New.
 - GUARANTEES: NEVER mention or offer a guarantee/warranty unless the customer explicitly asks about it. If they ask, explain that we ONLY offer a 6-month Wind and Water Tight structural guarantee on all used containers, and NO OTHER guarantees are provided.
 - CONTACT INFO: Phone numbers: 786-768-4409 | 786-736-6288. Email: rptulipantransport@gmail.com. IMPORTANT: You ARE authorized to give these phone numbers and email to the customer when they ask to speak to a human, ask for a phone number, or want to call us. Do not refuse to give the phone number.
-- INTERNATIONAL/EXPORT SHIPPING: We do not handle international shipping directly. If a customer asks if we ship to another country (like Cuba, Jamaica, etc.), explain EXACTLY this: "We do not provide direct international shipping. However, we can transport the container to your designated port or shipping agency within the USA. If you book this domestic transport with us, we can offer you a special discount on the container price! Because export logistics are complex, we cannot provide export quotes via chat. Please call us at 786-768-4409 or 786-736-6288 to discuss the details and get a custom quote."
+- INTERNATIONAL/EXPORT SHIPPING: We can provide containers for international export! When a customer wants to ship a container to another country (e.g. Puerto Rico, Cuba, Bahamas, etc.), you MUST set the action to "Exportacion" and the intent to "quote". Do NOT tell the customer to call us directly for export quotes yet. Instead, let the system ask the follow-up questions to collect their Zip Code and Destination Port first. Do NOT generate a long explanation about why we can't give a final price; just set action="Exportacion" and intent="quote" so the system can proceed.
 
 SLANG/JARGON (interpret these correctly):
 - "need closer", "can you do better", "bottom line", "best price", "lowest", "closer deal", "military discount", "senior discount", "any discounts" → customer wants a price reduction → explain our pricing policy warmly.
@@ -120,13 +130,15 @@ OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO
   "lang": "EN" | "ES", // CRITICAL: This MUST match the exact language the customer used in their VERY LAST message. If they spoke Spanish, output "ES".
   "extracted_data": {
     "action": "Comprar" | "Alquilar" | "Transporte" | "Exportacion" | null,
+    "export_action": "Comprar" | "Alquilar" | null,
     "condition": "Nuevo" | "Usado" | null,
     "type": "Dry" | "Reefer" | "Open Side" | "Double Door" | null,
-    "size": "20'" | "40'" | "45'" | null,
+    "size": "20' STD" | "20' HC" | "40' STD" | "40' HC" | "45' HC" | null,
     "quantity": number | null,
     "zip": string | null,
     "zip_origin": string | null,
     "zip_dest": string | null,
+    "port_dest": string | null,
     "reefer_status": "Funcionando" | "No Funcionando" | null,
     "load_status": "Vacio" | "Cargado" | null
   },
@@ -134,20 +146,35 @@ OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO
 }
 
 INTENT RULES:
-- "quote": Customer is giving NEW data (size, zip, condition) to advance a quote, explicitly requesting a new price calculation, or asking for a delivery fee/cost. CRITICAL: If the customer provides a Zip Code and a size asking for a price/fee, the intent MUST ALWAYS be "quote" so the system can calculate it. NEVER use "general_chat" for this.
-- "general_chat": Customer is asking a general question (quality, payment, guarantees) WITHOUT requesting a new price for a specific zip code. If they provide a Zip Code to get a price, use "quote". Never say we can't quote delivery until they confirm.
+- "quote": Customer is giving NEW data (size, zip, condition) to advance a quote, explicitly requesting a new price calculation, or asking for a delivery fee/cost/price. CRITICAL: If the customer provides a Zip Code and a size asking for a price/fee, the intent MUST ALWAYS be "quote" so the system can calculate it. NEVER use "general_chat" to give a price.
+- "general_chat": Customer is asking a general question (quality, payment, guarantees) WITHOUT requesting a new price. If they ask for a price (e.g. "how much is the 20"), use "quote". NEVER give or invent a price in general_chat.
 - "cancel": Customer says bye, thanks, stop, not interested, too expensive, ok (alone with no other info). CRITICAL: For ai_reply, if they thank you (e.g. gracias, thanks), reply with "¡De nada!" (or "You're welcome!"). If they just cancel, say bye, or say ok, reply with "¡Gracias!" (or "Thank you!").
-- "proceed": Customer explicitly CONFIRMS they want to place the order AFTER receiving a final price quote (e.g., yes, si, proceed, let's do it, I'll take it). Do NOT use this if they are just starting a request like "I want to rent a 20ft".
+- "proceed": Customer explicitly CONFIRMS they want to place the order AFTER receiving a final price quote (e.g., yes, si, proceed, let's do it, I'll take it). Do NOT use this if they are just starting a request. CRITICAL: If the customer agrees but AT THE SAME TIME changes the quantity (e.g. "I'll just take one for now"), you MUST use "quote" instead of "proceed" to recalculate the new price.
+
+CONVERSATION RULES:
+- ALWAYS answer the customer's questions in the "ai_reply" field, EVEN if the intent is "quote" or "proceed". Do not stay silent if they asked a question (even if they forgot the question mark).
+- If they ask if a 20' used container is HC or STD, explain that our used 20' containers are STD (8'6" tall), and we only carry 20' HC (9'6" tall) as brand new.
+- If they ask if a 40' used container is HC or STD, or say something like "este de 40 es HC", explain that for 40' USED containers we have BOTH STD and HC available for the EXACT SAME PRECIO, and extract the size as "40' HC".
+- CRITICAL: 45' containers are ONLY Dry and ONLY HC. Do not ask the customer if they want Reefer, Open Side, etc. for a 45' container.
+- CRITICAL: Open Side and Double Door containers are ONLY available in BRAND NEW condition, and ONLY in sizes 20ft and 40ft. Do not offer 45ft for them.
+- CRITICAL: If the customer asks technical questions about refrigerated (reefer) containers (e.g. year, voltage, data sheet), you MUST reply exactly with this message in ai_reply depending on the language:
+  English: "Great question! Since technical details for refrigerated containers (year, voltage, data sheet, etc.) vary depending on the exact unit we have in the yard, I suggest speaking with our sales team to get precise information. You can call us right now at +1 (786) 768-4409 or +1 (786) 736-6288 and a specialist will help you immediately."
+  Spanish: "¡Excelente pregunta! Como los detalles técnicos de los contenedores refrigerados (año, voltaje, ficha técnica, etc.) varían dependiendo de la unidad exacta que tenemos en el patio, te sugiero hablar con nuestro equipo de ventas para darte la información precisa. Puedes llamarnos ahora mismo al +1 (786) 768-4409 o al +1 (786) 736-6288 y un especialista te ayudará de inmediato."
 
 EXTRACTION RULES:
-- "20", "20'", "20ft", "twenty", "20 pies" → size "20'".
-- "40", "40'", "40ft", "forty", "40 pies" → size "40'".
-- "45", "45'", "45ft", "forty five", "45 pies" → size "45'".
+- "20", "20'", "20ft", "twenty", "20 pies" (without HC/High Cube) → size "20' STD".
+- "20 HC", "20 High Cube", "20' HC", "20ft HC" → size "20' HC". CRITICAL RULE: ONLY if the customer specifically asks for a "20 HC", you MUST set condition to "Nuevo". Do NOT do this for a regular 20'. If they asked for a used 20 HC, explain politely in ai_reply that we only carry 20 HC in New condition.
+- "40", "40'", "40ft", "forty", "40 pies" (without HC/High Cube) → size "40' STD".
+- "40 HC", "40 High Cube", "40' HC", "40ft HC", "es HC" (when discussing 40) → size "40' HC".
+- "45", "45'", "45ft", "forty five", "45 pies" → size "45' HC".
 - "two"/"2"/"dos"/"couple"/"a pair" + container/footer → quantity 2. "three"/"3"/"tres" → quantity 3. "one"/"1"/"un"/"uno" → quantity 1.
 - "reefer"/"refrigerado"/"refrigerated"/"cold"/"freezer" → type "Reefer".
 - "standard"/"dry"/"estandar"/"regular"/"normal" → type "Dry".
-- "new"/"nuevo"/"brand new" → condition "Nuevo". "used"/"usado"/"second hand"/"pre-owned" → condition "Usado".
-- "storage"/"almacenamiento"/"to store"/"para guardar" → action "Comprar".
+- "open side"/"puertas laterales"/"abre por el lado" → type "Open Side".
+- "double door"/"puertas dobles"/"doble puerta"/"tunel"/"tunnel" → type "Double Door".
+- CRITICAL: DO NOT change or extract a new "type" unless the customer explicitly mentions one. If they just ask for another size (e.g. "y el de 40'"), leave "type" as null so it retains the current type.
+- "new"/"nuevo"/"brand new" → condition "Nuevo". "used"/"usado"/"second hand"/"pre-owned" → condition "Usado". CRITICAL: Do NOT guess or default the condition if it is not explicitly mentioned; leave it null.
+- "storage"/"almacenamiento"/"to store"/"para guardar" → action "Comprar". CRITICAL: If the customer asks for a price/quote and does not specify buying or renting, ALWAYS assume action "Comprar".
 - "export"/"exportacion" → action "Exportacion".
 - "rent"/"alquiler"/"renta"/"lease" → action "Alquilar".
 - "move"/"transport"/"mover"/"transporte"/"haul"/"relocate" → action "Transporte".
@@ -223,12 +250,12 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
         const isES = lo.match(/\b(foto|fotos|imagen|imagenes|imágenes|ver el contenedor|muestrame|muéstrame|galería|galeria)\b/);
         const isWeb = senderId.startsWith("web_");
         
-        let photoMsgEN = "We cannot send you the exact photo of the unit because the port depots are automated and the stacks are constantly moving for logistics and security. However, here are real photos of recent deliveries in your area.\n\n**Please note:** Our gallery showcases both BRAND NEW and USED containers. If you purchase a used unit, it will be structurally sound, wind/water tight with intact seals, but it will have minor dents and surface rust normal for its age. View our gallery here:\n\nhttps://rpcontainer.com/#gallery";
-        let photoMsgES = "No podemos enviarle la foto de la unidad exacta porque los depósitos portuarios están automatizados y las pilas se mueven constantemente por logística y seguridad. Sin embargo, aquí tiene fotos reales de entregas recientes en su zona.\n\n**Nota importante:** Nuestra galería muestra contenedores tanto NUEVOS como USADOS. Si usted compra una unidad usada, esta será estructuralmente sólida y estará 100% sellada (sin goteras), pero presentará golpes menores y óxido superficial normal para su edad. Vea nuestra galería aquí:\n\nhttps://rpcontainer.com/#gallery";
+        let photoMsgEN = "We cannot send you photos of the exact unit right now because the port depots are automated and the stacks move constantly for security. However, **on the day of your delivery**, our driver will send you detailed photos of the exact container selected for you, and **we will wait for your approval** before proceeding with the trip to your property. This guarantees your total satisfaction!\n\nIn the meantime, you can view real photos of recent deliveries in your area.\n**Please note:** Our gallery showcases both BRAND NEW and USED containers. If you purchase a used unit, it will be structurally sound and wind/water tight, but it will have minor dents and surface rust normal for its age. View our gallery here:\n\nhttps://rpcontainer.com/#gallery";
+        let photoMsgES = "No podemos enviarle fotos de la unidad exacta en este momento porque los depósitos portuarios están automatizados y los contenedores se mueven constantemente por seguridad. Sin embargo, **el día programado para su entrega**, nuestro chofer le enviará fotos detalladas del contenedor exacto seleccionado para usted, y **esperaremos su aprobación** antes de proceder con el viaje a su propiedad. ¡Así garantizamos su total satisfacción!\n\nMientras tanto, puede ver fotos reales de entregas recientes en su zona.\n**Nota importante:** Nuestra galería muestra contenedores tanto NUEVOS como USADOS. Si compra una unidad usada, esta será estructuralmente sólida y estará 100% sellada (sin goteras), pero presentará golpes menores y óxido superficial normal para su edad. Vea nuestra galería aquí:\n\nhttps://rpcontainer.com/#gallery";
         
         if (isWeb) {
-            photoMsgEN = "We cannot send you the exact photo of the unit because the port depots are automated and the stacks are constantly moving for logistics and security. However, here are real photos of recent deliveries in your area.\n\n**Please note:** Our gallery showcases both BRAND NEW and USED containers. If you purchase a used unit, it will be structurally sound, wind/water tight with intact seals, but it will have minor dents and surface rust normal for its age.<br><br><a href='https://rpcontainer.com/#gallery' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Gallery</a>";
-            photoMsgES = "No podemos enviarle la foto de la unidad exacta porque los depósitos portuarios están automatizados y las pilas se mueven constantemente por logística y seguridad. Sin embargo, aquí tiene fotos reales de entregas recientes en su zona.\n\n**Nota importante:** Nuestra galería muestra contenedores tanto NUEVOS como USADOS. Si usted compra una unidad usada, esta será estructuralmente sólida y estará 100% sellada (sin goteras), pero presentará golpes menores y óxido superficial normal para su edad.<br><br><a href='https://rpcontainer.com/#gallery' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Galería</a>";
+            photoMsgEN = "We cannot send you photos of the exact unit right now because the port depots are automated and the stacks move constantly for security. However, **on the day of your delivery**, our driver will send you detailed photos of the exact container selected for you, and **we will wait for your approval** before proceeding with the trip to your property. This guarantees your total satisfaction!\n\nIn the meantime, you can view real photos of recent deliveries in your area.\n**Please note:** Our gallery showcases both BRAND NEW and USED containers. If you purchase a used unit, it will be structurally sound and wind/water tight, but it will have minor dents and surface rust normal for its age.<br><br><a href='https://rpcontainer.com/#gallery' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Gallery</a>";
+            photoMsgES = "No podemos enviarle fotos de la unidad exacta en este momento porque los depósitos portuarios están automatizados y los contenedores se mueven constantemente por seguridad. Sin embargo, **el día programado para su entrega**, nuestro chofer le enviará fotos detalladas del contenedor exacto seleccionado para usted, y **esperaremos su aprobación** antes de proceder con el viaje a su propiedad. ¡Así garantizamos su total satisfacción!\n\nMientras tanto, puede ver fotos reales de entregas recientes en su zona.\n**Nota importante:** Nuestra galería muestra contenedores tanto NUEVOS como USADOS. Si compra una unidad usada, esta será estructuralmente sólida y estará 100% sellada (sin goteras), pero presentará golpes menores y óxido superficial normal para su edad.<br><br><a href='https://rpcontainer.com/#gallery' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Galería</a>";
         }
 
         return { intent: "general_chat", lang: isES ? "ES" : "EN", extracted_data: {}, ai_reply: isES ? photoMsgES : photoMsgEN };
@@ -291,7 +318,7 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
         if (lo.match(/\b(español|es|pies|usado|nuevo|comprar|alquilar|rentar|mover|vacio|vacío|cargado|lleno|sí|si|gracias|hola|quiero|precio|cotizacion|cotización|cuanto|contenedor)\b/)) lang = "ES";
     }
 
-    const dictCurrent = chatDict[lang];
+    let dictCurrent = chatDict[lang];
     const isLangPick = ["español", "espanol", "es", "english", "en"].includes(input.toLowerCase());
 
     // Bienvenida
@@ -307,25 +334,33 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
         return actions;
     }
 
-    // Captura de nombre/teléfono
-    if (step === 7) {
-        await updateSession(senderId, { lead_name: input, step: 8 });
-        actions.push({ type: "text", text: dictCurrent.ask_phone.replace("{name}", input) });
-        return actions;
-    }
-    if (step === 8) {
-        await updateSession(senderId, { lead_phone: input, step: 0 });
-        await supabase.from("call_logs").insert([{
-            customer: session.lead_name || "Unknown", phone: input || "---",
-            service_type: session.action || "Sales", city: "---",
-            description: `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`,
-            created_by: "rptulipantransport@gmail.com", source: "chatbot",
-            status: "PENDING", date: new Date().toISOString().split("T")[0],
-            next_call_date: new Date().toISOString().split("T")[0],
-            amount: session.final_amount, zip_code: session.zip, measures: session.size
-        }]);
-        actions.push({ type: "text", text: dictCurrent.order_done });
-        return actions;
+    // Captura de nombre/teléfono con Escape Hatch
+    if (step === 7 || step === 8) {
+        const isQuestionOrLong = input.split(" ").length > 4 || /\b(cuanto|qué|que|por qué|como|cómo|precio|pero|no|espera|wait|how|what|why|price|cost|solo|just|one|uno)\b/i.test(input) || input.includes("?");
+        if (!isQuestionOrLong) {
+            if (step === 7) {
+                await updateSession(senderId, { lead_name: input, step: 8 });
+                actions.push({ type: "text", text: dictCurrent.ask_phone.replace("{name}", input) });
+                return actions;
+            }
+            if (step === 8) {
+                await updateSession(senderId, { lead_phone: input, step: 0 });
+                await supabase.from("call_logs").insert([{
+                    customer: session.lead_name || "Unknown", phone: input || "---",
+                    service_type: session.action || "Sales", city: "---",
+                    description: session.action === "Exportacion" || session.action === "Exportación" ? `Order via AI Bot (EXPORT). Zip: ${session.zip}. Port: ${session.port_dest}. Buy/Rent: ${session.export_action}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`,
+                    created_by: "rptulipantransport@gmail.com", source: "chatbot",
+                    status: "PENDING", date: new Date().toISOString().split("T")[0],
+                    next_call_date: new Date().toISOString().split("T")[0],
+                    amount: session.final_amount, zip_code: session.zip, measures: session.size
+                }]);
+                actions.push({ type: "text", text: dictCurrent.order_done });
+                return actions;
+            }
+        } else {
+            // Escape hatch activated: reset to step 6 to let AI handle the doubt/change
+            await updateSession(senderId, { step: 6 });
+        }
     }
 
     // ── Construir historial (últimos 8 mensajes para contexto) ──
@@ -340,7 +375,10 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
         if (!extracted) extracted = { intent: "quote", lang, extracted_data: {} };
     }
 
-    if (extracted.lang) lang = extracted.lang;
+    if (extracted.lang) {
+        lang = extracted.lang;
+        dictCurrent = chatDict[lang];
+    }
     const data = extracted.extracted_data || {};
 
     // ── Prevenir recálculo redundante en el paso 6 ──
@@ -364,16 +402,38 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
     if (/\b(40|40'|40ft|forty|40 pies)\b/.test(lo)) data.size = "40'";
     else if (/\b(20|20'|20ft|twenty|20 pies)\b/.test(lo)) data.size = "20'";
     else if (/\b(45|45'|45ft|forty five|45 pies)\b/.test(lo)) data.size = "45'";
+    
+    const isExportFlow = session.action === "Exportación" || session.action === "Exportacion";
+    if (isExportFlow) {
+        if (lo.includes("comprar") || lo.includes("buy")) data.export_action = "Comprar";
+        else if (lo.includes("alquilar") || lo.includes("rent") || lo.includes("alquilo")) data.export_action = "Alquilar";
+    }
 
     // ── Actualizar sesión con datos extraídos ──
     const updates: any = { lang };
     if (data.size) updates.size = data.size;
-    if (data.action) updates.action = data.action;
+    
+    if (data.action) {
+        const actionStr = data.action.toString().toLowerCase();
+        if (isExportFlow && (actionStr.includes("comprar") || actionStr.includes("buy") || actionStr.includes("alquilar") || actionStr.includes("rent"))) {
+            updates.export_action = (actionStr.includes("comprar") || actionStr.includes("buy")) ? "Comprar" : "Alquilar";
+        } else {
+            updates.action = data.action;
+        }
+    }
+    
     if (data.condition) updates.condition = data.condition;
     if (data.type) updates.type = data.type;
     if (data.reefer_status) updates.reefer_status = data.reefer_status;
     if (data.load_status) updates.load_status = data.load_status;
     if (data.quantity && data.quantity > 0) updates.quantity = data.quantity;
+    
+    if (data.export_action) {
+        const eaStr = data.export_action.toString().toLowerCase();
+        updates.export_action = (eaStr.includes("comprar") || eaStr.includes("buy")) ? "Comprar" : "Alquilar";
+    }
+    
+    if (data.port_dest) updates.port_dest = data.port_dest;
     
     // Strict safeguard against invalid zip codes extracted by AI
     if (data.zip_origin && !/^\d{5}$/.test(data.zip_origin.toString())) data.zip_origin = null;
@@ -412,7 +472,7 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
             return [];
         }
 
-        await updateSession(senderId, { step: 0, action: null, size: null, zip: null, condition: null, type: null, reefer_status: null, quantity: null, history: null });
+        await updateSession(senderId, { step: 0, action: null, size: null, zip: null, condition: null, type: null, reefer_status: null, quantity: null, history: null, export_action: null, port_dest: null });
         
         const msg = extracted.ai_reply || (lang === "EN" ? "Thank you!" : "¡Gracias!");
 
@@ -432,7 +492,7 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
         let pendingOptions: string[] | null = null;
         if (step === 6) pendingOptions = dictCurrent.proceed_btns;
         else if (!session.action) pendingOptions = dictCurrent.step1_btns;
-        else if (!session.size) pendingOptions = (session.type === "Reefer") ? ["20'", "40'"] : dictCurrent.step3_size_btns;
+        else if (!session.size) pendingOptions = (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns;
         else if (session.action === "Transporte" && !session.load_status) pendingOptions = dictCurrent.ask_load_btns;
 
         if (pendingOptions) {
@@ -443,39 +503,72 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
         return actions;
     }
 
+    // Helper para incluir la respuesta conversacional de la IA (si existe) antes del mensaje estructurado
+    const appendAiReply = (msg: string) => extracted.ai_reply ? `${extracted.ai_reply}\n\n${msg}` : msg;
+
     // ── FLUJO DE COTIZACIÓN ESTRUCTURADO ──
     if (!session.action) {
-        actions.push({ type: "quick_replies", text: dictCurrent.step1_msg, options: dictCurrent.step1_btns });
+        // Si ya hay una respuesta de la IA (estamos en medio de una charla), usar un texto más natural en lugar del saludo genérico
+        const fallbackMsg = extracted.ai_reply ? (lang === "EN" ? "Please select an option to continue:" : "¿Buscas comprar, alquilar o transporte?") : dictCurrent.step1_msg;
+        actions.push({ type: "quick_replies", text: appendAiReply(fallbackMsg), options: dictCurrent.step1_btns });
         return actions;
     }
 
     if (session.action === "Comprar_Intent") {
-        actions.push({ type: "quick_replies", text: dictCurrent.ask_export_type, options: dictCurrent.ask_export_btns });
+        actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_export_type), options: dictCurrent.ask_export_btns });
         return actions;
     }
 
     if (session.action === "Transporte") {
-        if (!session.size) { actions.push({ type: "quick_replies", text: dictCurrent.step3_size_msg, options: dictCurrent.step3_size_btns }); return actions; }
-        if (!session.zip_origin) { actions.push({ type: "text", text: dictCurrent.ask_origin }); return actions; }
-        if (!session.zip_dest) { actions.push({ type: "text", text: dictCurrent.ask_dest }); return actions; }
-        if (!session.load_status) { actions.push({ type: "quick_replies", text: dictCurrent.ask_load, options: dictCurrent.ask_load_btns }); return actions; }
+        if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: dictCurrent.step3_size_btns }); return actions; }
+        if (!session.zip_origin) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_origin) }); return actions; }
+        if (!session.zip_dest) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_dest) }); return actions; }
+        if (!session.load_status) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_load), options: dictCurrent.ask_load_btns }); return actions; }
+    } else if (session.action === "Exportación" || session.action === "Exportacion") {
+        if (!session.export_action) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_export_buy_rent), options: dictCurrent.ask_export_buy_rent_btns }); return actions; }
+        if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns }); return actions; }
+        if (!session.zip) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_export_zip) }); return actions; }
+        if (!session.port_dest) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_export_port) }); return actions; }
+        
+        // If renting for export, we don't calculate price. We just proceed.
+        if (session.export_action === "Alquilar" || session.export_action === "Rent") {
+            const msg = dictCurrent.export_rent_msg + "\n\n" + dictCurrent.export_final_msg;
+            const historyAfterQuote = [...(session.history || [])];
+            historyAfterQuote.push({ role: "assistant", content: msg });
+            await updateSession(senderId, { step: 7, history: historyAfterQuote.slice(-10) });
+            actions.push({ type: "text", text: msg });
+            return actions;
+        }
     } else {
-        if (session.action === "Comprar" || session.action === "Exportación" || session.action === "Exportacion") {
+        if (session.action === "Comprar") {
             if (session.type === "Reefer" && session.condition === "Usado" && !session.reefer_status) {
-                actions.push({ type: "quick_replies", text: dictCurrent.ask_reefer_status, options: dictCurrent.ask_reefer_status_btns }); return actions;
+                actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_reefer_status), options: dictCurrent.ask_reefer_status_btns }); return actions;
             }
         }
-        if (!session.size) { actions.push({ type: "quick_replies", text: dictCurrent.step3_size_msg, options: (session.type === "Reefer") ? ["20'", "40'"] : dictCurrent.step3_size_btns }); return actions; }
-        if (!session.zip) { actions.push({ type: "text", text: dictCurrent.ask_zip }); return actions; }
+        if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns }); return actions; }
+        if (!session.zip) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_zip) }); return actions; }
     }
 
     // ── CALCULAR PRECIO ──
-    if (!session.condition) {
+    if (!session.condition || session.type === "Open Side" || session.type === "Double Door") {
         const autoNew = session.type === "Open Side" || session.type === "Double Door";
-        session.condition = autoNew ? "Nuevo" : "Usado";
+        session.condition = autoNew ? "Nuevo" : (session.condition || "Usado");
         updates.condition = session.condition;
     }
     if (!session.type) { session.type = "Dry"; updates.type = "Dry"; }
+    
+    // ENFORCE 20' HC RULE: If they ask for 20' HC, it MUST be New
+    if (session.size === "20' HC" && session.condition !== "Nuevo") {
+        session.condition = "Nuevo";
+        updates.condition = "Nuevo";
+    }
+
+    // ENFORCE 45' RULE: If they ask for 45', enforce condition to Usado to avoid AI hallucinating New
+    if (session.size && session.size.includes("45") && session.condition !== "Usado") {
+        session.condition = "Usado";
+        updates.condition = "Usado";
+    }
+
     await updateSession(senderId, updates);
 
     actions.push({ type: "text", text: dictCurrent.calculating });
@@ -486,17 +579,29 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
         const quantity = Number(session.quantity) || 1;
 
         let sizeKey = "";
-        if (session.size === "20'") {
+        if (session.size === "20' STD" || session.size === "20'") {
             if (session.type === "Reefer") sizeKey = isNew ? "20reefer" : (session.reefer_status === "No Funcionando" ? "20nofunc" : "20func");
             else if (session.type === "Open Side") sizeKey = "20side";
             else if (session.type === "Double Door") sizeKey = "20dd";
             else sizeKey = "20std";
-        } else if (session.size === "40'") {
+        } else if (session.size === "20' HC") {
+            if (session.type === "Reefer") sizeKey = isNew ? "20reefer" : (session.reefer_status === "No Funcionando" ? "20nofunc" : "20func");
+            else if (session.type === "Open Side") sizeKey = "20side";
+            else if (session.type === "Double Door") sizeKey = "20dd";
+            else sizeKey = "20std"; // The DB stores the new 20' HC price under the standard 20' key
+        } else if (session.size === "40' STD" || session.size === "40'") {
+            if (session.type === "Reefer") sizeKey = isNew ? "40reefer" : (session.reefer_status === "No Funcionando" ? "40nofunc" : "40func");
+            else if (session.type === "Open Side") sizeKey = "40side";
+            else if (session.type === "Double Door") sizeKey = "40dd";
+            else sizeKey = "40std";
+        } else if (session.size === "40' HC") {
             if (session.type === "Reefer") sizeKey = isNew ? "40reefer" : (session.reefer_status === "No Funcionando" ? "40nofunc" : "40func");
             else if (session.type === "Open Side") sizeKey = "40side";
             else if (session.type === "Double Door") sizeKey = "40dd";
             else sizeKey = "40hc";
-        } else if (session.size === "45'") sizeKey = "45hc";
+        } else if (session.size === "45' HC" || session.size === "45'" || session.size === "45" || (session.size && session.size.includes("45"))) {
+            sizeKey = "45hc";
+        }
 
         const { data: qData, error } = await supabase.functions.invoke("calculate-quote", {
             body: {
@@ -520,24 +625,31 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
 
         const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
         let msg = "";
+        const displaySize = session.size ? session.size.replace(" STD", "") : "";
 
         if (session.action === "Transporte") {
             if (qData.immediate_price && qData.immediate_price !== finalPrice) {
                 msg = dictCurrent.price_transport
-                    .replace("{size}", session.size).replace("{load}", session.load_status)
+                    .replace("{size}", displaySize).replace("{load}", session.load_status)
                     .replace("{origin}", session.zip_origin).replace("{dest}", session.zip_dest)
                     .replace("{price}", fmt(finalPrice)).replace("{immed}", fmt(qData.immediate_price))
                     .replace("{yard}", qData.closest_yard || "Miami Hub");
             } else {
                 msg = dictCurrent.price_transport_single
-                    .replace("{size}", session.size).replace("{load}", session.load_status)
+                    .replace("{size}", displaySize).replace("{load}", session.load_status)
                     .replace("{origin}", session.zip_origin).replace("{dest}", session.zip_dest)
                     .replace("{price}", fmt(finalPrice));
             }
         } else if (isExport) {
             const sp = ["Reefer", "Open Side", "Double Door"].includes(session.type);
             const bp = (qData.container_price || 0) + (sp ? 0 : (qData.cert_fee || 0));
-            msg = dictCurrent.price_export.replace("{price}", fmt(bp));
+            msg = dictCurrent.export_buy_price.replace("{price}", fmt(bp)) + "\n\n" + dictCurrent.export_final_msg;
+            
+            const historyAfterQuote = [...(session.history || [])];
+            historyAfterQuote.push({ role: "assistant", content: msg });
+            await updateSession(senderId, { step: 7, final_amount: bp, history: historyAfterQuote.slice(-10) });
+            actions.push({ type: "text", text: msg });
+            return actions;
         } else if (session.action === "Alquilar") {
             msg = dictCurrent.price_rent
                 .replace("{zip}", session.zip)
@@ -546,23 +658,62 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
                 .replace("{price}", fmt(finalPrice));
         } else {
             let condLabel = lang === "EN" ? (session.condition === "Nuevo" ? "New" : "Used") : session.condition;
-            let typeLabel = session.type === "Dry" ? (lang === "EN" ? "Standard" : "Estándar") : session.type;
+            let typeLabel = session.type === "Dry" ? "" : session.type;
             if (session.type === "Reefer" && session.reefer_status === "No Funcionando") typeLabel = lang === "EN" ? "Reefer (Not Working)" : "Refrigerado (No Funciona)";
             else if (session.type === "Reefer") typeLabel = lang === "EN" ? "Reefer" : "Refrigerado";
             const qtyStr = quantity > 1 ? `${quantity} ` : "";
             const qtyPluralS = quantity > 1 ? "s" : "";
             const qtyPluralES = quantity > 1 ? "es" : "";
             if (lang === "ES" && quantity > 1 && (condLabel === "Nuevo" || condLabel === "Usado")) condLabel += "s";
+
+            // Check if we need to do the quantity >= 2 negotiation flow
+            if (qData.non_discounted_price && quantity >= 2) {
+                if (lang === "EN") {
+                    msg = `Normally, the total cost for ${qtyStr}${condLabel} ${typeLabel} ${displaySize} containers delivered to ${session.zip} would be **${fmt(qData.non_discounted_price)}**. However, if you have enough space on your property to receive them on the same day and at the same time in a single shared trip, I can give you a special discount and leave them at a total of **${fmt(finalPrice)}**.\n\nDo you have the space and can we send them together?`;
+                } else {
+                    msg = `Normalmente, el costo total por ${qtyStr}contenedores ${typeLabel} ${condLabel} de ${displaySize} entregados en ${session.zip} sería de **${fmt(qData.non_discounted_price)}**. Sin embargo, si tienes espacio suficiente en tu propiedad para recibirlos el mismo día y a la misma hora en un solo viaje compartido, te puedo hacer un descuento especial y dejártelos en un total de **${fmt(finalPrice)}**.\n\n¿Tienes el espacio y podemos enviarlos juntos?`;
+                }
+            } else {
+                msg = dictCurrent.price_sale
+                    .replace("{qty}", qtyStr)
+                    .replace(/{qty_plural_s}/g, qtyPluralS)
+                    .replace(/{qty_plural_es}/g, qtyPluralES)
+                    .replace("{cond}", condLabel)
+                    .replace("{type}", typeLabel)
+                    .replace("{size}", displaySize)
+                    .replace("{zip}", session.zip)
+                    .replace("{price}", fmt(finalPrice));
+            }
+
+            // Upsell/Downsell: Compare with Standard Used if they asked for a specialty container
+            if (session.type !== "Dry") {
+                const stdSizeKey = session.size === "20'" ? "20std" : (session.size === "40'" ? "40hc" : "45hc");
+                try {
+                    const { data: stdData } = await supabase.functions.invoke("calculate-quote", {
+                        body: {
+                            operation_mode: "sale",
+                            condition: "used",
+                            zip_destino: session.zip,
+                            container_size: stdSizeKey,
+                            quantity: quantity
+                        }
+                    });
+                    
+                    if (stdData && stdData.total_price) {
+                        const stdPrice = stdData.non_discounted_price && quantity >= 2 ? stdData.non_discounted_price : stdData.total_price;
+                        if (lang === "EN") {
+                            msg = `The regular used ${displaySize} is **${fmt(stdPrice)}**.\n\n` + msg;
+                        } else {
+                            msg = `El de ${displaySize} regular usado cuesta **${fmt(stdPrice)}**.\n\n` + msg;
+                        }
+                    }
+                } catch(err) {
+                    console.error("Error fetching comparison quote:", err);
+                }
+            }
             
-            msg = dictCurrent.price_sale
-                .replace("{qty}", qtyStr)
-                .replace(/{qty_plural_s}/g, qtyPluralS)
-                .replace(/{qty_plural_es}/g, qtyPluralES)
-                .replace("{cond}", condLabel)
-                .replace("{type}", typeLabel)
-                .replace("{size}", session.size)
-                .replace("{zip}", session.zip)
-                .replace("{price}", fmt(finalPrice));
+            // Clean up double spaces caused by empty typeLabel, but preserve newlines
+            msg = msg.replace(/ +/g, " ");
         }
 
         const historyAfterQuote = [...(session.history || [])];
