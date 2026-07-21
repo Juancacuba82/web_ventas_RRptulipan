@@ -100,7 +100,7 @@ COMPANY KNOWLEDGE (use this to answer questions naturally — never make things 
 - NEW CONTAINERS: We DO have brand new (One-Trip) containers available in all sizes (20ft, 40ft, 45ft) and types (including standard Dry). NEVER say we don't have new containers.
 - PAYMENT: Cash on Delivery (COD). We accept cash, Zelle, check, or credit card at delivery. NO financing.
 - DELIVERY TIME: 1-3 business days after order confirmation.
-- PHOTOS: If the user asks for photos, DO NOT invent excuses. You MUST reply EXACTLY with this message based on the language. EN: "We cannot send you photos of the exact unit right now because the port depots are automated and the stacks move constantly for security. However, on the day of your delivery, our driver will send you detailed photos of the exact container selected for you, and we will wait for your approval before proceeding with the trip to your property. This guarantees your total satisfaction! In the meantime, you can view real photos of recent deliveries in your area. Please note: Our gallery showcases both BRAND NEW and USED containers. If you purchase a used unit, it will be structurally sound and wind/water tight, but it will have minor dents and surface rust normal for its age. View our gallery here: https://rpcontainer.com/#gallery". ES: "No podemos enviarle fotos de la unidad exacta en este momento porque los depósitos portuarios están automatizados y los contenedores se mueven constantemente por seguridad. Sin embargo, el día programado para su entrega, nuestro chofer le enviará fotos detalladas del contenedor exacto seleccionado para usted, y esperaremos su aprobación antes de proceder con el viaje a su propiedad. ¡Así garantizamos su total satisfacción! Mientras tanto, puede ver fotos reales de entregas recientes en su zona. Nota importante: Nuestra galería muestra contenedores tanto NUEVOS como USADOS. Si compra una unidad usada, esta será estructuralmente sólida y estará 100% sellada (sin goteras), pero presentará golpes menores y óxido superficial normal para su edad. Vea nuestra galería aquí: https://rpcontainer.com/#gallery".
+- PHOTOS: If the user asks for photos, pictures, or images, do NOT write a response. Instead, set intent to "photos".
 - CONDITION (Used): All used containers are Wind & Water Tight (WWT). Structurally sound, no leaks, doors seal properly. DO NOT proactively mention the guarantee here.
 - FLOORS: Used containers have hardwood or bamboo floors in good structural condition.
 - PRICE IN ADS: Ads show the container price at the port only. Delivery cost varies by zip code distance, so we cannot advertise one price. Our quote is FINAL: container + flatbed delivery, no hidden fees. CRITICAL: NEVER invent, calculate, or provide a price yourself in ai_reply. The system will calculate the exact price using a database if you set intent to "quote". If the user asks for a price or asks "how much is X", ALWAYS set intent to "quote".
@@ -119,14 +119,14 @@ SLANG/JARGON (interpret these correctly):
 - "water tight", "wwt", "wind water tight", "no leaks", "good condition", "guarantee", "guaranteed" → quality/guarantee question → answer with our WWT and 6-month guarantee info.
 - "cash on delivery", "payment", "how do I pay", "accept credit", "do you finance", "payment options" → payment question.
 - "how long", "when will it arrive", "delivery time", "when", "how fast" → timing question.
-- "photos", "pictures", "can I see it first", "pics" → photo question.
+- "photos", "pictures", "can I see it first", "pics" → set intent to "photos".
 - "where are you located", "where do you ship from", "do you deliver to" → location question.
 - "good floors", "floor condition", "floor quality" → floor question.
 - "phone number", "call you", "contact", "telefono", "llamar", "numero", "speak to a human" → contact question → provide the company phone numbers enthusiastically.
 
 OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO extra text:
 {
-  "intent": "quote" | "general_chat" | "cancel" | "proceed",
+  "intent": "quote" | "general_chat" | "cancel" | "proceed" | "photos" | "dimensions",
   "lang": "EN" | "ES", // CRITICAL: This MUST match the exact language the customer used in their VERY LAST message. If they spoke Spanish, output "ES".
   "extracted_data": {
     "action": "Comprar" | "Alquilar" | "Transporte" | "Exportacion" | null,
@@ -150,6 +150,8 @@ INTENT RULES:
 - "general_chat": Customer is asking a general question (quality, payment, guarantees) WITHOUT requesting a new price. If they ask for a price (e.g. "how much is the 20"), use "quote". NEVER give or invent a price in general_chat.
 - "cancel": Customer says bye, thanks, stop, not interested, too expensive, ok (alone with no other info). CRITICAL: For ai_reply, if they thank you (e.g. gracias, thanks), reply with "¡De nada!" (or "You're welcome!"). If they just cancel, say bye, or say ok, reply with "¡Gracias!" (or "Thank you!").
 - "proceed": Customer explicitly CONFIRMS they want to place the order AFTER receiving a final price quote (e.g., yes, si, proceed, let's do it, I'll take it). Do NOT use this if they are just starting a request. CRITICAL: If the customer agrees but AT THE SAME TIME changes the quantity (e.g. "I'll just take one for now"), you MUST use "quote" instead of "proceed" to recalculate the new price.
+- "photos": Customer is explicitly asking to see photos, pictures, images, or a gallery of the containers.
+- "dimensions": Customer is asking for the exact dimensions, measurements, length, width, or physical size of the containers. CRITICAL: Do NOT use this if they ask for delivery time (e.g. "how long").
 
 CONVERSATION RULES:
 - ALWAYS answer the customer's questions in the "ai_reply" field, EVEN if the intent is "quote" or "proceed". Do not stay silent if they asked a question (even if they forgot the question mark).
@@ -243,41 +245,6 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
     if (["sí, proceder", "yes, proceed", "yes", "sí", "si"].includes(lo)) return { intent: "proceed", extracted_data: {} };
 
     if (/^\d{5}$/.test(lo)) return { intent: "quote", extracted_data: { zip: lo } };
-
-    // ── Detección de petición de fotos (Solo si NO es Transporte) ─────────────
-    const photoKeywords = ["foto", "fotos", "photo", "photos", "picture", "pictures", "imagen", "imagenes", "imágenes", "ver el contenedor", "see the container", "show me", "muéstrame", "muestrame", "gallery", "galería", "galeria"];
-    if (session?.action !== "Transporte" && photoKeywords.some(kw => lo.includes(kw))) {
-        const isES = lo.match(/\b(foto|fotos|imagen|imagenes|imágenes|ver el contenedor|muestrame|muéstrame|galería|galeria)\b/);
-        const isWeb = senderId.startsWith("web_");
-        
-        let photoMsgEN = "We cannot send you photos of the exact unit right now because the port depots are automated and the stacks move constantly for security. However, **on the day of your delivery**, our driver will send you detailed photos of the exact container selected for you, and **we will wait for your approval** before proceeding with the trip to your property. This guarantees your total satisfaction!\n\nIn the meantime, you can view real photos of recent deliveries in your area.\n**Please note:** Our gallery showcases both BRAND NEW and USED containers. If you purchase a used unit, it will be structurally sound and wind/water tight, but it will have minor dents and surface rust normal for its age. View our gallery here:\n\nhttps://rpcontainer.com/#gallery";
-        let photoMsgES = "No podemos enviarle fotos de la unidad exacta en este momento porque los depósitos portuarios están automatizados y los contenedores se mueven constantemente por seguridad. Sin embargo, **el día programado para su entrega**, nuestro chofer le enviará fotos detalladas del contenedor exacto seleccionado para usted, y **esperaremos su aprobación** antes de proceder con el viaje a su propiedad. ¡Así garantizamos su total satisfacción!\n\nMientras tanto, puede ver fotos reales de entregas recientes en su zona.\n**Nota importante:** Nuestra galería muestra contenedores tanto NUEVOS como USADOS. Si compra una unidad usada, esta será estructuralmente sólida y estará 100% sellada (sin goteras), pero presentará golpes menores y óxido superficial normal para su edad. Vea nuestra galería aquí:\n\nhttps://rpcontainer.com/#gallery";
-        
-        if (isWeb) {
-            photoMsgEN = "We cannot send you photos of the exact unit right now because the port depots are automated and the stacks move constantly for security. However, **on the day of your delivery**, our driver will send you detailed photos of the exact container selected for you, and **we will wait for your approval** before proceeding with the trip to your property. This guarantees your total satisfaction!\n\nIn the meantime, you can view real photos of recent deliveries in your area.\n**Please note:** Our gallery showcases both BRAND NEW and USED containers. If you purchase a used unit, it will be structurally sound and wind/water tight, but it will have minor dents and surface rust normal for its age.<br><br><a href='https://rpcontainer.com/#gallery' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Gallery</a>";
-            photoMsgES = "No podemos enviarle fotos de la unidad exacta en este momento porque los depósitos portuarios están automatizados y los contenedores se mueven constantemente por seguridad. Sin embargo, **el día programado para su entrega**, nuestro chofer le enviará fotos detalladas del contenedor exacto seleccionado para usted, y **esperaremos su aprobación** antes de proceder con el viaje a su propiedad. ¡Así garantizamos su total satisfacción!\n\nMientras tanto, puede ver fotos reales de entregas recientes en su zona.\n**Nota importante:** Nuestra galería muestra contenedores tanto NUEVOS como USADOS. Si compra una unidad usada, esta será estructuralmente sólida y estará 100% sellada (sin goteras), pero presentará golpes menores y óxido superficial normal para su edad.<br><br><a href='https://rpcontainer.com/#gallery' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Galería</a>";
-        }
-
-        return { intent: "general_chat", lang: isES ? "ES" : "EN", extracted_data: {}, ai_reply: isES ? photoMsgES : photoMsgEN };
-    }
-
-    // ── Detección de petición de medidas (Solo si NO es Transporte) ─────────────
-    const dimensionKeywords = ["medida", "medidas", "mide", "alto", "ancho", "largo", "tamaño", "dimensiones", "dimension", "dimensions", "height", "width", "length", "size", "tall", "long", "wide", "measurements"];
-    const isJustSizeChoice = /^((20|40|45)('|(ft)|( pies))?)$/.test(lo);
-    if (!isJustSizeChoice && session?.action !== "Transporte" && dimensionKeywords.some(kw => lo.includes(kw))) {
-        const isES = lo.match(/\b(medida|medidas|mide|alto|ancho|largo|tamaño|dimensiones)\b/);
-        const isWeb = senderId.startsWith("web_");
-        
-        let dimMsgEN = "Our containers come in standard shipping sizes. To make it easy for you, we have prepared visual guides with the exact internal and external dimensions (Length, Width, Height, and Payload Capacity) for all our sizes.\n\nYou can view all the measurements directly on our website here:\n\nhttps://rpcontainer.com/#container-dimensions";
-        let dimMsgES = "Nuestros contenedores vienen en medidas estándar de envío. Para hacérselo más fácil, hemos preparado guías visuales con las medidas exactas internas y externas (Largo, Ancho, Alto y Capacidad de Carga) de todos nuestros tamaños.\n\nPuede ver todas las medidas directamente en nuestra página web aquí:\n\nhttps://rpcontainer.com/#container-dimensions";
-        
-        if (isWeb) {
-            dimMsgEN = "Our containers come in standard shipping sizes. To make it easy for you, we have prepared visual guides with the exact internal and external dimensions (Length, Width, Height, and Payload Capacity) for all our sizes.\n\nYou can view all the measurements directly on our website here:<br><br><a href='https://rpcontainer.com/#container-dimensions' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>View Dimensions</a>";
-            dimMsgES = "Nuestros contenedores vienen en medidas estándar de envío. Para hacérselo más fácil, hemos preparado guías visuales con las medidas exactas internas y externas (Largo, Ancho, Alto y Capacidad de Carga) de todos nuestros tamaños.\n\nPuede ver todas las medidas directamente en nuestra página web aquí:<br><br><a href='https://rpcontainer.com/#container-dimensions' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Ver Medidas</a>";
-        }
-
-        return { intent: "general_chat", lang: isES ? "ES" : "EN", extracted_data: {}, ai_reply: isES ? dimMsgES : dimMsgEN };
-    }
 
     return null;
 }
@@ -556,6 +523,45 @@ If any information is missing, use null or "---".`;
 
     await updateSession(senderId, updates);
     Object.assign(session, updates);
+
+    // ── INTENT: PHOTOS / DIMENSIONS ──
+    if (extracted.intent === "photos" || extracted.intent === "dimensions") {
+        const isWeb = senderId.startsWith("web_");
+        let replyMsg = "";
+        
+        if (extracted.intent === "photos") {
+            let photoMsgEN = "We cannot send you photos of the exact unit right now because the port depots are automated and the stacks move constantly for security. However, **on the day of your delivery**, our driver will send you detailed photos of the exact container selected for you, and **we will wait for your approval** before proceeding with the trip to your property. This guarantees your total satisfaction!\n\nIn the meantime, you can view real photos of recent deliveries in your area.\n**Please note:** Our gallery showcases both BRAND NEW and USED containers. If you purchase a used unit, it will be structurally sound and wind/water tight, but it will have minor dents and surface rust normal for its age. View our gallery here:\n\nhttps://rpcontainer.com/#gallery";
+            let photoMsgES = "No podemos enviarle fotos de la unidad exacta en este momento porque los depósitos portuarios están automatizados y los contenedores se mueven constantemente por seguridad. Sin embargo, **el día programado para su entrega**, nuestro chofer le enviará fotos detalladas del contenedor exacto seleccionado para usted, y **esperaremos su aprobación** antes de proceder con el viaje a su propiedad. ¡Así garantizamos su total satisfacción!\n\nMientras tanto, puede ver fotos reales de entregas recientes en su zona.\n**Nota importante:** Nuestra galería muestra contenedores tanto NUEVOS como USADOS. Si compra una unidad usada, esta será estructuralmente sólida y estará 100% sellada (sin goteras), pero presentará golpes menores y óxido superficial normal para su edad. Vea nuestra galería aquí:\n\nhttps://rpcontainer.com/#gallery";
+            
+            if (isWeb) {
+                photoMsgEN = "We cannot send you photos of the exact unit right now because the port depots are automated and the stacks move constantly for security. However, **on the day of your delivery**, our driver will send you detailed photos of the exact container selected for you, and **we will wait for your approval** before proceeding with the trip to your property. This guarantees your total satisfaction!\n\nIn the meantime, you can view real photos of recent deliveries in your area.\n**Please note:** Our gallery showcases both BRAND NEW and USED containers. If you purchase a used unit, it will be structurally sound and wind/water tight, but it will have minor dents and surface rust normal for its age.<br><br><a href='https://rpcontainer.com/#gallery' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Gallery</a>";
+                photoMsgES = "No podemos enviarle fotos de la unidad exacta en este momento porque los depósitos portuarios están automatizados y los contenedores se mueven constantemente por seguridad. Sin embargo, **el día programado para su entrega**, nuestro chofer le enviará fotos detalladas del contenedor exacto seleccionado para usted, y **esperaremos su aprobación** antes de proceder con el viaje a su propiedad. ¡Así garantizamos su total satisfacción!\n\nMientras tanto, puede ver fotos reales de entregas recientes en su zona.\n**Nota importante:** Nuestra galería muestra contenedores tanto NUEVOS como USADOS. Si compra una unidad usada, esta será estructuralmente sólida y estará 100% sellada (sin goteras), pero presentará golpes menores y óxido superficial normal para su edad.<br><br><a href='https://rpcontainer.com/#gallery' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Galería</a>";
+            }
+            replyMsg = lang === "ES" ? photoMsgES : photoMsgEN;
+        } else {
+            let dimMsgEN = "Our containers come in standard shipping sizes. To make it easy for you, we have prepared visual guides with the exact internal and external dimensions (Length, Width, Height, and Payload Capacity) for all our sizes.\n\nYou can view all the measurements directly on our website here:\n\nhttps://rpcontainer.com/#container-dimensions";
+            let dimMsgES = "Nuestros contenedores vienen en medidas estándar de envío. Para hacérselo más fácil, hemos preparado guías visuales con las medidas exactas internas y externas (Largo, Ancho, Alto y Capacidad de Carga) de todos nuestros tamaños.\n\nPuede ver todas las medidas directamente en nuestra página web aquí:\n\nhttps://rpcontainer.com/#container-dimensions";
+            
+            if (isWeb) {
+                dimMsgEN = "Our containers come in standard shipping sizes. To make it easy for you, we have prepared visual guides with the exact internal and external dimensions (Length, Width, Height, and Payload Capacity) for all our sizes.\n\nYou can view all the measurements directly on our website here:<br><br><a href='https://rpcontainer.com/#container-dimensions' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>View Dimensions</a>";
+                dimMsgES = "Nuestros contenedores vienen en medidas estándar de envío. Para hacérselo más fácil, hemos preparado guías visuales con las medidas exactas internas y externas (Largo, Ancho, Alto y Capacidad de Carga) de todos nuestros tamaños.\n\nPuede ver todas las medidas directamente en nuestra página web aquí:<br><br><a href='https://rpcontainer.com/#container-dimensions' target='_blank' style='display:inline-block; padding:10px 20px; background-color:#c8102e; color:white; text-decoration:none; border-radius:20px; font-weight:bold;'>Ver Medidas</a>";
+            }
+            replyMsg = lang === "ES" ? dimMsgES : dimMsgEN;
+        }
+        
+        let pendingOptions: string[] | null = null;
+        if (step === 6) pendingOptions = dictCurrent.proceed_btns;
+        else if (!session.action) pendingOptions = dictCurrent.step1_btns;
+        else if (!session.size) pendingOptions = (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns;
+        else if (session.action === "Transporte" && !session.load_status) pendingOptions = dictCurrent.ask_load_btns;
+
+        if (pendingOptions) {
+            actions.push({ type: "quick_replies", text: replyMsg, options: pendingOptions });
+        } else {
+            actions.push({ type: "text", text: replyMsg });
+        }
+        return actions;
+    }
 
     // ── INTENT: CANCEL ──
     if (extracted.intent === "cancel") {
