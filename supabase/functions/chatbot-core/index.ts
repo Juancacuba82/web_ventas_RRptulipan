@@ -20,12 +20,12 @@ const chatDict: Record<string, any> = {
         calc_error: "Error calculando. Escribe 'reiniciar'.",
         ask_export_type: "¿Para qué usarás el contenedor?",
         ask_export_btns: ["Almacenamiento", "Exportación"],
-        ask_export_buy_rent: "¿Deseas comprar el contenedor o prefieres que la naviera te lo alquile para el envío marítimo?",
+        ask_export_buy_rent: "¿Deseas comprar el contenedor o prefieres que te lo alquilemos para el envío marítimo?",
         ask_export_buy_rent_btns: ["Comprar", "Alquilar"],
         ask_export_zip: "¿En qué Zip Code (código postal) de EE. UU. necesitas que te dejemos el contenedor para que lo cargues?",
         ask_export_port: "¿A qué puerto y país de destino enviaremos el contenedor? (Ej. Mariel, Cuba)",
         export_buy_price: "El precio de venta del contenedor es **{price}** (incluye certificado de exportación). Para darte el costo total exacto que incluye el envío marítimo y terrestre, necesitamos contactarte.",
-        export_rent_msg: "Como prefieres alquilar, la naviera que realiza el envío marítimo es quien establece el precio del alquiler del contenedor.",
+        export_rent_msg: "Como prefieres alquilar, nuestro equipo de logística marítima cotizará el precio exacto del alquiler más el flete para tu destino.",
         export_final_msg: "¡Excelente! Ya tenemos toda la información. Por favor, escribe tu nombre completo para que un especialista te llame con la cotización final exacta.",
         ask_condition: "¿Lo prefieres Nuevo o Usado?",
         ask_condition_btns: ["Nuevo", "Usado"],
@@ -60,12 +60,12 @@ const chatDict: Record<string, any> = {
         calc_error: "Calculation error. Type 'restart'.",
         ask_export_type: "What will you use the container for?",
         ask_export_btns: ["Storage", "Export"],
-        ask_export_buy_rent: "Do you want to buy the container or prefer to rent it from the shipping line for the ocean freight?",
+        ask_export_buy_rent: "Do you want to buy the container or prefer to rent it from us for the ocean freight?",
         ask_export_buy_rent_btns: ["Buy", "Rent"],
         ask_export_zip: "What is the US Zip Code where you need us to drop off the container for loading?",
         ask_export_port: "What is the destination port and country for the container? (e.g., Kingston, Jamaica)",
         export_buy_price: "The sale price of the container is **{price}** (includes export certificate). To give you the exact total cost including ocean and inland freight, we need to contact you.",
-        export_rent_msg: "Since you prefer to rent, the shipping line handling the ocean freight sets the rental price for the container.",
+        export_rent_msg: "Since you prefer to rent, our maritime logistics team will quote the exact rental price plus freight for your destination.",
         export_final_msg: "Excellent! We have all the information. Please enter your full name so a specialist can call you with the exact final quote.",
         ask_condition: "Do you prefer New or Used?",
         ask_condition_btns: ["New", "Used"],
@@ -288,6 +288,78 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
     const actions: Action[] = [];
     const session = await getSession(senderId);
 
+    if (input.toLowerCase().startsWith("!orden ") || input.toLowerCase().startsWith("!log ")) {
+        const payloadText = input.substring(input.indexOf(" ") + 1).trim();
+        
+        const extractPrompt = `You are an AI assistant helping to extract structured data for a shipping container order from raw, messy text pasted by a salesperson.
+Extract the following information:
+- customer (name of the person)
+- phone (phone number)
+- service_type (e.g. Sales, Rent, Transport, Export, Comprar, Alquilar)
+- city (if mentioned, otherwise "---")
+- description (a brief summary of what they want, e.g. "Wants to rent a 40' HC to Miami 33178. Price $2500")
+- zip_code (the zip code mentioned)
+- measures (container size mentioned, e.g. "40' HC", "20' STD")
+- amount (the price mentioned, e.g. 2500, or null if none)
+
+Respond ONLY with a valid JSON object matching these exact keys:
+{
+  "customer": string,
+  "phone": string,
+  "service_type": string,
+  "city": string,
+  "description": string,
+  "zip_code": string,
+  "measures": string,
+  "amount": number | null
+}
+If any information is missing, use null or "---".`;
+
+        const key = Deno.env.get("OPENAI_API_KEY");
+        if (!key) {
+            return [{ type: "text", text: "❌ Error: API Key no configurada." }];
+        }
+        
+        try {
+            const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [
+                        { role: "system", content: extractPrompt },
+                        { role: "user", content: payloadText }
+                    ],
+                    response_format: { type: "json_object" },
+                    temperature: 0.1
+                })
+            });
+            const json = await res.json();
+            const data = JSON.parse(json.choices[0].message.content);
+            
+            await supabase.from("call_logs").insert([{
+                customer: data.customer || "Unknown", 
+                phone: data.phone || "---",
+                service_type: data.service_type || "Sales", 
+                city: data.city || "---",
+                description: data.description || payloadText,
+                created_by: "rptulipantransport@gmail.com", 
+                source: "chatbot_manual",
+                status: "PENDING", 
+                date: new Date().toISOString().split("T")[0],
+                next_call_date: new Date().toISOString().split("T")[0],
+                amount: data.amount, 
+                zip_code: data.zip_code, 
+                measures: data.measures
+            }]);
+            
+            return [{ type: "text", text: `✅ Orden creada exitosamente para ${data.customer || "Unknown"}. (Teléfono: ${data.phone || "---"})` }];
+            
+        } catch (e) {
+            console.error("OpenAI/Supabase error during !orden:", e);
+            return [{ type: "text", text: "❌ Hubo un error al procesar la orden manualmente." }];
+        }
+    }
     if (isHuman) {
         const rawHistory = session.history || [];
         const updatedHistory = Array.isArray(rawHistory) ? rawHistory.slice(-9) : [];
@@ -418,7 +490,11 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
         if (isExportFlow && (actionStr.includes("comprar") || actionStr.includes("buy") || actionStr.includes("alquilar") || actionStr.includes("rent"))) {
             updates.export_action = (actionStr.includes("comprar") || actionStr.includes("buy")) ? "Comprar" : "Alquilar";
         } else {
-            updates.action = data.action;
+            if (data.action === "Comprar" && !session.action) {
+                updates.action = "Comprar_Intent";
+            } else {
+                updates.action = data.action;
+            }
         }
     }
     
@@ -440,6 +516,22 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
     if (data.zip_dest && !/^\d{5}$/.test(data.zip_dest.toString())) data.zip_dest = null;
     if (data.zip && !/^\d{5}$/.test(data.zip.toString())) data.zip = null;
 
+    const isNonContinental = (z: string) => {
+        if (!z) return false;
+        const prefix = z.toString().substring(0, 3);
+        return ['006', '007', '009', '995', '996', '997', '998', '999', '967', '968'].includes(prefix);
+    };
+
+    let blockedNonContinental = false;
+    if (data.zip_origin && isNonContinental(data.zip_origin)) { data.zip_origin = null; blockedNonContinental = true; }
+    if (data.zip_dest && isNonContinental(data.zip_dest)) { data.zip_dest = null; blockedNonContinental = true; }
+    if (data.zip && isNonContinental(data.zip)) { data.zip = null; blockedNonContinental = true; }
+
+    if (blockedNonContinental) {
+        extracted.ai_reply = lang === "EN" 
+            ? "The zip code you entered is outside the continental US. We need the continental US zip code where you want us to deliver the container so you can load it."
+            : "El código postal que ingresaste está fuera de EE. UU. continental. Necesitamos el código postal dentro de EE. UU. continental donde deseas que te entreguemos el contenedor para que lo cargues.";
+    }
     if (data.zip_origin) updates.zip_origin = data.zip_origin;
     if (data.zip_dest) updates.zip_dest = data.zip_dest;
     if (data.zip) {
@@ -620,6 +712,18 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
         });
 
         if (error || (qData && qData.error)) { actions.push({ type: "text", text: dictCurrent.no_stock }); return actions; }
+
+        if (qData && qData.requires_manual_quote) {
+            const msg = lang === "EN" 
+                ? "For shipments outside the continental US, ocean freight rates vary daily. Please enter your full name so our logistics team can calculate the exact total price and contact you with the best rate of the day."
+                : "Para envíos fuera de EE. UU. continental, las tarifas de flete marítimo varían diariamente. Por favor, escribe tu nombre completo para que nuestro equipo de logística calcule el precio total exacto y te contacte con la mejor tarifa del día.";
+            
+            const historyAfterQuote = [...(session.history || [])];
+            historyAfterQuote.push({ role: "assistant", content: msg });
+            await updateSession(senderId, { step: 7, history: historyAfterQuote.slice(-10) });
+            actions.push({ type: "text", text: msg });
+            return actions;
+        }
         const finalPrice = qData.total_price || qData.totalPrice;
         if (!finalPrice) { actions.push({ type: "text", text: dictCurrent.no_stock }); return actions; }
 

@@ -177,6 +177,26 @@ serve(async (req) => {
         const is20ft = container_size ? container_size.startsWith('20') : false;
 
         // ─────────────────────────────────────────────────────────────────────────────
+        // 0. MODO: INTERCEPTAR EXPORTACIONES / ZONAS NO CONTINENTALES
+        // ─────────────────────────────────────────────────────────────────────────────
+        const nonContinentalPrefixes = ['006', '007', '009', '995', '996', '997', '998', '999', '967', '968'];
+        const isExportZip = (zip: string) => {
+            if (!zip) return false;
+            const prefix = zip.toString().substring(0, 3);
+            return nonContinentalPrefixes.includes(prefix);
+        };
+
+        if (isExportZip(zip_destino) || isExportZip(zip_origen) || options.export_certificate) {
+            return new Response(JSON.stringify({
+                requires_manual_quote: true,
+                is_export: true
+            }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+            });
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────────
         // 1. MODO: SOLO TRANSPORTE (TRANSPORT_ONLY)
         // ─────────────────────────────────────────────────────────────────────────────
         if (operation_mode === 'transport_only') {

@@ -1329,6 +1329,18 @@ document.addEventListener('DOMContentLoaded', () => {
             nextBtn.addEventListener('click', async () => {
                 const zip = zipInput.value.trim();
                 
+                const nonContinentalPrefixes = ['006', '007', '009', '995', '996', '997', '998', '999', '967', '968'];
+                if (zip && nonContinentalPrefixes.includes(zip.substring(0, 3))) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: currentLang === 'en' ? 'Continental US Zip Code Required' : 'Zip Code Continental Requerido',
+                        text: currentLang === 'en' 
+                            ? 'The zip code you entered is outside the continental US. Please enter the continental US zip code where you want us to deliver the container for loading.'
+                            : 'El código postal ingresado está fuera de EE. UU. continental. Por favor, introduzca el código postal dentro de Estados Unidos donde desea que entreguemos el contenedor para ser cargado.'
+                    });
+                    return;
+                }
+                
                 if (selections['export-action'] === 'Rent') {
                     // For export rent, any US zip code is fine, no need to calculate depot distances
                     // Just validate it looks like a zip
@@ -1432,6 +1444,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await apiResp.json();
                 
                 if (data.error) throw new Error(data.error);
+
+                if (data.requires_manual_quote) {
+                    selections.subtotal = 0;
+                    selections.total = 0;
+                    selections.discount = 0;
+                    selections.exportFee = 0;
+                    selections.shippingTotal = 0;
+                    selections.pricePerUnit = 0;
+                    
+                    if (container.classList.contains('price-preview-details')) {
+                        container.innerHTML = `
+                            <div style="text-align: center; padding: 20px;">
+                                <p style="font-size: 1.1rem; color: #333; margin-bottom: 15px;">
+                                    ${currentLang === 'en' 
+                                        ? "Due to high demand and varying maritime rates for your destination, we quote this shipment upon request." 
+                                        : "Debido a la alta demanda y variaciones en tarifas marítimas para su destino, cotizamos este envío bajo solicitud."}
+                                </p>
+                                <p style="font-size: 1rem; color: #555;">
+                                    ${currentLang === 'en'
+                                        ? "Please proceed to the next step so a logistics specialist can contact you with the best daily rate."
+                                        : "Continúe al siguiente paso para que un especialista en logística le asigne el mejor precio del día."}
+                                </p>
+                            </div>
+                        `;
+                    } else if (container.classList.contains('final-summary-details')) {
+                        let html = `
+                            <div class="summary-item"><strong>Logistics:</strong> <span>${selections['delivery-mode'] || '-'}</span></div>
+                            ${selections['logistics-details'] ? `<div class="summary-item"><strong>Details:</strong> <span>${selections['logistics-details']}</span></div>` : ''}
+                            <div class="summary-item"><strong>Size:</strong> <span>${selections.size}</span></div>
+                            <div class="summary-item"><strong>${t["summary-quantity"] || 'Quantity'}:</strong> <span style="font-weight: 700; color: var(--primary-color);">${selections.quantity}</span></div>
+                            <div class="summary-item"><strong>Type of Service:</strong> <span>${selections.condition || '-'}</span></div>
+                            ${selections.condition === 'International' ? `<div class="summary-item"><strong>Export Action:</strong> <span>${selections['export-action']}</span></div><div class="summary-item"><strong>Destination Port:</strong> <span>${selections['export-port']}</span></div>` : ''}
+                            <div class="summary-item"><strong>Condition:</strong> <span>${selections['container-condition'] || '-'}</span></div>
+                            <div class="summary-item"><strong>Climate:</strong> <span>${selections.type || 'Dry'}</span></div>
+                            <div class="summary-item"><strong>Payment:</strong> <span>${selections['payment-method'] || '-'}</span></div>
+                            <div class="summary-item"><strong>Contact:</strong> <span>${selections.contact.name || '-'}</span></div>
+                            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+                            <div class="summary-item total-line" style="font-size: 1.25rem; color: var(--primary-color); margin-top: 10px; align-items: flex-start;">
+                                <strong>${t["buy-summary-total"]}:</strong> 
+                                <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                                    <span style="font-weight: 700; font-size: 1.1rem;">${currentLang === 'en' ? 'To Be Determined' : 'Por Determinar'}</span>
+                                </div>
+                            </div>
+                        `;
+                        container.innerHTML = html;
+                    }
+                    return;
+                }
 
                 selections.bestDepot = data.origin_hub;
                 selections.distance = data.distance_miles;
