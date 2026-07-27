@@ -18,7 +18,7 @@ const chatDict: Record<string, any> = {
         ask_zip: "¿Cuál es tu código postal (Zip Code) de 5 dígitos para la entrega?",
         no_stock: "Lo siento, pero parece que en este momento no tenemos disponibilidad de esa medida o tipo de contenedor en tu área. ¿Te gustaría que cotice un tamaño diferente?",
         calc_error: "Error calculando. Escribe 'reiniciar'.",
-        ask_export_type: "¿Para qué usarás el contenedor?",
+        ask_export_type: "¿Para qué usarás el contenedor? (Almacenamiento o Exportación)",
         ask_export_btns: ["Almacenamiento", "Exportación"],
         ask_export_buy_rent: "¿Deseas comprar el contenedor o prefieres que te lo alquilemos para el envío marítimo?",
         ask_export_buy_rent_btns: ["Comprar", "Alquilar"],
@@ -37,14 +37,13 @@ const chatDict: Record<string, any> = {
         ask_name: "¡Excelente! Por favor, escribe tu nombre completo para iniciar la orden.",
         ask_phone: "Gracias, {name}. Ahora, por favor escribe tu número de teléfono de contacto.",
         order_done: "¡Perfecto! Hemos recibido tu solicitud. Un agente te contactará en breve por teléfono o WhatsApp para finalizar los detalles. ¡Que tengas un gran día!",
-        ask_origin: "Por favor, indícame el Zip Code del lugar donde recogeremos el contenedor (Origen).",
-        ask_dest: "Ahora, indícame el Zip Code del lugar adonde llevaremos el contenedor (Destino).",
-        ask_load: "Por favor, indícame si el contenedor que vamos a mover está Vacío o Cargado.",
-        ask_load_btns: ["Vacío", "Cargado"],
-        price_transport: "El precio por mover tu contenedor de {size} ({load}) desde el Zip {origin} hasta el Zip {dest} es:\n\n🔹 Precio Flexible (En Ruta): **{price}**\n🔹 Envío Inmediato (Desde {yard}): **{immed}**\n\n¿Cuál opción prefieres o te gustaría proceder con alguna?",
-        price_transport_single: "El precio por mover tu contenedor de {size} ({load}) desde el Zip Code {origin} hasta el Zip Code {dest} es de **{price}**.\n\n¿Te gustaría proceder?",
+        ask_transport_details: "Para darle una cotización exacta de transporte, por favor indíquenos los siguientes detalles:\n\n1. Código postal de recogida y de entrega (si ambos comparten el mismo código postal, por favor ingréselo dos veces con un espacio de separación).\n2. ¿El contenedor está actualmente vacío o cargado?\n\nUna vez tengamos esta información, ¡le daremos el precio de inmediato!",
+        price_transport: "El precio por mover tu{qty_plural_s} {qty}contenedor{qty_plural_es} de {size} ({load}) desde el Zip {origin} hasta el Zip {dest} es:\n\n🔹 Precio Flexible (En Ruta): **{price}**\n🔹 Envío Inmediato (Desde {yard}): **{immed}**\n\n¿Cuál opción prefieres o te gustaría proceder con alguna?",
+        price_transport_single: "El precio por mover tu{qty_plural_s} {qty}contenedor{qty_plural_es} de {size} ({load}) desde el Zip Code {origin} hasta el Zip Code {dest} es de **{price}**.\n\n¿Te gustaría proceder?",
+        human_handoff: "Veo que su solicitud requiere logística especial. Nuestro especialista en ventas revisará los detalles y le responderá por este mismo chat en breve. Por favor, espere en línea.",
         price_rent: "¡Excelente noticia! Tenemos disponibilidad para renta en {zip}.\n\n🔹 Renta Mensual: {monthly}\n🔹 Logística (Entrega y Recogida futura): {logistics} (pago único)\n\nEl pago inicial sería de {price}. ¿Proceder?",
         price_export: "Perfecto. El precio total por el contenedor es de **{price}**. ¿Te gustaría proceder con la compra?",
+        price_pickup: "¡Perfecto! Los retiros en persona se realizan exclusivamente en nuestro depósito de Miami (8500 NW 87 Ave, Miami, FL 33166). El precio total por tu{qty_plural_s} {qty}contenedor{qty_plural_es} {type} {cond} de {size} retirado por ti mismo es **{price}**.\n\n¿Te gustaría proceder?",
         price_sale: "El precio total por {qty}contenedor{qty_plural_es} {type} {cond} de {size} entregado{qty_plural_s} en {zip} es **{price}**.\n\n¿Te gustaría proceder?",
         faq_prompt: "\n\n*(Por favor responde la pregunta anterior o toca un botón para continuar con tu cotización)*",
         fallback: "Para darte un precio exacto, dime qué medida de contenedor necesitas (ej. 20 o 40 pies) y tu Zip Code de entrega.",
@@ -58,7 +57,7 @@ const chatDict: Record<string, any> = {
         ask_zip: "What is your 5-digit delivery Zip Code?",
         no_stock: "I'm sorry, but it looks like we currently don't have stock for that specific container size or type in your area. Would you like me to quote a different size?",
         calc_error: "Calculation error. Type 'restart'.",
-        ask_export_type: "What will you use the container for?",
+        ask_export_type: "What will you use the container for? (Storage or Export)",
         ask_export_btns: ["Storage", "Export"],
         ask_export_buy_rent: "Do you want to buy the container or prefer to rent it from us for the ocean freight?",
         ask_export_buy_rent_btns: ["Buy", "Rent"],
@@ -77,14 +76,13 @@ const chatDict: Record<string, any> = {
         ask_name: "Excellent! Please enter your full name to start the order.",
         ask_phone: "Thank you, {name}. Now, please enter your contact phone number.",
         order_done: "Perfect! We have received your request. An agent will contact you shortly by phone or WhatsApp to finalize the details. Have a great day!",
-        ask_origin: "Please tell me the Zip Code of the pickup location (Origin).",
-        ask_dest: "Now, please tell me the Zip Code of the drop-off location (Destination).",
-        ask_load: "Please tell me if the container we are moving is Empty or Loaded.",
-        ask_load_btns: ["Empty", "Loaded"],
-        price_transport: "The price to move your {size} ({load}) container from Zip {origin} to Zip {dest} is:\n\n🔹 Flexible Price (En Route): **{price}**\n🔹 Immediate Dispatch (From {yard}): **{immed}**\n\nWhich option do you prefer, or would you like to proceed?",
-        price_transport_single: "The price to move your {size} ({load}) container from Zip Code {origin} to Zip Code {dest} is **{price}**.\n\nWould you like to proceed?",
+        ask_transport_details: "To give you an accurate transportation quote, please provide us with the following details:\n\n1. Pickup and delivery zip codes (if both locations share the same zip code, please enter it twice with a space in between).\n2. Is the container currently empty or loaded?\n\nOnce we have this info, we’ll get back to you with pricing right away!",
+        price_transport: "The price to move your {qty} {size} ({load}) container{qty_plural_s} from Zip {origin} to Zip {dest} is:\n\n🔹 Flexible Price (En Route): **{price}**\n🔹 Immediate Dispatch (From {yard}): **{immed}**\n\nWhich option do you prefer, or would you like to proceed?",
+        price_transport_single: "The price to move your {qty} {size} ({load}) container{qty_plural_s} from Zip Code {origin} to Zip Code {dest} is **{price}**.\n\nWould you like to proceed?",
+        human_handoff: "I see your request requires special logistics. Our sales specialist will review the details and reply to you in this chat shortly. Please wait online.",
         price_rent: "Great news! We have availability to rent to {zip}.\n\n🔹 Monthly Rent: {monthly}\n🔹 Logistics (Delivery & future pickup): {logistics} (one-time fee)\n\nInitial payment would be {price}. Proceed?",
         price_export: "Perfect. The total price for the container is **{price}**. Would you like to proceed?",
+        price_pickup: "Perfect! Self-pickups are strictly handled at our Miami depot (8500 NW 87 Ave, Miami, FL 33166). The total price for your {qty}{cond} {type} {size} container{qty_plural_s} picked up by you is **{price}**.\n\nWould you like to proceed?",
         price_sale: "The total price for {qty}{cond} {type} {size} container{qty_plural_s} delivered to {zip} is **{price}**.\n\nWould you like to proceed?",
         faq_prompt: "\n\n*(Please answer the previous question or tap a button to continue with your quote)*",
         fallback: "To give you an exact price right away, please tell me what container size you need (e.g. 20 or 40 ft) and your delivery Zip Code.",
@@ -106,8 +104,8 @@ COMPANY KNOWLEDGE (use this to answer questions naturally — never make things 
 - PRICE IN ADS: Ads show the container price at the port only. Delivery cost varies by zip code distance, so we cannot advertise one price. Our quote is FINAL: container + flatbed delivery, no hidden fees. CRITICAL: NEVER invent, calculate, or provide a price yourself in ai_reply. The system will calculate the exact price using a database if you set intent to "quote". If the user asks for a price or asks "how much is X", ALWAYS set intent to "quote".
 - DISCOUNTS: Prices are already the lowest wholesale port prices with zero hidden margins. No additional discounts available.
 - MILITARY/SENIOR/FIRST RESPONDER: We do not offer special discounts. Our prices are already the best in the market.
-- LOCATIONS/HUBS: Distribution centers in Miami, Tampa, Titusville, Jacksonville, Savannah, and Atlanta.
-- SIZES: 20ft, 40ft standard, 45ft high cube. We do NOT carry 10ft (must be custom-cut from a 20ft, costs MORE).
+- LOCATIONS/HUBS: Distribution centers in Miami, Tampa, Titusville, Jacksonville, Savannah, and Atlanta. Our main office is at 8500 NW 87 Ave, Miami, FL 33166. CRITICAL: WHENEVER you give the office address, you MUST also tell the customer that if they wish to visit, they MUST call us first to schedule an appointment so they don't find the office closed.
+- SIZES: 20ft, 40ft standard, 45ft high cube. We do NOT carry 10ft (must be custom-cut from a 20ft, costs MORE). CRITICAL: If the customer asks for a 40' container without specifying Standard (STD) or High Cube (HC), ALWAYS default to "40' HC".
 - 10FT: We don't stock them. Recommend the 20ft instead — it's cheaper and ready to go.
 - REEFERS: Available Working (Functional) or Not Working (No AC), and also brand New.
 - GUARANTEES: NEVER mention or offer a guarantee/warranty unless the customer explicitly asks about it. If they ask, explain that we ONLY offer a 6-month Wind and Water Tight structural guarantee on all used containers, and NO OTHER guarantees are provided.
@@ -122,14 +120,15 @@ SLANG/JARGON (interpret these correctly):
 - "photos", "pictures", "can I see it first", "pics" → set intent to "photos".
 - "where are you located", "where do you ship from", "do you deliver to" → location question.
 - "good floors", "floor condition", "floor quality" → floor question.
-- "phone number", "call you", "contact", "telefono", "llamar", "numero", "speak to a human" → contact question → provide the company phone numbers enthusiastically.
+- "pick up", "retirar", "lo retiro yo", "buscar", "recoger" → Customer wants to pick up the container themselves. SET action to "PickUp" AND ALWAYS SET intent to "quote" so the system can calculate the new price without delivery. NEVER invent the price yourself.
+- "phone number", "contact", "telefono", "numero", "speak to a human" → If the customer asks for OUR phone number or wants to call us, provide the company phone numbers enthusiastically. CRITICAL: If the customer instead says "call me", "llámame", or gives instructions on when to call them, DO NOT give our phone numbers; just acknowledge their request politely and tell them an agent will contact them.
 
 OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO extra text:
 {
-  "intent": "quote" | "general_chat" | "cancel" | "proceed" | "photos" | "dimensions",
+  "intent": "quote" | "general_chat" | "cancel" | "proceed" | "photos" | "dimensions" | "provide_info",
   "lang": "EN" | "ES", // CRITICAL: This MUST match the exact language the customer used in their VERY LAST message. If they spoke Spanish, output "ES".
   "extracted_data": {
-    "action": "Comprar" | "Alquilar" | "Transporte" | "Exportacion" | null,
+    "action": "Comprar" | "Alquilar" | "Transporte" | "Exportacion" | "PickUp" | null,
     "export_action": "Comprar" | "Alquilar" | null,
     "condition": "Nuevo" | "Usado" | null,
     "type": "Dry" | "Reefer" | "Open Side" | "Double Door" | null,
@@ -140,7 +139,10 @@ OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO
     "zip_dest": string | null,
     "port_dest": string | null,
     "reefer_status": "Funcionando" | "No Funcionando" | null,
-    "load_status": "Vacio" | "Cargado" | null
+    "load_status": "Vacio" | "Cargado" | null,
+    "is_complex_order": boolean,
+    "customer_name": string | null,
+    "customer_phone": string | null
   },
   "ai_reply": string | null
 }
@@ -150,6 +152,7 @@ INTENT RULES:
 - "general_chat": Customer is asking a general question (quality, payment, guarantees) WITHOUT requesting a new price. If they ask for a price (e.g. "how much is the 20"), use "quote". NEVER give or invent a price in general_chat.
 - "cancel": Customer says bye, thanks, stop, not interested, too expensive, ok (alone with no other info). CRITICAL: For ai_reply, if they thank you (e.g. gracias, thanks), reply with "¡De nada!" (or "You're welcome!"). If they just cancel, say bye, or say ok, reply with "¡Gracias!" (or "Thank you!").
 - "proceed": Customer explicitly CONFIRMS they want to place the order AFTER receiving a final price quote (e.g., yes, si, proceed, let's do it, I'll take it). Do NOT use this if they are just starting a request. CRITICAL: If the customer agrees but AT THE SAME TIME changes the quantity (e.g. "I'll just take one for now"), you MUST use "quote" instead of "proceed" to recalculate the new price.
+- "provide_info": Customer is providing their name or phone number as requested by the bot.
 - "photos": Customer is explicitly asking to see photos, pictures, images, or a gallery of the containers.
 - "dimensions": Customer is asking for the exact dimensions, measurements, length, width, or physical size of the containers. CRITICAL: Do NOT use this if they ask for delivery time (e.g. "how long").
 
@@ -182,7 +185,10 @@ EXTRACTION RULES:
 - "move"/"transport"/"mover"/"transporte"/"haul"/"relocate" → action "Transporte".
 - "working"/"funcionando"/"with ac"/"with motor" → reefer_status "Funcionando". "not working"/"no funciona"/"no ac"/"sin motor"/"broken" → reefer_status "No Funcionando".
 - "empty"/"vacio"/"vacio" → load_status "Vacio". "loaded"/"cargado"/"lleno"/"full" → load_status "Cargado".
-- Extract 5-digit zip codes exactly. CRITICAL: NEVER extract a 3 or 4-digit number (e.g., 1400) as a zip code. If a customer sends a number like "1400" next to a size, DO NOT assume what it means. Treat this as general_chat and ASK the customer what they mean by that number (e.g. "What do you mean by 1400?"). Once they explain it's a price, then explain our pricing policy. If two zips: first is zip_origin, second is zip_dest. Otherwise use zip.
+- Extract 5-digit zip codes exactly. CRITICAL: NEVER extract a 3 or 4-digit number (e.g., 1400) as a zip code. If a customer sends a number like "1400" next to a size, DO NOT assume what it means. Treat this as general_chat and ASK the customer what they mean by that number (e.g. "What do you mean by 1400?"). Once they explain it's a price, then explain our pricing policy. If two zips: first is zip_origin, second is zip_dest. If one zip is provided without explicit origin/destination context, assign it to 'zip', DO NOT guess zip_origin or zip_dest.
+- is_complex_order: set to true ONLY IF the customer is requesting multiple DIFFERENT distinct services in the same message (e.g. "I want to buy a 20ft AND move two 40ft containers").
+- customer_name: If the user provides a name or business name (e.g. "Crossties of Ocala"), extract it. If they say "already did" or "see above", review the conversation history to find the previously mentioned name and extract it here!
+- customer_phone: extract any 10-digit phone number if provided.
 - Only populate fields you can confidently extract. Use null for everything else.`;
 
 // ─── HELPERS DE SUPABASE ──────────────────────────────────────────────────────
@@ -230,7 +236,7 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
     if (["alquilar", "rent"].includes(lo)) return { intent: "quote", extracted_data: { action: "Alquilar" } };
     if (["transporte", "transport"].includes(lo)) return { intent: "quote", extracted_data: { action: "Transporte" } };
     if (lo === "20'") return { intent: "quote", extracted_data: { size: "20'" } };
-    if (lo === "40'") return { intent: "quote", extracted_data: { size: "40'" } };
+    if (lo === "40'") return { intent: "quote", extracted_data: { size: "40' HC" } };
     if (lo === "45'") return { intent: "quote", extracted_data: { size: "45'" } };
     if (["nuevo", "new"].includes(lo)) return { intent: "quote", extracted_data: { condition: "Nuevo" } };
     if (["usado", "used"].includes(lo)) return { intent: "quote", extracted_data: { condition: "Usado" } };
@@ -373,35 +379,6 @@ If any information is missing, use null or "---".`;
         return actions;
     }
 
-    // Captura de nombre/teléfono con Escape Hatch
-    if (step === 7 || step === 8) {
-        const isQuestionOrLong = input.split(" ").length > 4 || /\b(cuanto|qué|que|por qué|como|cómo|precio|pero|no|espera|wait|how|what|why|price|cost|solo|just|one|uno)\b/i.test(input) || input.includes("?");
-        if (!isQuestionOrLong) {
-            if (step === 7) {
-                await updateSession(senderId, { lead_name: input, step: 8 });
-                actions.push({ type: "text", text: dictCurrent.ask_phone.replace("{name}", input) });
-                return actions;
-            }
-            if (step === 8) {
-                await updateSession(senderId, { lead_phone: input, step: 0 });
-                await supabase.from("call_logs").insert([{
-                    customer: session.lead_name || "Unknown", phone: input || "---",
-                    service_type: session.action || "Sales", city: "---",
-                    description: session.action === "Exportacion" || session.action === "Exportación" ? `Order via AI Bot (EXPORT). Zip: ${session.zip}. Port: ${session.port_dest}. Buy/Rent: ${session.export_action}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`,
-                    created_by: "rptulipantransport@gmail.com", source: "chatbot",
-                    status: "PENDING", date: new Date().toISOString().split("T")[0],
-                    next_call_date: new Date().toISOString().split("T")[0],
-                    amount: session.final_amount, zip_code: session.zip, measures: session.size
-                }]);
-                actions.push({ type: "text", text: dictCurrent.order_done });
-                return actions;
-            }
-        } else {
-            // Escape hatch activated: reset to step 6 to let AI handle the doubt/change
-            await updateSession(senderId, { step: 6 });
-        }
-    }
-
     // ── Construir historial (últimos 8 mensajes para contexto) ──
     const rawHistory = session.history || [];
     const recentHistory: Array<{role: string, content: string}> = Array.isArray(rawHistory) ? rawHistory.slice(-8) : [];
@@ -409,7 +386,7 @@ If any information is missing, use null or "---".`;
 
     // ── Detección rápida (sin tokens de IA) o llamada a IA ──
     let extracted = quickDetect(input, senderId, session);
-    if (!extracted) {
+    if (!extracted || step === 7 || step === 8) {
         extracted = await callAI(recentHistory);
         if (!extracted) extracted = { intent: "quote", lang, extracted_data: {} };
     }
@@ -419,6 +396,58 @@ If any information is missing, use null or "---".`;
         dictCurrent = chatDict[lang];
     }
     const data = extracted.extracted_data || {};
+
+    if (step === 7 || step === 8) {
+        if (extracted.intent === "general_chat" || extracted.intent === "quote" || extracted.intent === "photos" || extracted.intent === "dimensions" || extracted.intent === "cancel") {
+            step = 6;
+            await updateSession(senderId, { step: 6 });
+        } else {
+            if (step === 7) {
+                if (data.customer_name) {
+                    await updateSession(senderId, { lead_name: data.customer_name, step: 8 });
+                    actions.push({ type: "text", text: dictCurrent.ask_phone.replace("{name}", data.customer_name) });
+                    return actions;
+                } else if (extracted.ai_reply) {
+                    actions.push({ type: "text", text: extracted.ai_reply });
+                    return actions;
+                } else {
+                    actions.push({ type: "text", text: dictCurrent.ask_name });
+                    return actions;
+                }
+            }
+            if (step === 8) {
+                if (data.customer_phone) {
+                    const cleanPhone = data.customer_phone.replace(/[\s\-\(\)\+]/g, '');
+                    const digitsOnly = cleanPhone.match(/\d/g);
+                    if (digitsOnly && digitsOnly.length >= 10) {
+                        const finalPhone = digitsOnly.join('').slice(-10);
+                        
+                        await updateSession(senderId, { lead_phone: finalPhone, step: 6 });
+                        
+                        await supabase.from("call_logs").insert([{
+                            customer: session.lead_name || "Unknown", phone: finalPhone,
+                            service_type: session.action || "Sales", city: "---",
+                            description: session.action === "Exportacion" || session.action === "Exportación" ? `Order via AI Bot (EXPORT). Zip: ${session.zip}. Port: ${session.port_dest}. Buy/Rent: ${session.export_action}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : (session.action === "PickUp" ? `Order via AI Bot (PICKUP - NO DELIVERY). Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`),
+                            created_by: "rptulipantransport@gmail.com", source: "chatbot",
+                            status: "PENDING", date: new Date().toISOString().split("T")[0],
+                            next_call_date: new Date().toISOString().split("T")[0],
+                            amount: session.final_amount, zip_code: session.zip, measures: session.size
+                        }]);
+                        actions.push({ type: "text", text: dictCurrent.order_done });
+                        return actions;
+                    }
+                }
+                const invalidMsg = lang === "ES" ? "Por favor, proporciona un número de teléfono válido de 10 dígitos (ej. 786-123-4567)." : "Please provide a valid 10-digit phone number (e.g. 786-123-4567).";
+                
+                if (extracted.ai_reply && !data.customer_phone) {
+                    actions.push({ type: "text", text: `${extracted.ai_reply}\n\n${invalidMsg}` });
+                } else {
+                    actions.push({ type: "text", text: invalidMsg });
+                }
+                return actions;
+            }
+        }
+    }
 
     // ── Prevenir recálculo redundante en el paso 6 ──
     if (step === 6 && extracted.intent === "quote") {
@@ -436,11 +465,8 @@ If any information is missing, use null or "---".`;
         }
     }
 
-    // ── OVERRIDE: Forzar detección de medida si la IA falla ──
+    // ── OVERRIDE (Removed size override to let AI handle HC vs STD) ──
     const lo = input.toLowerCase();
-    if (/\b(40|40'|40ft|forty|40 pies)\b/.test(lo)) data.size = "40'";
-    else if (/\b(20|20'|20ft|twenty|20 pies)\b/.test(lo)) data.size = "20'";
-    else if (/\b(45|45'|45ft|forty five|45 pies)\b/.test(lo)) data.size = "45'";
     
     const isExportFlow = session.action === "Exportación" || session.action === "Exportacion";
     if (isExportFlow) {
@@ -458,7 +484,12 @@ If any information is missing, use null or "---".`;
             updates.export_action = (actionStr.includes("comprar") || actionStr.includes("buy")) ? "Comprar" : "Alquilar";
         } else {
             if (data.action === "Comprar" && !session.action) {
-                updates.action = "Comprar_Intent";
+                const isExplicitStorage = /\b(storage|almacenamiento|guardar|store)\b/i.test(input);
+                if (isExplicitStorage) {
+                    updates.action = "Comprar";
+                } else {
+                    updates.action = "Comprar_Intent";
+                }
             } else {
                 updates.action = data.action;
             }
@@ -503,8 +534,7 @@ If any information is missing, use null or "---".`;
     if (data.zip_dest) updates.zip_dest = data.zip_dest;
     if (data.zip) {
         if (data.action === "Transporte" || session.action === "Transporte") {
-            if (!session.zip_origin && !data.zip_origin) updates.zip_origin = data.zip;
-            else if (!session.zip_dest && !data.zip_dest) updates.zip_dest = data.zip;
+            updates.zip = data.zip;
         } else {
             updates.zip = data.zip;
         }
@@ -570,7 +600,9 @@ If any information is missing, use null or "---".`;
             return [];
         }
 
-        await updateSession(senderId, { step: 0, action: null, size: null, zip: null, condition: null, type: null, reefer_status: null, quantity: null, history: null, export_action: null, port_dest: null });
+        if (!session.lead_phone) {
+            await updateSession(senderId, { step: 0, action: null, size: null, zip: null, condition: null, type: null, reefer_status: null, quantity: null, history: null, export_action: null, port_dest: null });
+        }
         
         const msg = extracted.ai_reply || (lang === "EN" ? "Thank you!" : "¡Gracias!");
 
@@ -580,29 +612,51 @@ If any information is missing, use null or "---".`;
 
     // ── INTENT: PROCEED ──
     if (extracted.intent === "proceed" || (step === 6 && (input.toLowerCase() === "sí, proceder" || input.toLowerCase() === "yes, proceed"))) {
-        await updateSession(senderId, { step: 7 });
-        actions.push({ type: "text", text: dictCurrent.ask_name });
-        return actions;
+        if (session.lead_name && session.lead_phone) {
+            // Re-use data for second order!
+            await supabase.from("call_logs").insert([{
+                customer: session.lead_name, phone: session.lead_phone,
+                service_type: session.action || "Sales", city: "---",
+                description: session.action === "Exportacion" || session.action === "Exportación" ? `Order via AI Bot (EXPORT). Zip: ${session.zip}. Port: ${session.port_dest}. Buy/Rent: ${session.export_action}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`,
+                created_by: "rptulipantransport@gmail.com", source: "chatbot",
+                status: "PENDING", date: new Date().toISOString().split("T")[0],
+                next_call_date: new Date().toISOString().split("T")[0],
+                amount: session.final_amount, zip_code: session.zip, measures: session.size
+            }]);
+            actions.push({ type: "text", text: lang === "ES" ? "¡Perfecto! Hemos añadido esta nueva orden a tu solicitud anterior." : "Perfect! We have added this new order to your previous request." });
+            return actions;
+        } else {
+            await updateSession(senderId, { step: 7 });
+            actions.push({ type: "text", text: dictCurrent.ask_name });
+            return actions;
+        }
     }
 
     // ── INTENT: GENERAL_CHAT (la IA responde libremente) ──
-    if (extracted.intent === "general_chat" && extracted.ai_reply) {
+    if (extracted.intent === "general_chat") {
+        const aiMsg = extracted.ai_reply || (lang === "EN" ? "I'm sorry, could you clarify?" : "Lo siento, ¿podrías aclarar?");
         let pendingOptions: string[] | null = null;
-        if (step === 6) pendingOptions = dictCurrent.proceed_btns;
+        if (step === 6 && !session.lead_phone) pendingOptions = dictCurrent.proceed_btns;
         else if (!session.action) pendingOptions = dictCurrent.step1_btns;
         else if (!session.size) pendingOptions = (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns;
         else if (session.action === "Transporte" && !session.load_status) pendingOptions = dictCurrent.ask_load_btns;
 
         if (pendingOptions) {
-            actions.push({ type: "quick_replies", text: extracted.ai_reply, options: pendingOptions });
+            actions.push({ type: "quick_replies", text: aiMsg, options: pendingOptions });
         } else {
-            actions.push({ type: "text", text: extracted.ai_reply });
+            actions.push({ type: "text", text: aiMsg });
         }
         return actions;
     }
 
     // Helper para incluir la respuesta conversacional de la IA (si existe) antes del mensaje estructurado
     const appendAiReply = (msg: string) => extracted.ai_reply ? `${extracted.ai_reply}\n\n${msg}` : msg;
+
+    if (data.is_complex_order || (session.action === "Transporte" && (session.quantity || 1) > 1)) {
+        await updateSession(senderId, { step: -1 });
+        actions.push({ type: "text", text: dictCurrent.human_handoff });
+        return actions;
+    }
 
     // ── FLUJO DE COTIZACIÓN ESTRUCTURADO ──
     if (!session.action) {
@@ -619,9 +673,10 @@ If any information is missing, use null or "---".`;
 
     if (session.action === "Transporte") {
         if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: dictCurrent.step3_size_btns }); return actions; }
-        if (!session.zip_origin) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_origin) }); return actions; }
-        if (!session.zip_dest) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_dest) }); return actions; }
-        if (!session.load_status) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_load), options: dictCurrent.ask_load_btns }); return actions; }
+        if (!session.zip_origin || !session.zip_dest || !session.load_status) {
+            actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_transport_details) });
+            return actions;
+        }
     } else if (session.action === "Exportación" || session.action === "Exportacion") {
         if (!session.export_action) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_export_buy_rent), options: dictCurrent.ask_export_buy_rent_btns }); return actions; }
         if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns }); return actions; }
@@ -637,6 +692,18 @@ If any information is missing, use null or "---".`;
             actions.push({ type: "text", text: msg });
             return actions;
         }
+    } else if (session.action === "Alquilar") {
+        if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: dictCurrent.step3_size_btns }); return actions; }
+        if (!session.zip) {
+            actions.push({ type: "text", text: appendAiReply(dictCurrent.step5_zip_msg) });
+            return actions;
+        }
+    } else if (session.action === "PickUp") {
+        if (session.type === "Reefer" && session.condition === "Usado" && !session.reefer_status) {
+            actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_reefer_status), options: dictCurrent.ask_reefer_status_btns }); return actions;
+        }
+        if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns }); return actions; }
+        if (!session.condition) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step4_cond_msg), options: dictCurrent.step4_cond_btns }); return actions; }
     } else {
         if (session.action === "Comprar") {
             if (session.type === "Reefer" && session.condition === "Usado" && !session.reefer_status) {
@@ -687,12 +754,12 @@ If any information is missing, use null or "---".`;
             else if (session.type === "Open Side") sizeKey = "20side";
             else if (session.type === "Double Door") sizeKey = "20dd";
             else sizeKey = "20std"; // The DB stores the new 20' HC price under the standard 20' key
-        } else if (session.size === "40' STD" || session.size === "40'") {
+        } else if (session.size === "40' STD") {
             if (session.type === "Reefer") sizeKey = isNew ? "40reefer" : (session.reefer_status === "No Funcionando" ? "40nofunc" : "40func");
             else if (session.type === "Open Side") sizeKey = "40side";
             else if (session.type === "Double Door") sizeKey = "40dd";
             else sizeKey = "40std";
-        } else if (session.size === "40' HC") {
+        } else if (session.size === "40' HC" || session.size === "40'") {
             if (session.type === "Reefer") sizeKey = isNew ? "40reefer" : (session.reefer_status === "No Funcionando" ? "40nofunc" : "40func");
             else if (session.type === "Open Side") sizeKey = "40side";
             else if (session.type === "Double Door") sizeKey = "40dd";
@@ -701,11 +768,12 @@ If any information is missing, use null or "---".`;
             sizeKey = "45hc";
         }
 
+        const isPickUp = session.action === "PickUp";
         const { data: qData, error } = await supabase.functions.invoke("calculate-quote", {
             body: {
-                operation_mode: session.action === "Transporte" ? "transport_only" : (session.action === "Alquilar" ? "rent" : "sale"),
+                operation_mode: session.action === "Transporte" ? "transport_only" : (session.action === "Alquilar" ? "rent" : (isPickUp ? "pickup" : "sale")),
                 condition: isNew ? "new" : "used",
-                zip_destino: session.action === "Transporte" ? session.zip_dest : session.zip,
+                zip_destino: isPickUp ? "33178" : (session.action === "Transporte" ? session.zip_dest : session.zip),
                 zip_origen: session.action === "Transporte" ? session.zip_origin : undefined,
                 container_size: sizeKey,
                 quantity: quantity,
@@ -730,7 +798,11 @@ If any information is missing, use null or "---".`;
             actions.push({ type: "text", text: msg });
             return actions;
         }
-        const finalPrice = qData.total_price || qData.totalPrice;
+        let finalPrice = qData.total_price || 0;
+        if (isPickUp) {
+            const sp = ["Reefer", "Open Side", "Double Door"].includes(session.type);
+            finalPrice = (qData.container_price || 0) + (sp ? 0 : (qData.cert_fee || 0));
+        }
         if (!finalPrice) { actions.push({ type: "text", text: dictCurrent.no_stock }); return actions; }
 
         const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
@@ -738,14 +810,24 @@ If any information is missing, use null or "---".`;
         const displaySize = session.size ? session.size.replace(" STD", "") : "";
 
         if (session.action === "Transporte") {
+            const qtyStr = quantity > 1 ? `${quantity} ` : "";
+            const qtyPluralS = quantity > 1 ? "s" : "";
+            const qtyPluralES = quantity > 1 ? "es" : "";
+
             if (qData.immediate_price && qData.immediate_price !== finalPrice) {
                 msg = dictCurrent.price_transport
+                    .replace("{qty}", qtyStr)
+                    .replace(/{qty_plural_s}/g, qtyPluralS)
+                    .replace(/{qty_plural_es}/g, qtyPluralES)
                     .replace("{size}", displaySize).replace("{load}", session.load_status)
                     .replace("{origin}", session.zip_origin).replace("{dest}", session.zip_dest)
                     .replace("{price}", fmt(finalPrice)).replace("{immed}", fmt(qData.immediate_price))
                     .replace("{yard}", qData.closest_yard || "Miami Hub");
             } else {
                 msg = dictCurrent.price_transport_single
+                    .replace("{qty}", qtyStr)
+                    .replace(/{qty_plural_s}/g, qtyPluralS)
+                    .replace(/{qty_plural_es}/g, qtyPluralES)
                     .replace("{size}", displaySize).replace("{load}", session.load_status)
                     .replace("{origin}", session.zip_origin).replace("{dest}", session.zip_dest)
                     .replace("{price}", fmt(finalPrice));
@@ -783,6 +865,15 @@ If any information is missing, use null or "---".`;
                 } else {
                     msg = `Normalmente, el costo total por ${qtyStr}contenedores ${typeLabel} ${condLabel} de ${displaySize} entregados en ${session.zip} sería de **${fmt(qData.non_discounted_price)}**. Sin embargo, si tienes espacio suficiente en tu propiedad para recibirlos el mismo día y a la misma hora en un solo viaje compartido, te puedo hacer un descuento especial y dejártelos en un total de **${fmt(finalPrice)}**.\n\n¿Tienes el espacio y podemos enviarlos juntos?`;
                 }
+            } else if (isPickUp) {
+                msg = dictCurrent.price_pickup
+                    .replace("{qty}", qtyStr)
+                    .replace(/{qty_plural_s}/g, qtyPluralS)
+                    .replace(/{qty_plural_es}/g, qtyPluralES)
+                    .replace("{cond}", condLabel)
+                    .replace("{type}", typeLabel)
+                    .replace("{size}", displaySize)
+                    .replace("{price}", fmt(finalPrice));
             } else {
                 msg = dictCurrent.price_sale
                     .replace("{qty}", qtyStr)

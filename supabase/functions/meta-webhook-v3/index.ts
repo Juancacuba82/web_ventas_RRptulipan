@@ -94,9 +94,19 @@ serve(async (req) => {
                                 text = "ok"; // Treat stickers (like thumbs up) as a cancel intent
                             }
                             else if (event.message.attachments) {
-                                await updateSession(senderId, { step: -1 });
-                                await sendMessage(senderId, "He recibido una imagen, pero soy un asistente virtual y no puedo verla. Por favor, descríbeme en texto lo que buscas si quieres continuar, si no espere a que un humano le atienda.");
-                                continue;
+                                const isSticker = event.message.attachments.some((att: any) => att.payload?.sticker_id);
+                                if (isSticker) {
+                                    text = "ok";
+                                } else {
+                                    await updateSession(senderId, { step: -1 });
+                                    const { data: session } = await supabase.from("bot_sessions").select("lang").eq("sender_id", senderId).single();
+                                    const lang = session?.lang || "EN";
+                                    const errMsg = lang === "ES" 
+                                        ? "He recibido una imagen, pero soy un asistente virtual y no puedo verla. Por favor, descríbeme en texto lo que buscas si quieres continuar, si no espere a que un humano le atienda."
+                                        : "I have received an image, but I am a virtual assistant and cannot see it. Please describe what you are looking for in text if you wish to continue, or wait for a human agent.";
+                                    await sendMessage(senderId, errMsg);
+                                    continue;
+                                }
                             }
                             if (text) await handleMessage(senderId, text);
                         }
