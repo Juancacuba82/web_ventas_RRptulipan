@@ -101,11 +101,11 @@ COMPANY KNOWLEDGE (use this to answer questions naturally — never make things 
 - PHOTOS: If the user asks for photos, pictures, or images, do NOT write a response. Instead, set intent to "photos".
 - CONDITION (Used): All used containers are Wind & Water Tight (WWT). Structurally sound, no leaks, doors seal properly. DO NOT proactively mention the guarantee here.
 - FLOORS: Used containers have hardwood or bamboo floors in good structural condition.
-- PRICE IN ADS: Ads show the container price at the port only. Delivery cost varies by zip code distance, so we cannot advertise one price. Our quote is FINAL: container + flatbed delivery, no hidden fees. CRITICAL: NEVER invent, calculate, or provide a price yourself in ai_reply. The system will calculate the exact price using a database if you set intent to "quote". If the user asks for a price or asks "how much is X", ALWAYS set intent to "quote". However, if the user asks a conversational question (e.g., "is this to own?", "does it include delivery?", "how long does it take?"), set intent to "general_chat" and answer it naturally in ai_reply.
+- PRICE IN ADS: Ads show the container price at the port only. Delivery cost varies by zip code distance, so we cannot advertise one price. Our quote is FINAL: container + flatbed delivery, no hidden fees. CRITICAL: NEVER invent, calculate, or provide a price yourself in ai_reply. The system will calculate the exact price using a database if you set intent to "quote". If the user asks for a price or asks "how much is X", ALWAYS set intent to "quote".
 - DISCOUNTS: Prices are already the lowest wholesale port prices with zero hidden margins. No additional discounts available.
 - MILITARY/SENIOR/FIRST RESPONDER: We do not offer special discounts. Our prices are already the best in the market.
 - LOCATIONS/HUBS: Distribution centers in Miami, Tampa, Titusville, Jacksonville, Savannah, and Atlanta. Our main office is at 8500 NW 87 Ave, Miami, FL 33166. CRITICAL: WHENEVER you give the office address, you MUST also tell the customer that if they wish to visit, they MUST call us first to schedule an appointment so they don't find the office closed.
-- SIZES: 20ft, 40ft standard, 45ft high cube. We do NOT carry 10ft (must be custom-cut from a 20ft, costs MORE). CRITICAL: If the customer asks for a 40' container without specifying High Cube (HC) or Standard (STD), extract "40'". ONLY extract "40' HC" if they explicitly type "HC" or "High Cube".
+- SIZES: 20ft, 40ft standard, 45ft high cube. We do NOT carry 10ft (must be custom-cut from a 20ft, costs MORE). CRITICAL: If the customer asks for a 40' container without specifying Standard (STD) or High Cube (HC), ALWAYS default to "40' HC".
 - 10FT: We don't stock them. Recommend the 20ft instead — it's cheaper and ready to go.
 - REEFERS: Available Working (Functional) or Not Working (No AC), and also brand New.
 - GUARANTEES: NEVER mention or offer a guarantee/warranty unless the customer explicitly asks about it. If they ask, explain that we ONLY offer a 6-month Wind and Water Tight structural guarantee on all used containers, and NO OTHER guarantees are provided.
@@ -128,22 +128,18 @@ OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO
   "intent": "quote" | "general_chat" | "cancel" | "proceed" | "photos" | "dimensions" | "provide_info",
   "lang": "EN" | "ES", // CRITICAL: This MUST match the exact language the customer used in their VERY LAST message. If they spoke Spanish, output "ES".
   "extracted_data": {
-    "items": [
-      {
-        "action": "Comprar" | "Alquilar" | "Transporte" | "Exportacion" | "PickUp" | null,
-        "export_action": "Comprar" | "Alquilar" | null,
-        "condition": "Nuevo" | "Usado" | null,
-        "type": "Dry" | "Reefer" | "Open Side" | "Double Door" | null,
-        "size": "20' STD" | "20' HC" | "40'" | "40' STD" | "40' HC" | "45' HC" | null,
-        "quantity": number | null,
-        "reefer_status": "Funcionando" | "No Funcionando" | null,
-        "load_status": "Vacio" | "Cargado" | null,
-        "port_dest": string | null
-      }
-    ],
+    "action": "Comprar" | "Alquilar" | "Transporte" | "Exportacion" | "PickUp" | null,
+    "export_action": "Comprar" | "Alquilar" | null,
+    "condition": "Nuevo" | "Usado" | null,
+    "type": "Dry" | "Reefer" | "Open Side" | "Double Door" | null,
+    "size": "20' STD" | "20' HC" | "40' STD" | "40' HC" | "45' HC" | null,
+    "quantity": number | null,
     "zip": string | null,
     "zip_origin": string | null,
     "zip_dest": string | null,
+    "port_dest": string | null,
+    "reefer_status": "Funcionando" | "No Funcionando" | null,
+    "load_status": "Vacio" | "Cargado" | null,
     "is_complex_order": boolean,
     "customer_name": string | null,
     "customer_phone": string | null
@@ -190,10 +186,9 @@ EXTRACTION RULES:
 - "working"/"funcionando"/"with ac"/"with motor" → reefer_status "Funcionando". "not working"/"no funciona"/"no ac"/"sin motor"/"broken" → reefer_status "No Funcionando".
 - "empty"/"vacio"/"vacio" → load_status "Vacio". "loaded"/"cargado"/"lleno"/"full" → load_status "Cargado".
 - Extract 5-digit zip codes exactly. CRITICAL: NEVER extract a 3 or 4-digit number (e.g., 1400) as a zip code. If a customer sends a number like "1400" next to a size, DO NOT assume what it means. Treat this as general_chat and ASK the customer what they mean by that number (e.g. "What do you mean by 1400?"). Once they explain it's a price, then explain our pricing policy. If two zips: first is zip_origin, second is zip_dest. If one zip is provided without explicit origin/destination context, assign it to 'zip', DO NOT guess zip_origin or zip_dest.
-- is_complex_order: set to true ONLY IF the customer is requesting multiple DIFFERENT distinct services in the same message (e.g. "I want to buy a 20ft AND move two 40ft containers"). CRITICAL: Asking for prices/quotes on multiple different container sizes or conditions (e.g. "precios de 20 y 40") is NOT a complex order. Set this to false in those cases.
+- is_complex_order: set to true ONLY IF the customer is requesting multiple DIFFERENT distinct services in the same message (e.g. "I want to buy a 20ft AND move two 40ft containers").
 - customer_name: If the user provides a name or business name (e.g. "Crossties of Ocala"), extract it. If they say "already did" or "see above", review the conversation history to find the previously mentioned name and extract it here!
 - customer_phone: extract any 10-digit phone number if provided.
-- CRITICAL: The 'items' array represents the full shopping cart. If the customer previously asked for multiple items (e.g. 20 and 40), you MUST output ALL of those items with their sizes in EVERY response, even if the customer is just answering a follow-up question. Do not wipe out the cart.
 - Only populate fields you can confidently extract. Use null for everything else.`;
 
 // ─── HELPERS DE SUPABASE ──────────────────────────────────────────────────────
@@ -237,22 +232,22 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
     const lo = input.toLowerCase().trim();
     const cleaned = lo.replace(/[^\w\sñáéíóú]/gi, '').trim();
 
-    if (["comprar", "buy"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ action: "Comprar" }] } };
-    if (["alquilar", "rent"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ action: "Alquilar" }] } };
-    if (["transporte", "transport"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ action: "Transporte" }] } };
-    if (lo === "20'") return { intent: "quote", extracted_data: { items: [{ size: "20'" }] } };
-    if (lo === "40'") return { intent: "quote", extracted_data: { items: [{ size: "40'" }] } };
-    if (lo === "45'") return { intent: "quote", extracted_data: { items: [{ size: "45'" }] } };
-    if (["nuevo", "new"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ condition: "Nuevo" }] } };
-    if (["usado", "used"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ condition: "Usado" }] } };
-    if (["dry (estándar)", "dry (standard)", "dry"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ type: "Dry" }] } };
-    if (["refrigerado", "refrigerated"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ type: "Reefer" }] } };
-    if (["funcionando", "working"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ reefer_status: "Funcionando" }] } };
-    if (["no funcionando", "not working"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ reefer_status: "No Funcionando" }] } };
-    if (["almacenamiento", "storage"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ action: "Comprar" }] } };
-    if (["exportación", "export"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ action: "Exportacion" }] } };
-    if (["vacío", "empty", "vacio"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ load_status: "Vacio" }] } };
-    if (["cargado", "loaded"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ load_status: "Cargado" }] } };
+    if (["comprar", "buy"].includes(lo)) return { intent: "quote", extracted_data: { action: "Comprar" } };
+    if (["alquilar", "rent"].includes(lo)) return { intent: "quote", extracted_data: { action: "Alquilar" } };
+    if (["transporte", "transport"].includes(lo)) return { intent: "quote", extracted_data: { action: "Transporte" } };
+    if (lo === "20'") return { intent: "quote", extracted_data: { size: "20'" } };
+    if (lo === "40'") return { intent: "quote", extracted_data: { size: "40' HC" } };
+    if (lo === "45'") return { intent: "quote", extracted_data: { size: "45'" } };
+    if (["nuevo", "new"].includes(lo)) return { intent: "quote", extracted_data: { condition: "Nuevo" } };
+    if (["usado", "used"].includes(lo)) return { intent: "quote", extracted_data: { condition: "Usado" } };
+    if (["dry (estándar)", "dry (standard)", "dry"].includes(lo)) return { intent: "quote", extracted_data: { type: "Dry" } };
+    if (["refrigerado", "refrigerated"].includes(lo)) return { intent: "quote", extracted_data: { type: "Reefer" } };
+    if (["funcionando", "working"].includes(lo)) return { intent: "quote", extracted_data: { reefer_status: "Funcionando" } };
+    if (["no funcionando", "not working"].includes(lo)) return { intent: "quote", extracted_data: { reefer_status: "No Funcionando" } };
+    if (["almacenamiento", "storage"].includes(lo)) return { intent: "quote", extracted_data: { action: "Comprar" } };
+    if (["exportación", "export"].includes(lo)) return { intent: "quote", extracted_data: { action: "Exportacion" } };
+    if (["vacío", "empty", "vacio"].includes(lo)) return { intent: "quote", extracted_data: { load_status: "Vacio" } };
+    if (["cargado", "loaded"].includes(lo)) return { intent: "quote", extracted_data: { load_status: "Cargado" } };
     if (["sí, proceder", "yes, proceed", "yes", "sí", "si"].includes(lo)) return { intent: "proceed", extracted_data: {} };
 
     if (/^\d{5}$/.test(lo)) return { intent: "quote", extracted_data: { zip: lo } };
@@ -261,7 +256,7 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
 }
 
 // ─── LÓGICA PRINCIPAL ─────────────────────────────────────────────────────────
-async function processMessageInner(senderId: string, messageText: string, isHuman: boolean = false): Promise<Action[]> {
+async function processMessage(senderId: string, messageText: string, isHuman: boolean = false): Promise<Action[]> {
     const input = messageText.replace(/^@meta ai\s*/i, "").trim();
     const actions: Action[] = [];
     const session = await getSession(senderId);
@@ -356,7 +351,7 @@ If any information is missing, use null or "---".`;
 
     // Reiniciar
     if (["reiniciar", "restart", "menu"].includes(input.toLowerCase())) {
-        await updateSession(senderId, { step: 0, lang: null, action: null, condition: null, size: null, type: null, zip: null, reefer_status: null, load_status: null, quantity: null, zip_origin: null, zip_dest: null, history: null, items: null });
+        await updateSession(senderId, { step: 0, lang: null, action: null, condition: null, size: null, type: null, zip: null, reefer_status: null, load_status: null, quantity: null, zip_origin: null, zip_dest: null, history: null });
         step = 0;
     }
 
@@ -401,35 +396,6 @@ If any information is missing, use null or "---".`;
         dictCurrent = chatDict[lang];
     }
     const data = extracted.extracted_data || {};
-    
-    if (data.items && data.items.length > 0) {
-        const hasSize = data.items.some((i: any) => i.size);
-        if (!hasSize && session.items && session.items.length > 0) {
-            const delta = data.items[0];
-            session.items.forEach((existingItem: any) => {
-                if (delta.action) existingItem.action = delta.action;
-                if (delta.export_action) existingItem.export_action = delta.export_action;
-                if (delta.condition) existingItem.condition = delta.condition;
-                if (delta.type) existingItem.type = delta.type;
-                if (delta.reefer_status) existingItem.reefer_status = delta.reefer_status;
-                if (delta.load_status) existingItem.load_status = delta.load_status;
-            });
-            data.items = session.items;
-        } else {
-            session.items = data.items;
-        }
-        
-        const first = data.items[0];
-        if (first.action) data.action = first.action;
-        if (first.export_action) data.export_action = first.export_action;
-        if (first.condition) data.condition = first.condition;
-        if (first.type) data.type = first.type;
-        if (first.size) data.size = first.size;
-        if (first.quantity) data.quantity = first.quantity;
-        if (first.reefer_status) data.reefer_status = first.reefer_status;
-        if (first.load_status) data.load_status = first.load_status;
-        if (first.port_dest) data.port_dest = first.port_dest;
-    }
 
     if (step === 7 || step === 8) {
         if (extracted.intent === "general_chat" || extracted.intent === "quote" || extracted.intent === "photos" || extracted.intent === "dimensions" || extracted.intent === "cancel") {
@@ -485,17 +451,14 @@ If any information is missing, use null or "---".`;
 
     // ── Prevenir recálculo redundante en el paso 6 ──
     if (step === 6 && extracted.intent === "quote") {
-        const qData = data.quantity || 1;
-        const qSess = session.quantity || 1;
-        const normSize = (s: any) => s ? s.toString().replace(" STD", "") : "";
         const changedPricingVar = 
-            (data.size && normSize(data.size) !== normSize(session.size) && session.size !== "20' & 40'") ||
+            (data.size && data.size !== session.size) ||
             (data.zip && data.zip !== session.zip) ||
             (data.zip_origin && data.zip_origin !== session.zip_origin) ||
             (data.zip_dest && data.zip_dest !== session.zip_dest) ||
             (data.condition && data.condition !== session.condition) ||
             (data.type && data.type !== session.type) ||
-            (data.quantity && qData !== qSess);
+            (data.quantity && data.quantity !== session.quantity);
         
         if (!changedPricingVar) {
             extracted.intent = "general_chat";
@@ -513,7 +476,6 @@ If any information is missing, use null or "---".`;
 
     // ── Actualizar sesión con datos extraídos ──
     const updates: any = { lang };
-    if (session.items) updates.items = session.items;
     if (data.size) updates.size = data.size;
     
     if (data.action) {
@@ -522,7 +484,12 @@ If any information is missing, use null or "---".`;
             updates.export_action = (actionStr.includes("comprar") || actionStr.includes("buy")) ? "Comprar" : "Alquilar";
         } else {
             if (data.action === "Comprar" && !session.action) {
-                updates.action = "Comprar";
+                const isExplicitStorage = /\b(storage|almacenamiento|guardar|store)\b/i.test(input);
+                if (isExplicitStorage) {
+                    updates.action = "Comprar";
+                } else {
+                    updates.action = "Comprar_Intent";
+                }
             } else {
                 updates.action = data.action;
             }
@@ -634,7 +601,7 @@ If any information is missing, use null or "---".`;
         }
 
         if (!session.lead_phone) {
-            await updateSession(senderId, { step: 0, action: null, size: null, zip: null, condition: null, type: null, reefer_status: null, quantity: null, history: null, export_action: null, port_dest: null, items: null });
+            await updateSession(senderId, { step: 0, action: null, size: null, zip: null, condition: null, type: null, reefer_status: null, quantity: null, history: null, export_action: null, port_dest: null });
         }
         
         const msg = extracted.ai_reply || (lang === "EN" ? "Thank you!" : "¡Gracias!");
@@ -667,21 +634,19 @@ If any information is missing, use null or "---".`;
 
     // ── INTENT: GENERAL_CHAT (la IA responde libremente) ──
     if (extracted.intent === "general_chat") {
-        if (step < 6 && session.action) {
-            extracted.intent = "quote";
-        } else {
-            const aiMsg = extracted.ai_reply || (lang === "EN" ? "I'm sorry, could you clarify?" : "Lo siento, ¿podrías aclarar?");
-            let pendingOptions: string[] | null = null;
-            if (step === 6 && !session.lead_phone) pendingOptions = dictCurrent.proceed_btns;
-            else if (!session.action) pendingOptions = dictCurrent.step1_btns;
+        const aiMsg = extracted.ai_reply || (lang === "EN" ? "I'm sorry, could you clarify?" : "Lo siento, ¿podrías aclarar?");
+        let pendingOptions: string[] | null = null;
+        if (step === 6 && !session.lead_phone) pendingOptions = dictCurrent.proceed_btns;
+        else if (!session.action) pendingOptions = dictCurrent.step1_btns;
+        else if (!session.size) pendingOptions = (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns;
+        else if (session.action === "Transporte" && !session.load_status) pendingOptions = dictCurrent.ask_load_btns;
 
-            if (pendingOptions) {
-                actions.push({ type: "quick_replies", text: aiMsg, options: pendingOptions });
-            } else {
-                actions.push({ type: "text", text: aiMsg });
-            }
-            return actions;
+        if (pendingOptions) {
+            actions.push({ type: "quick_replies", text: aiMsg, options: pendingOptions });
+        } else {
+            actions.push({ type: "text", text: aiMsg });
         }
+        return actions;
     }
 
     // Helper para incluir la respuesta conversacional de la IA (si existe) antes del mensaje estructurado
@@ -728,15 +693,7 @@ If any information is missing, use null or "---".`;
             return actions;
         }
     } else if (session.action === "Alquilar") {
-        if (!session.size) {
-            const hasSizeInItems = session.items && session.items.length > 0 && session.items.some((i: any) => i.size);
-            if (!hasSizeInItems) {
-                session.items = [ { size: "20'", action: "Alquilar" }, { size: "40'", action: "Alquilar" } ];
-                updates.items = session.items;
-                session.size = "20' & 40'";
-                updates.size = session.size;
-            }
-        }
+        if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: dictCurrent.step3_size_btns }); return actions; }
         if (!session.zip) {
             actions.push({ type: "text", text: appendAiReply(dictCurrent.step5_zip_msg) });
             return actions;
@@ -753,145 +710,84 @@ If any information is missing, use null or "---".`;
                 actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_reefer_status), options: dictCurrent.ask_reefer_status_btns }); return actions;
             }
         }
-        if (!session.size) {
-            const hasSizeInItems = session.items && session.items.length > 0 && session.items.some((i: any) => i.size);
-            if (!hasSizeInItems) {
-                session.items = [ { size: "20'", action: "Comprar" }, { size: "40'", action: "Comprar" } ];
-                updates.items = session.items;
-                session.size = "20' & 40'";
-                updates.size = session.size;
-            }
-        }
+        if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns }); return actions; }
         if (!session.zip) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_zip) }); return actions; }
     }
 
     // ── CALCULAR PRECIO ──
+    if (!session.condition || session.type === "Open Side" || session.type === "Double Door") {
+        const autoNew = session.type === "Open Side" || session.type === "Double Door";
+        session.condition = autoNew ? "Nuevo" : (session.condition || "Usado");
+        updates.condition = session.condition;
+    }
+    if (!session.type) { session.type = "Dry"; updates.type = "Dry"; }
+    
+    // ENFORCE 20' HC RULE: If they ask for 20' HC, it MUST be New
+    if (session.size === "20' HC" && session.condition !== "Nuevo") {
+        session.condition = "Nuevo";
+        updates.condition = "Nuevo";
+    }
+
+    // ENFORCE 45' RULE: If they ask for 45', enforce condition to Usado to avoid AI hallucinating New
+    if (session.size && session.size.includes("45") && session.condition !== "Usado") {
+        session.condition = "Usado";
+        updates.condition = "Usado";
+    }
+
+    await updateSession(senderId, updates);
+
+    actions.push({ type: "text", text: dictCurrent.calculating });
+
     try {
-        let finalMessages: string[] = [];
-        let finalTotalPrice = 0;
-        let requiresManualQuote = false;
-        
-        const itemsToQuote = (session.items && session.items.length > 0) ? session.items : [session];
-        let allQuotesValid = true;
-        
-        for (let i = 0; i < itemsToQuote.length; i++) {
-            let item = itemsToQuote[i];
-            
-            const itemAction = item.action || session.action;
-            const itemCondition = item.condition || session.condition;
-            const itemType = item.type || session.type || "Dry";
-            const itemSize = item.size || session.size;
-            const itemQty = Number(item.quantity) || Number(session.quantity) || 1;
-            const itemExportAction = item.export_action || session.export_action;
-            
-            if (!itemCondition || itemType === "Open Side" || itemType === "Double Door") {
-                const autoNew = itemType === "Open Side" || itemType === "Double Door";
-                item.condition = autoNew ? "Nuevo" : (itemCondition || "Usado");
-            }
-            
-            if (itemSize === "20' HC" && item.condition !== "Nuevo") item.condition = "Nuevo";
-            if (itemSize && itemSize.includes("45") && item.condition !== "Usado") item.condition = "Usado";
-            
-            const isExport = itemAction === "Exportación" || itemAction === "Exportacion";
-            const isNew = item.condition === "Nuevo";
-            const quantity = itemQty;
+        const isExport = session.action === "Exportación" || session.action === "Exportacion";
+        const isNew = session.condition === "Nuevo";
+        const quantity = Number(session.quantity) || 1;
 
-            let sizeKey = "";
-            if (itemSize === "20' STD" || itemSize === "20'") {
-                if (itemType === "Reefer") sizeKey = isNew ? "20reefer" : (item.reefer_status === "No Funcionando" ? "20nofunc" : "20func");
-                else if (itemType === "Open Side") sizeKey = "20side";
-                else if (itemType === "Double Door") sizeKey = "20dd";
-                else sizeKey = "20std";
-            } else if (itemSize === "20' HC") {
-                if (itemType === "Reefer") sizeKey = isNew ? "20reefer" : (item.reefer_status === "No Funcionando" ? "20nofunc" : "20func");
-                else if (itemType === "Open Side") sizeKey = "20side";
-                else if (itemType === "Double Door") sizeKey = "20dd";
-                else sizeKey = "20std";
-            } else if (itemSize === "40' STD") {
-                if (itemType === "Reefer") sizeKey = isNew ? "40reefer" : (item.reefer_status === "No Funcionando" ? "40nofunc" : "40func");
-                else if (itemType === "Open Side") sizeKey = "40side";
-                else if (itemType === "Double Door") sizeKey = "40dd";
-                else sizeKey = "40std";
-            } else if (itemSize === "40' HC" || itemSize === "40'") {
-                if (itemType === "Reefer") sizeKey = isNew ? "40reefer" : (item.reefer_status === "No Funcionando" ? "40nofunc" : "40func");
-                else if (itemType === "Open Side") sizeKey = "40side";
-                else if (itemType === "Double Door") sizeKey = "40dd";
-                else sizeKey = "40hc";
-            } else if (itemSize === "45' HC" || itemSize === "45'" || itemSize === "45" || (itemSize && itemSize.includes("45"))) {
-                sizeKey = "45hc";
-            }
-
-            const isPickUp = itemAction === "PickUp";
-            
-            const { data: qData, error } = await supabase.functions.invoke("calculate-quote", {
-                body: {
-                    operation_mode: itemAction === "Transporte" ? "transport_only" : (itemAction === "Alquilar" ? "rent" : (isPickUp ? "pickup" : "sale")),
-                    condition: isNew ? "new" : "used",
-                    zip_destino: isPickUp ? "33178" : (itemAction === "Transporte" ? session.zip_dest : session.zip),
-                    zip_origen: itemAction === "Transporte" ? session.zip_origin : undefined,
-                    container_size: sizeKey,
-                    quantity: quantity,
-                    options: {
-                        export_certificate: isExport,
-                        extra_service: itemAction === "Transporte" && session.load_status === "Vacio",
-                        crane_service: itemAction === "Transporte" && session.load_status === "Cargado"
-                    }
-                }
-            });
-
-            if (error || (qData && qData.error)) {
-                allQuotesValid = false;
-                continue;
-            }
-
-            if (qData && qData.requires_manual_quote) {
-                requiresManualQuote = true;
-                break;
-            }
-
-            let itemPrice = qData.total_price || 0;
-            if (isPickUp) {
-                const sp = ["Reefer", "Open Side", "Double Door"].includes(itemType);
-                itemPrice = (qData.container_price || 0) + (sp ? 0 : (qData.cert_fee || 0));
-            }
-            if (!itemPrice) {
-                allQuotesValid = false;
-                continue;
-            }
-            
-            finalTotalPrice += itemPrice;
-
-            const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-            let msg = "";
-            const displaySize = itemSize ? itemSize.replace(" STD", "") : "";
-            const condLabel = lang === "EN" ? (item.condition === "Nuevo" ? "New" : "Used") : item.condition;
-            let typeLabel = itemType === "Dry" ? "" : itemType;
-            if (itemType === "Reefer" && item.reefer_status === "No Funcionando") typeLabel = lang === "EN" ? "Reefer (Not Working)" : "Refrigerado (No Funciona)";
-            else if (itemType === "Reefer") typeLabel = lang === "EN" ? "Reefer" : "Refrigerado";
-
-            if (itemAction === "Transporte") {
-                const qtyStr = quantity > 1 ? `${quantity} ` : "";
-                msg = dictCurrent.price_transport_single
-                    .replace("{qty}", qtyStr)
-                    .replace("{size}", displaySize).replace("{load}", session.load_status)
-                    .replace("{origin}", session.zip_origin).replace("{dest}", session.zip_dest)
-                    .replace("{price}", fmt(itemPrice));
-            } else if (isExport) {
-                const sp = ["Reefer", "Open Side", "Double Door"].includes(itemType);
-                const bp = (qData.container_price || 0) + (sp ? 0 : (qData.cert_fee || 0));
-                msg = `🔹 ${condLabel} ${typeLabel} ${displaySize}: **${fmt(bp)}**`;
-            } else if (itemAction === "Alquilar") {
-                msg = `🔹 Renta ${condLabel} ${typeLabel} ${displaySize}: **${fmt(itemPrice)}** (${fmt(qData.container_price || 0)}/mes + ${fmt(qData.delivery_cost || 0)} logistica)`;
-            } else {
-                const qtyStr = quantity > 1 ? `${quantity} ` : "";
-                msg = `🔹 ${qtyStr}${condLabel} ${typeLabel} ${displaySize}: **${fmt(itemPrice)}**`;
-            }
-            
-            msg = msg.replace(/ +/g, " ");
-            finalMessages.push(msg);
+        let sizeKey = "";
+        if (session.size === "20' STD" || session.size === "20'") {
+            if (session.type === "Reefer") sizeKey = isNew ? "20reefer" : (session.reefer_status === "No Funcionando" ? "20nofunc" : "20func");
+            else if (session.type === "Open Side") sizeKey = "20side";
+            else if (session.type === "Double Door") sizeKey = "20dd";
+            else sizeKey = "20std";
+        } else if (session.size === "20' HC") {
+            if (session.type === "Reefer") sizeKey = isNew ? "20reefer" : (session.reefer_status === "No Funcionando" ? "20nofunc" : "20func");
+            else if (session.type === "Open Side") sizeKey = "20side";
+            else if (session.type === "Double Door") sizeKey = "20dd";
+            else sizeKey = "20std"; // The DB stores the new 20' HC price under the standard 20' key
+        } else if (session.size === "40' STD") {
+            if (session.type === "Reefer") sizeKey = isNew ? "40reefer" : (session.reefer_status === "No Funcionando" ? "40nofunc" : "40func");
+            else if (session.type === "Open Side") sizeKey = "40side";
+            else if (session.type === "Double Door") sizeKey = "40dd";
+            else sizeKey = "40std";
+        } else if (session.size === "40' HC" || session.size === "40'") {
+            if (session.type === "Reefer") sizeKey = isNew ? "40reefer" : (session.reefer_status === "No Funcionando" ? "40nofunc" : "40func");
+            else if (session.type === "Open Side") sizeKey = "40side";
+            else if (session.type === "Double Door") sizeKey = "40dd";
+            else sizeKey = "40hc";
+        } else if (session.size === "45' HC" || session.size === "45'" || session.size === "45" || (session.size && session.size.includes("45"))) {
+            sizeKey = "45hc";
         }
 
-        if (requiresManualQuote) {
+        const isPickUp = session.action === "PickUp";
+        const { data: qData, error } = await supabase.functions.invoke("calculate-quote", {
+            body: {
+                operation_mode: session.action === "Transporte" ? "transport_only" : (session.action === "Alquilar" ? "rent" : (isPickUp ? "pickup" : "sale")),
+                condition: isNew ? "new" : "used",
+                zip_destino: isPickUp ? "33178" : (session.action === "Transporte" ? session.zip_dest : session.zip),
+                zip_origen: session.action === "Transporte" ? session.zip_origin : undefined,
+                container_size: sizeKey,
+                quantity: quantity,
+                options: {
+                    export_certificate: isExport,
+                    extra_service: session.action === "Transporte" && session.load_status === "Vacio",
+                    crane_service: session.action === "Transporte" && session.load_status === "Cargado"
+                }
+            }
+        });
+
+        if (error || (qData && qData.error)) { actions.push({ type: "text", text: dictCurrent.no_stock }); return actions; }
+
+        if (qData && qData.requires_manual_quote) {
             const msg = lang === "EN" 
                 ? "For shipments outside the continental US, ocean freight rates vary daily. Please enter your full name so our logistics team can calculate the exact total price and contact you with the best rate of the day."
                 : "Para envíos fuera de EE. UU. continental, las tarifas de flete marítimo varían diariamente. Por favor, escribe tu nombre completo para que nuestro equipo de logística calcule el precio total exacto y te contacte con la mejor tarifa del día.";
@@ -902,33 +798,83 @@ If any information is missing, use null or "---".`;
             actions.push({ type: "text", text: msg });
             return actions;
         }
-
-        if (!allQuotesValid || finalMessages.length === 0) {
-            actions.push({ type: "text", text: dictCurrent.no_stock });
-            return actions;
+        let finalPrice = qData.total_price || 0;
+        if (isPickUp) {
+            const sp = ["Reefer", "Open Side", "Double Door"].includes(session.type);
+            finalPrice = (qData.container_price || 0) + (sp ? 0 : (qData.cert_fee || 0));
         }
+        if (!finalPrice) { actions.push({ type: "text", text: dictCurrent.no_stock }); return actions; }
 
         const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
         let msg = "";
-        
-        if (itemsToQuote.length === 1) {
-            const singleItem = itemsToQuote[0];
-            const isExport = (singleItem.action || session.action) === "Exportación" || (singleItem.action || session.action) === "Exportacion";
-            
-            if (isExport) {
-                msg = dictCurrent.export_buy_price.replace("{price}", fmt(finalTotalPrice)) + "\n\n" + dictCurrent.export_final_msg;
-            } else if ((singleItem.action || session.action) === "Transporte") {
-                msg = finalMessages[0]; 
-            } else if ((singleItem.action || session.action) === "Alquilar") {
-                msg = finalMessages[0];
+        const displaySize = session.size ? session.size.replace(" STD", "") : "";
+
+        if (session.action === "Transporte") {
+            const qtyStr = quantity > 1 ? `${quantity} ` : "";
+            const qtyPluralS = quantity > 1 ? "s" : "";
+            const qtyPluralES = quantity > 1 ? "es" : "";
+
+            if (qData.immediate_price && qData.immediate_price !== finalPrice) {
+                msg = dictCurrent.price_transport
+                    .replace("{qty}", qtyStr)
+                    .replace(/{qty_plural_s}/g, qtyPluralS)
+                    .replace(/{qty_plural_es}/g, qtyPluralES)
+                    .replace("{size}", displaySize).replace("{load}", session.load_status)
+                    .replace("{origin}", session.zip_origin).replace("{dest}", session.zip_dest)
+                    .replace("{price}", fmt(finalPrice)).replace("{immed}", fmt(qData.immediate_price))
+                    .replace("{yard}", qData.closest_yard || "Miami Hub");
             } else {
-                const qtyStr = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? `${(Number(singleItem.quantity) || Number(session.quantity) || 1)} ` : "";
-                const qtyPluralS = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? "s" : "";
-                const qtyPluralES = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? "es" : "";
-                const condLabel = lang === "EN" ? ((singleItem.condition || session.condition || "Usado") === "Nuevo" ? "New" : "Used") : (singleItem.condition || session.condition || "Usado");
-                let typeLabel = (singleItem.type || session.type || "Dry") === "Dry" ? "" : (singleItem.type || session.type || "");
-                const displaySize = (singleItem.size || session.size) ? (singleItem.size || session.size).replace(" STD", "") : "";
-                
+                msg = dictCurrent.price_transport_single
+                    .replace("{qty}", qtyStr)
+                    .replace(/{qty_plural_s}/g, qtyPluralS)
+                    .replace(/{qty_plural_es}/g, qtyPluralES)
+                    .replace("{size}", displaySize).replace("{load}", session.load_status)
+                    .replace("{origin}", session.zip_origin).replace("{dest}", session.zip_dest)
+                    .replace("{price}", fmt(finalPrice));
+            }
+        } else if (isExport) {
+            const sp = ["Reefer", "Open Side", "Double Door"].includes(session.type);
+            const bp = (qData.container_price || 0) + (sp ? 0 : (qData.cert_fee || 0));
+            msg = dictCurrent.export_buy_price.replace("{price}", fmt(bp)) + "\n\n" + dictCurrent.export_final_msg;
+            
+            const historyAfterQuote = [...(session.history || [])];
+            historyAfterQuote.push({ role: "assistant", content: msg });
+            await updateSession(senderId, { step: 7, final_amount: bp, history: historyAfterQuote.slice(-10) });
+            actions.push({ type: "text", text: msg });
+            return actions;
+        } else if (session.action === "Alquilar") {
+            msg = dictCurrent.price_rent
+                .replace("{zip}", session.zip)
+                .replace("{monthly}", fmt(qData.container_price || 0))
+                .replace("{logistics}", fmt(qData.delivery_cost || 0))
+                .replace("{price}", fmt(finalPrice));
+        } else {
+            let condLabel = lang === "EN" ? (session.condition === "Nuevo" ? "New" : "Used") : session.condition;
+            let typeLabel = session.type === "Dry" ? "" : session.type;
+            if (session.type === "Reefer" && session.reefer_status === "No Funcionando") typeLabel = lang === "EN" ? "Reefer (Not Working)" : "Refrigerado (No Funciona)";
+            else if (session.type === "Reefer") typeLabel = lang === "EN" ? "Reefer" : "Refrigerado";
+            const qtyStr = quantity > 1 ? `${quantity} ` : "";
+            const qtyPluralS = quantity > 1 ? "s" : "";
+            const qtyPluralES = quantity > 1 ? "es" : "";
+            if (lang === "ES" && quantity > 1 && (condLabel === "Nuevo" || condLabel === "Usado")) condLabel += "s";
+
+            // Check if we need to do the quantity >= 2 negotiation flow
+            if (qData.non_discounted_price && quantity >= 2) {
+                if (lang === "EN") {
+                    msg = `Normally, the total cost for ${qtyStr}${condLabel} ${typeLabel} ${displaySize} containers delivered to ${session.zip} would be **${fmt(qData.non_discounted_price)}**. However, if you have enough space on your property to receive them on the same day and at the same time in a single shared trip, I can give you a special discount and leave them at a total of **${fmt(finalPrice)}**.\n\nDo you have the space and can we send them together?`;
+                } else {
+                    msg = `Normalmente, el costo total por ${qtyStr}contenedores ${typeLabel} ${condLabel} de ${displaySize} entregados en ${session.zip} sería de **${fmt(qData.non_discounted_price)}**. Sin embargo, si tienes espacio suficiente en tu propiedad para recibirlos el mismo día y a la misma hora en un solo viaje compartido, te puedo hacer un descuento especial y dejártelos en un total de **${fmt(finalPrice)}**.\n\n¿Tienes el espacio y podemos enviarlos juntos?`;
+                }
+            } else if (isPickUp) {
+                msg = dictCurrent.price_pickup
+                    .replace("{qty}", qtyStr)
+                    .replace(/{qty_plural_s}/g, qtyPluralS)
+                    .replace(/{qty_plural_es}/g, qtyPluralES)
+                    .replace("{cond}", condLabel)
+                    .replace("{type}", typeLabel)
+                    .replace("{size}", displaySize)
+                    .replace("{price}", fmt(finalPrice));
+            } else {
                 msg = dictCurrent.price_sale
                     .replace("{qty}", qtyStr)
                     .replace(/{qty_plural_s}/g, qtyPluralS)
@@ -937,39 +883,43 @@ If any information is missing, use null or "---".`;
                     .replace("{type}", typeLabel)
                     .replace("{size}", displaySize)
                     .replace("{zip}", session.zip)
-                    .replace("{price}", fmt(finalTotalPrice));
+                    .replace("{price}", fmt(finalPrice));
             }
-        } else {
-            msg = (lang === "EN" ? `Here are the prices delivered to ${session.zip}:\n\n` : `Aquí tienes los precios con entrega al código postal ${session.zip}:\n\n`);
-            msg += finalMessages.join("\n");
+
+            // Upsell/Downsell: Compare with Standard Used if they asked for a specialty container
+            if (session.type !== "Dry") {
+                const stdSizeKey = session.size === "20'" ? "20std" : (session.size === "40'" ? "40hc" : "45hc");
+                try {
+                    const { data: stdData } = await supabase.functions.invoke("calculate-quote", {
+                        body: {
+                            operation_mode: "sale",
+                            condition: "used",
+                            zip_destino: session.zip,
+                            container_size: stdSizeKey,
+                            quantity: quantity
+                        }
+                    });
+                    
+                    if (stdData && stdData.total_price) {
+                        const stdPrice = stdData.non_discounted_price && quantity >= 2 ? stdData.non_discounted_price : stdData.total_price;
+                        if (lang === "EN") {
+                            msg = `The regular used ${displaySize} is **${fmt(stdPrice)}**.\n\n` + msg;
+                        } else {
+                            msg = `El de ${displaySize} regular usado cuesta **${fmt(stdPrice)}**.\n\n` + msg;
+                        }
+                    }
+                } catch(err) {
+                    console.error("Error fetching comparison quote:", err);
+                }
+            }
             
-            const isExportGlobal = session.action === "Exportación" || session.action === "Exportacion";
-            if (isExportGlobal) {
-                msg += "\n\n" + dictCurrent.export_final_msg;
-            }
-        }
-        
-        msg = msg.replace(/ +/g, " ");
-        
-        const allUsedDry = itemsToQuote.every((item: any) => 
-            (!(item.condition || session.condition) || (item.condition || session.condition) === "Usado") && 
-            (!(item.type || session.type) || (item.type || session.type) === "Dry")
-        );
-
-        if ((session.action === "Comprar" || (!session.action && itemsToQuote[0]?.action === "Comprar")) && allUsedDry) {
-            const disclaimer = lang === "EN" 
-                ? "\n\n*(Note: Quotation based on Used Standard Dry containers for local storage. If you need Refrigerated, New, or Export containers, please let me know and I will adjust the price!)*"
-                : "\n\n*(Nota: Cotización basada en contenedores Secos Usados para almacenamiento local. Si buscas contenedores Refrigerados, Nuevos o para Exportación, por favor indícamelo y ajustaré el precio)*";
-            msg = msg + disclaimer;
-        }
-
-        if (extracted.ai_reply) {
-            msg = extracted.ai_reply + "\n\n" + msg;
+            // Clean up double spaces caused by empty typeLabel, but preserve newlines
+            msg = msg.replace(/ +/g, " ");
         }
 
         const historyAfterQuote = [...(session.history || [])];
         historyAfterQuote.push({ role: "assistant", content: msg });
-        await updateSession(senderId, { step: 6, final_amount: finalTotalPrice, history: historyAfterQuote.slice(-10) });
+        await updateSession(senderId, { step: 6, final_amount: finalPrice, history: historyAfterQuote.slice(-10) });
 
         actions.push({ type: "quick_replies", text: msg, options: dictCurrent.proceed_btns });
         return actions;
@@ -978,46 +928,6 @@ If any information is missing, use null or "---".`;
         actions.push({ type: "text", text: dictCurrent.calc_error });
         return actions;
     }
-}
-
-async function processMessage(senderId: string, messageText: string, isHuman: boolean = false): Promise<Action[]> {
-    const session = await getSession(senderId);
-
-    if (session.is_processing) {
-        if (messageText.toLowerCase().trim() === "reiniciar") {
-            await updateSession(senderId, { is_processing: false, queued_messages: [] });
-        } else {
-            const queue = session.queued_messages || [];
-            queue.push(messageText);
-            await updateSession(senderId, { queued_messages: queue });
-            return [];
-        }
-    }
-
-    await updateSession(senderId, { is_processing: true, queued_messages: [] });
-    
-    let actions: Action[] = [];
-    try {
-        actions = await processMessageInner(senderId, messageText, isHuman);
-    } catch (e) {
-        console.error("Inner Error:", e);
-    } finally {
-        // Check queue
-        const currentSession = await getSession(senderId);
-        const queue = currentSession.queued_messages || [];
-        if (queue.length > 0) {
-            const combinedQueueMessage = queue.join(" | ");
-            await updateSession(senderId, { queued_messages: [] });
-            try {
-                const extraActions = await processMessageInner(senderId, combinedQueueMessage, false);
-                actions.push(...extraActions);
-            } catch(e) {
-                console.error("Error processing queue:", e);
-            }
-        }
-        await updateSession(senderId, { is_processing: false });
-    }
-    return actions;
 }
 
 // ─── SERVIDOR ─────────────────────────────────────────────────────────────────
