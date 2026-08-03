@@ -96,7 +96,7 @@ Your personality: Professional, friendly, and direct. You speak in the same lang
 
 COMPANY KNOWLEDGE (use this to answer questions naturally — never make things up):
 - NEW CONTAINERS: We DO have brand new (One-Trip) containers available in all sizes (20ft, 40ft, 45ft) and types (including standard Dry). NEVER say we don't have new containers.
-- PAYMENT: Cash on Delivery (COD). We accept cash, Zelle, check, or credit card at delivery. NO financing.
+- PAYMENT: For payment on delivery (COD), we ONLY accept Cash or Zelle. If the customer wishes to pay with a Credit Card or Check, it MUST be paid in full BEFORE delivery. NO financing.
 - DELIVERY TIME: 1-3 business days after order confirmation.
 - PHOTOS: If the user asks for photos, pictures, or images, do NOT write a response. Instead, set intent to "photos".
 - CONDITION (Used): All used containers are Wind & Water Tight (WWT). Structurally sound, no leaks, doors seal properly. DO NOT proactively mention the guarantee here.
@@ -154,7 +154,7 @@ OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO
 INTENT RULES:
 - "quote": Customer is giving NEW data (size, zip, condition) to advance a quote, explicitly requesting a new price calculation, or asking for a delivery fee/cost/price. CRITICAL: If the customer provides a Zip Code and a size asking for a price/fee, the intent MUST ALWAYS be "quote" so the system can calculate it. NEVER use "general_chat" to give a price.
 - "general_chat": Customer is asking a general question (quality, payment, guarantees) WITHOUT requesting a new price. If they ask for a price (e.g. "how much is the 20"), use "quote". NEVER give or invent a price in general_chat.
-- "cancel": Customer says bye, thanks, stop, not interested, too expensive, ok (alone with no other info). CRITICAL: For ai_reply, if they thank you (e.g. gracias, thanks), reply with "¡De nada!" (or "You're welcome!"). If they just cancel, say bye, or say ok, reply with "¡Gracias!" (or "Thank you!").
+- "cancel": Customer says bye, thanks, no thanks, stop, not interested, too expensive, ok (alone with no other info). CRITICAL: For ai_reply, ALWAYS MATCH THE CUSTOMER'S EXACT LANGUAGE. If they spoke English, you MUST reply in English. If Spanish, in Spanish. If they thank you or say "no thanks" (e.g., gracias, thanks, no gracias), reply with "¡De nada!" or "You're welcome!". If they just cancel, say bye, or say ok, reply with "¡Gracias!" or "Thank you!".
 - "proceed": Customer explicitly CONFIRMS they want to place the order AFTER receiving a final price quote (e.g., yes, si, proceed, let's do it, I'll take it). Do NOT use this if they are just starting a request. CRITICAL: If the customer agrees but AT THE SAME TIME changes the quantity (e.g. "I'll just take one for now"), you MUST use "quote" instead of "proceed" to recalculate the new price.
 - "provide_info": Customer is providing their name or phone number as requested by the bot.
 - "photos": Customer is explicitly asking to see photos, pictures, images, or a gallery of the containers.
@@ -166,9 +166,14 @@ CONVERSATION RULES:
 - If they ask if a 40' used container is HC or STD, or say something like "este de 40 es HC", explain that for 40' USED containers we have BOTH STD and HC available for the EXACT SAME PRECIO, and extract the size as "40' HC".
 - CRITICAL: 45' containers are ONLY Dry and ONLY HC. Do not ask the customer if they want Reefer, Open Side, etc. for a 45' container.
 - CRITICAL: Open Side and Double Door containers are ONLY available in BRAND NEW condition, and ONLY in sizes 20ft and 40ft. Do not offer 45ft for them.
-- CRITICAL: If the customer asks technical questions about refrigerated (reefer) containers (e.g. year, voltage, data sheet), you MUST reply exactly with this message in ai_reply depending on the language:
-  English: "Great question! Since technical details for refrigerated containers (year, voltage, data sheet, etc.) vary depending on the exact unit we have in the yard, I suggest speaking with our sales team to get precise information. You can call us right now at +1 (786) 768-4409 or +1 (786) 736-6288 and a specialist will help you immediately."
-  Spanish: "¡Excelente pregunta! Como los detalles técnicos de los contenedores refrigerados (año, voltaje, ficha técnica, etc.) varían dependiendo de la unidad exacta que tenemos en el patio, te sugiero hablar con nuestro equipo de ventas para darte la información precisa. Puedes llamarnos ahora mismo al +1 (786) 768-4409 o al +1 (786) 736-6288 y un especialista te ayudará de inmediato."
+- CRITICAL: If the customer asks technical questions about refrigerated (reefer) containers like the year or data sheet, you MUST reply exactly with this message in ai_reply depending on the language:
+  English: "Great question! Since technical details (year, data sheet, etc.) vary depending on the exact unit we have in the yard, I suggest speaking with our sales team to get precise information. You can call us right now at +1 (786) 768-4409 or +1 (786) 736-6288 and a specialist will help you immediately."
+  Spanish: "¡Excelente pregunta! Como los detalles técnicos (año, ficha técnica, etc.) varían dependiendo de la unidad exacta que tenemos en el patio, te sugiero hablar con nuestro equipo de ventas para darte la información precisa. Puedes llamarnos ahora mismo al +1 (786) 768-4409 o al +1 (786) 736-6288 y un especialista te ayudará de inmediato."
+- VOLTAGE/CURRENT FOR REEFERS: If the customer asks about the voltage or current for refrigerated containers (e.g., "qué corriente usa", "what voltage"), ALWAYS answer that they use 440V 3-phase (440V trifásica).
+- TRANSFORMERS: If the customer mentions they do not have 440V, or asks about transformers, explain that we sell transformers that convert 220V to 440V. If they ask for prices of the transformers, quote them: Used $2500, New $3000. Set intent to "general_chat" for these answers unless they are also asking for container prices.
+- UNLOADING TO THE GROUND / CRANE DELIVERY: If the customer asks if we can put the container on the ground/floor, or if they ask "can you unload this yourself?", ALWAYS answer YES. You MUST reply exactly with this message in ai_reply depending on the language (use \n for line breaks):
+  English: "Yes, we can leave the container directly on the ground. We deliver and lower the container using our specialized crane equipment on our trailers. I invite you to see how our crane works here:\n\nWith our side crane: https://www.youtube.com/shorts/wdqOKA2CFwE\nWith our trailers: https://www.youtube.com/shorts/1Q8G_lf3QXs"
+  Spanish: "¡Sí! Entregamos y bajamos el contenedor directamente al piso utilizando nuestro equipo de grúa especializado. Te invito a ver cómo funciona en estos videos:\n\nCon nuestra grúa lateral: https://www.youtube.com/shorts/wdqOKA2CFwE\nCon nuestros trailers: https://www.youtube.com/shorts/1Q8G_lf3QXs"
 
 EXTRACTION RULES:
 - "20", "20'", "20ft", "twenty", "20 pies" (without HC/High Cube) → size "20' STD".
@@ -637,7 +642,12 @@ If any information is missing, use null or "---".`;
             await updateSession(senderId, { step: 0, action: null, size: null, zip: null, condition: null, type: null, reefer_status: null, quantity: null, history: null, export_action: null, port_dest: null, items: null });
         }
         
-        const msg = extracted.ai_reply || (lang === "EN" ? "Thank you!" : "¡Gracias!");
+        let defaultMsg = lang === "EN" ? "Thank you!" : "¡Gracias!";
+        if (input.toLowerCase().includes("gracias") || input.toLowerCase().includes("thanks")) {
+            defaultMsg = lang === "EN" ? "You're welcome!" : "¡De nada!";
+            extracted.ai_reply = null; // Force override the AI if it mistakenly generated "Gracias"
+        }
+        const msg = extracted.ai_reply || defaultMsg;
 
         actions.push({ type: "text", text: msg });
         return actions;

@@ -2836,7 +2836,7 @@ Phone: ${selections.contact.phone}
             const processed = text
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\n/g, '<br>')
-                .replace(/(?<!href=['"])(https?:\/\/[^\s<"']+)/g, '<a href="$1" target="_blank" style="color:#fff;text-decoration:underline;font-weight:bold;word-break:break-all;">$1</a>');
+                .replace(/(?<!href=['"])(https?:\/\/[^\s<"']+)/g, '<a href="$1" target="_blank" style="color:#c8102e;text-decoration:underline;font-weight:bold;word-break:break-all;">$1</a>');
             div.innerHTML = processed;
             aiChatMessages.insertBefore(div, typingIndicator);
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
