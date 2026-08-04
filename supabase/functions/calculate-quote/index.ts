@@ -186,7 +186,7 @@ serve(async (req) => {
             return nonContinentalPrefixes.includes(prefix);
         };
 
-        if (isExportZip(zip_destino) || isExportZip(zip_origen) || options.export_certificate) {
+        if (isExportZip(zip_destino) || isExportZip(zip_origen)) {
             return new Response(JSON.stringify({
                 requires_manual_quote: true,
                 is_export: true

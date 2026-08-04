@@ -24,8 +24,8 @@ const chatDict: Record<string, any> = {
         ask_export_buy_rent_btns: ["Comprar", "Alquilar"],
         ask_export_zip: "¿En qué Zip Code (código postal) de EE. UU. necesitas que te dejemos el contenedor para que lo cargues?",
         ask_export_port: "¿A qué puerto y país de destino enviaremos el contenedor? (Ej. Mariel, Cuba)",
-        export_buy_price: "El precio de venta del contenedor es **{price}** (incluye certificado de exportación). Para darte el costo total exacto que incluye el envío marítimo y terrestre, necesitamos contactarte.",
-        export_rent_msg: "Como prefieres alquilar, nuestro equipo de logística marítima cotizará el precio exacto del alquiler más el flete para tu destino.",
+        export_buy_price: "El precio de venta del contenedor es **{price}** (incluye certificado de exportación válido por 1 año recogido en nuestro patio). Nosotros no hacemos envíos marítimos, pero ofrecemos el transporte terrestre nacional: te lo llevamos vacío para cargar y luego lo llevamos cargado al puerto en EE.UU. Si haces ambos traslados con nosotros, te descontamos ${discount}. ¿Te cotizamos este transporte (indícanos el Zip Code del puerto) o prefieres proceder solo con la compra?",
+        export_rent_msg: "",
         export_final_msg: "¡Excelente! Ya tenemos toda la información. Por favor, escribe tu nombre completo para que un especialista te llame con la cotización final exacta.",
         ask_condition: "¿Lo prefieres Nuevo o Usado?",
         ask_condition_btns: ["Nuevo", "Usado"],
@@ -63,8 +63,8 @@ const chatDict: Record<string, any> = {
         ask_export_buy_rent_btns: ["Buy", "Rent"],
         ask_export_zip: "What is the US Zip Code where you need us to drop off the container for loading?",
         ask_export_port: "What is the destination port and country for the container? (e.g., Kingston, Jamaica)",
-        export_buy_price: "The sale price of the container is **{price}** (includes export certificate). To give you the exact total cost including ocean and inland freight, we need to contact you.",
-        export_rent_msg: "Since you prefer to rent, our maritime logistics team will quote the exact rental price plus freight for your destination.",
+        export_buy_price: "The sale price of the container is **{price}** (includes export certificate valid for 1 year, picked up at our yard). We do not offer maritime shipping, but we provide inland transport: we deliver it empty for loading and then take it loaded to the US port. If you do both transports with us, we give you a ${discount} discount. Shall we quote this transport (provide the Port Zip Code) or do you prefer to proceed with just the purchase?",
+        export_rent_msg: "",
         export_final_msg: "Excellent! We have all the information. Please enter your full name so a specialist can call you with the exact final quote.",
         ask_condition: "Do you prefer New or Used?",
         ask_condition_btns: ["New", "Used"],
@@ -110,7 +110,7 @@ COMPANY KNOWLEDGE (use this to answer questions naturally — never make things 
 - REEFERS: Available Working (Functional) or Not Working (No AC), and also brand New.
 - GUARANTEES: NEVER mention or offer a guarantee/warranty unless the customer explicitly asks about it. If they ask, explain that we ONLY offer a 6-month Wind and Water Tight structural guarantee on all used containers, and NO OTHER guarantees are provided.
 - CONTACT INFO: Phone numbers: 786-768-4409 | 786-736-6288. Email: rptulipantransport@gmail.com. IMPORTANT: You ARE authorized to give these phone numbers and email to the customer when they ask to speak to a human, ask for a phone number, or want to call us. Do not refuse to give the phone number.
-- INTERNATIONAL/EXPORT SHIPPING: We can provide containers for international export! When a customer wants to ship a container to another country (e.g. Puerto Rico, Cuba, Bahamas, etc.), you MUST set the action to "Exportacion" and the intent to "quote". Do NOT tell the customer to call us directly for export quotes yet. Instead, let the system ask the follow-up questions to collect their Zip Code and Destination Port first. Do NOT generate a long explanation about why we can't give a final price; just set action="Exportacion" and intent="quote" so the system can proceed.
+- INTERNATIONAL/EXPORT SHIPPING: We can provide containers for international export! When a customer wants to ship a container to another country (e.g. Puerto Rico, Cuba, Bahamas, etc.), you MUST set the action to "Exportacion" and the intent to "quote". We ONLY sell the certified container and offer inland transport to the US port, we DO NOT offer maritime shipping. CRITICAL: When they first ask for export, do NOT ask for the port zip code. The system will automatically ask for the US zip code where they want to load the container and will quote the container first. ONLY IF the customer has ALREADY received the container quote AND explicitly asks to add or quote the inland transport to the port, you should ask for the US Port Zip Code and store it in the port_dest variable.
 
 SLANG/JARGON (interpret these correctly):
 - "need closer", "can you do better", "bottom line", "best price", "lowest", "closer deal", "military discount", "senior discount", "any discounts" → customer wants a price reduction → explain our pricing policy warmly.
@@ -194,7 +194,7 @@ EXTRACTION RULES:
 - "move"/"transport"/"mover"/"transporte"/"haul"/"relocate" → action "Transporte".
 - "working"/"funcionando"/"with ac"/"with motor" → reefer_status "Funcionando". "not working"/"no funciona"/"no ac"/"sin motor"/"broken" → reefer_status "No Funcionando".
 - "empty"/"vacio"/"vacio" → load_status "Vacio". "loaded"/"cargado"/"lleno"/"full" → load_status "Cargado".
-- Extract 5-digit zip codes exactly. CRITICAL: NEVER extract a 3 or 4-digit number (e.g., 1400) as a zip code. If a customer sends a number like "1400" next to a size, DO NOT assume what it means. Treat this as general_chat and ASK the customer what they mean by that number (e.g. "What do you mean by 1400?"). Once they explain it's a price, then explain our pricing policy. If two zips: first is zip_origin, second is zip_dest. If one zip is provided without explicit origin/destination context, assign it to 'zip', DO NOT guess zip_origin or zip_dest.
+- Extract 5-digit zip codes exactly. CRITICAL: NEVER extract a 3 or 4-digit number (e.g., 1400) as a zip code. If a customer sends a number like "1400" next to a size, DO NOT assume what it means. Treat this as general_chat and ASK the customer what they mean by that number (e.g. "What do you mean by 1400?"). Once they explain it's a price, then explain our pricing policy. If two zips: first is zip_origin, second is zip_dest. If the customer provides a zip code for the port or says "puerto [zip]", assign it to 'port_dest' inside the item. If one zip is provided without explicit origin/destination/port context, assign it to 'zip', DO NOT guess zip_origin or zip_dest.
 - is_complex_order: set to true ONLY IF the customer is requesting multiple DIFFERENT distinct services in the same message (e.g. "I want to buy a 20ft AND move two 40ft containers"). CRITICAL: Asking for prices/quotes on multiple different container sizes or conditions (e.g. "precios de 20 y 40") is NOT a complex order. Set this to false in those cases.
 - customer_name: If the user provides a name or business name (e.g. "Crossties of Ocala"), extract it. If they say "already did" or "see above", review the conversation history to find the previously mentioned name and extract it here!
 - customer_phone: extract any 10-digit phone number if provided.
@@ -411,8 +411,15 @@ If any information is missing, use null or "---".`;
         const hasSize = data.items.some((i: any) => i.size);
         if (!hasSize && session.items && session.items.length > 0) {
             const delta = data.items[0];
+            const isExportSession = session.action === "Exportación" || session.action === "Exportacion";
             session.items.forEach((existingItem: any) => {
-                if (delta.action) existingItem.action = delta.action;
+                if (delta.action) {
+                    if (isExportSession && delta.action === "Transporte") {
+                        // Ignore overriding action to Transporte if we are in export flow
+                    } else {
+                        existingItem.action = delta.action;
+                    }
+                }
                 if (delta.export_action) existingItem.export_action = delta.export_action;
                 if (delta.condition) existingItem.condition = delta.condition;
                 if (delta.type) existingItem.type = delta.type;
@@ -422,10 +429,20 @@ If any information is missing, use null or "---".`;
             data.items = session.items;
         } else {
             session.items = data.items;
+            const isExportSession = session.action === "Exportación" || session.action === "Exportacion";
+            if (isExportSession) {
+                session.items.forEach((item: any) => {
+                    if (item.action === "Transporte") item.action = "Exportacion";
+                });
+            }
         }
         
         const first = data.items[0];
-        if (first.action) data.action = first.action;
+        if (first.action) {
+            const isExportSession = session.action === "Exportación" || session.action === "Exportacion";
+            if (isExportSession && first.action === "Transporte") first.action = "Exportacion";
+            data.action = first.action;
+        }
         if (first.export_action) data.export_action = first.export_action;
         if (first.condition) data.condition = first.condition;
         if (first.type) data.type = first.type;
@@ -434,6 +451,11 @@ If any information is missing, use null or "---".`;
         if (first.reefer_status) data.reefer_status = first.reefer_status;
         if (first.load_status) data.load_status = first.load_status;
         if (first.port_dest) data.port_dest = first.port_dest;
+        
+        // Sometimes AI hallucinates zip codes inside the item instead of root
+        if (first.zip && !data.zip) data.zip = first.zip;
+        if (first.zip_dest && !data.zip_dest) data.zip_dest = first.zip_dest;
+        if (first.zip_origin && !data.zip_origin) data.zip_origin = first.zip_origin;
     }
 
     if (step === 7 || step === 8) {
@@ -490,6 +512,24 @@ If any information is missing, use null or "---".`;
 
     // ── Prevenir recálculo redundante en el paso 6 ──
     if (step === 6 && extracted.intent === "quote") {
+        // Sanitize possible AI hallucinations on follow-up questions
+        const lowerInput = input.toLowerCase();
+        if (data.condition && data.condition !== session.condition) {
+            const mentionedNew = lowerInput.includes("nuevo") || lowerInput.includes("new");
+            const mentionedUsed = lowerInput.includes("usad") || lowerInput.includes("used");
+            if (!mentionedNew && !mentionedUsed) {
+                data.condition = session.condition; // Revert hallucinated condition
+                if (data.items && data.items.length > 0) data.items[0].condition = session.condition;
+            }
+        }
+        if (data.type && data.type !== session.type) {
+            const mentionedType = ["dry", "reefer", "open side", "double door", "refrigerado", "estandar"].some(kw => lowerInput.includes(kw));
+            if (!mentionedType) {
+                data.type = session.type; // Revert hallucinated type
+                if (data.items && data.items.length > 0) data.items[0].type = session.type;
+            }
+        }
+
         const qData = data.quantity || 1;
         const qSess = session.quantity || 1;
         const normSize = (s: any) => s ? s.toString().replace(" STD", "") : "";
@@ -500,10 +540,17 @@ If any information is missing, use null or "---".`;
             (data.zip_dest && data.zip_dest !== session.zip_dest) ||
             (data.condition && data.condition !== session.condition) ||
             (data.type && data.type !== session.type) ||
-            (data.quantity && qData !== qSess);
+            (data.quantity && qData !== qSess) ||
+            (data.port_dest && data.port_dest !== session.port_dest);
         
         if (!changedPricingVar) {
             extracted.intent = "general_chat";
+            const isExportSession = session.action === "Exportación" || session.action === "Exportacion";
+            if (isExportSession && !session.port_dest) {
+                extracted.ai_reply = lang === "EN" 
+                    ? "Perfect! To quote the inland transportation, please tell me the Zip Code of the port." 
+                    : "¡Perfecto! Para poder cotizarte el transporte terrestre, por favor indícame cuál es el Zip Code (código postal) del puerto.";
+            }
         }
     }
 
@@ -514,6 +561,20 @@ If any information is missing, use null or "---".`;
     if (isExportFlow) {
         if (lo.includes("comprar") || lo.includes("buy")) data.export_action = "Comprar";
         else if (lo.includes("alquilar") || lo.includes("rent") || lo.includes("alquilo")) data.export_action = "Alquilar";
+
+        // Heuristic: If we are in step 6 of Export Flow, and they provide a new zip code while port_dest is missing, they are answering the port_dest prompt.
+        if (step === 6 && !session.port_dest && !data.port_dest) {
+            if (data.zip && data.zip !== session.zip) {
+                data.port_dest = data.zip;
+                data.zip = session.zip; // Revert the main zip
+            } else if (data.zip_dest) {
+                data.port_dest = data.zip_dest;
+                data.zip_dest = null;
+            } else if (data.zip_origin) {
+                data.port_dest = data.zip_origin;
+                data.zip_origin = null;
+            }
+        }
     }
 
     // ── Actualizar sesión con datos extraídos ──
@@ -523,8 +584,10 @@ If any information is missing, use null or "---".`;
     
     if (data.action) {
         const actionStr = data.action.toString().toLowerCase();
-        if (isExportFlow && (actionStr.includes("comprar") || actionStr.includes("buy") || actionStr.includes("alquilar") || actionStr.includes("rent"))) {
-            updates.export_action = (actionStr.includes("comprar") || actionStr.includes("buy")) ? "Comprar" : "Alquilar";
+        if (isExportFlow) {
+            if (actionStr.includes("comprar") || actionStr.includes("buy") || actionStr.includes("alquilar") || actionStr.includes("rent")) {
+                updates.export_action = (actionStr.includes("comprar") || actionStr.includes("buy")) ? "Comprar" : "Alquilar";
+            }
         } else {
             if (data.action === "Comprar" && !session.action) {
                 updates.action = "Comprar";
@@ -547,10 +610,21 @@ If any information is missing, use null or "---".`;
     
     if (data.port_dest) updates.port_dest = data.port_dest;
     
-    // Strict safeguard against invalid zip codes extracted by AI
-    if (data.zip_origin && !/^\d{5}$/.test(data.zip_origin.toString())) data.zip_origin = null;
-    if (data.zip_dest && !/^\d{5}$/.test(data.zip_dest.toString())) data.zip_dest = null;
-    if (data.zip && !/^\d{5}$/.test(data.zip.toString())) data.zip = null;
+    // Strict safeguard against invalid zip codes extracted by AI (strip non-digits first)
+    const cleanZip = (z: any) => z ? z.toString().replace(/\D/g, '').substring(0, 5) : null;
+    
+    if (data.zip_origin) {
+        data.zip_origin = cleanZip(data.zip_origin);
+        if (data.zip_origin.length !== 5) data.zip_origin = null;
+    }
+    if (data.zip_dest) {
+        data.zip_dest = cleanZip(data.zip_dest);
+        if (data.zip_dest.length !== 5) data.zip_dest = null;
+    }
+    if (data.zip) {
+        data.zip = cleanZip(data.zip);
+        if (data.zip.length !== 5) data.zip = null;
+    }
 
     const isNonContinental = (z: string) => {
         if (!z) return false;
@@ -570,12 +644,21 @@ If any information is missing, use null or "---".`;
     }
     if (data.zip_origin) updates.zip_origin = data.zip_origin;
     if (data.zip_dest) updates.zip_dest = data.zip_dest;
-    if (data.zip) {
-        if (data.action === "Transporte" || session.action === "Transporte") {
-            updates.zip = data.zip;
-        } else {
-            updates.zip = data.zip;
+    
+    const mainAction = data.action || session.action;
+    if (mainAction !== "Transporte") {
+        if (!data.zip && data.zip_dest) {
+            data.zip = data.zip_dest;
+            data.zip_dest = null;
         }
+        if (!data.zip && data.zip_origin) {
+            data.zip = data.zip_origin;
+            data.zip_origin = null;
+        }
+    }
+
+    if (data.zip) {
+        updates.zip = data.zip;
     }
 
     // Inferir acción si tenemos datos pero no acción
@@ -618,7 +701,7 @@ If any information is missing, use null or "---".`;
         }
         
         let pendingOptions: string[] | null = null;
-        if (step === 6) pendingOptions = dictCurrent.proceed_btns;
+        if (step === 6) pendingOptions = null;
         else if (!session.action) pendingOptions = dictCurrent.step1_btns;
         else if (!session.size) pendingOptions = (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns;
         else if (session.action === "Transporte" && !session.load_status) pendingOptions = dictCurrent.ask_load_btns;
@@ -682,7 +765,7 @@ If any information is missing, use null or "---".`;
         } else {
             const aiMsg = extracted.ai_reply || (lang === "EN" ? "I'm sorry, could you clarify?" : "Lo siento, ¿podrías aclarar?");
             let pendingOptions: string[] | null = null;
-            if (step === 6 && !session.lead_phone) pendingOptions = dictCurrent.proceed_btns;
+            if (step === 6 && !session.lead_phone) pendingOptions = null;
             else if (!session.action) pendingOptions = dictCurrent.step1_btns;
 
             if (pendingOptions) {
@@ -697,7 +780,7 @@ If any information is missing, use null or "---".`;
     // Helper para incluir la respuesta conversacional de la IA (si existe) antes del mensaje estructurado
     const appendAiReply = (msg: string) => extracted.ai_reply ? `${extracted.ai_reply}\n\n${msg}` : msg;
 
-    if (data.is_complex_order || (session.action === "Transporte" && (session.quantity || 1) > 1)) {
+    if ((data.is_complex_order && !isExportFlow) || (session.action === "Transporte" && (session.quantity || 1) > 1)) {
         await updateSession(senderId, { step: -1 });
         actions.push({ type: "text", text: dictCurrent.human_handoff });
         return actions;
@@ -723,20 +806,8 @@ If any information is missing, use null or "---".`;
             return actions;
         }
     } else if (session.action === "Exportación" || session.action === "Exportacion") {
-        if (!session.export_action) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_export_buy_rent), options: dictCurrent.ask_export_buy_rent_btns }); return actions; }
         if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns }); return actions; }
         if (!session.zip) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_export_zip) }); return actions; }
-        if (!session.port_dest) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_export_port) }); return actions; }
-        
-        // If renting for export, we don't calculate price. We just proceed.
-        if (session.export_action === "Alquilar" || session.export_action === "Rent") {
-            const msg = dictCurrent.export_rent_msg + "\n\n" + dictCurrent.export_final_msg;
-            const historyAfterQuote = [...(session.history || [])];
-            historyAfterQuote.push({ role: "assistant", content: msg });
-            await updateSession(senderId, { step: 7, history: historyAfterQuote.slice(-10) });
-            actions.push({ type: "text", text: msg });
-            return actions;
-        }
     } else if (session.action === "Alquilar") {
         if (!session.size) {
             const hasSizeInItems = session.items && session.items.length > 0 && session.items.some((i: any) => i.size);
@@ -756,7 +827,7 @@ If any information is missing, use null or "---".`;
             actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_reefer_status), options: dictCurrent.ask_reefer_status_btns }); return actions;
         }
         if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns }); return actions; }
-        if (!session.condition) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step4_cond_msg), options: dictCurrent.step4_cond_btns }); return actions; }
+        if (!session.condition) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_condition), options: dictCurrent.ask_condition_btns }); return actions; }
     } else {
         if (session.action === "Comprar") {
             if (session.type === "Reefer" && session.condition === "Usado" && !session.reefer_status) {
@@ -863,6 +934,31 @@ If any information is missing, use null or "---".`;
             if (isPickUp) {
                 const sp = ["Reefer", "Open Side", "Double Door"].includes(itemType);
                 itemPrice = (qData.container_price || 0) + (sp ? 0 : (qData.cert_fee || 0));
+            } else if (isExport) {
+                const sp = ["Reefer", "Open Side", "Double Door"].includes(itemType);
+                const bp = (qData.container_price || 0) + (sp ? 0 : (qData.cert_fee || 0));
+                
+                if (session.port_dest) {
+                    const is20ftSize = itemSize && itemSize.startsWith("20");
+                    const trucksNeeded = is20ftSize ? Math.ceil(quantity / 2) : quantity;
+                    const trip1 = (qData.delivery_cost || 0);
+                    const { data: trip2Data } = await supabase.functions.invoke("calculate-quote", {
+                        body: {
+                            operation_mode: "transport_only",
+                            zip_origen: session.zip,
+                            zip_destino: session.port_dest,
+                            quantity: quantity, 
+                            container_size: sizeKey,
+                            options: { crane_service: true }
+                        }
+                    });
+                    const trip2 = trip2Data?.total_price || 0;
+                    const discount = (is20ftSize ? 100 : 150) * quantity;
+                    itemPrice = bp + trip1 + trip2 - discount;
+                    (item as any).exportDiscount = discount;
+                } else {
+                    itemPrice = bp;
+                }
             }
             if (!itemPrice) {
                 allQuotesValid = false;
@@ -887,9 +983,14 @@ If any information is missing, use null or "---".`;
                     .replace("{origin}", session.zip_origin).replace("{dest}", session.zip_dest)
                     .replace("{price}", fmt(itemPrice));
             } else if (isExport) {
-                const sp = ["Reefer", "Open Side", "Double Door"].includes(itemType);
-                const bp = (qData.container_price || 0) + (sp ? 0 : (qData.cert_fee || 0));
-                msg = `🔹 ${condLabel} ${typeLabel} ${displaySize}: **${fmt(bp)}**`;
+                if (session.port_dest) {
+                    const discount = (item as any).exportDiscount || 0;
+                    msg = lang === "EN" ? `🔹 ${condLabel} ${typeLabel} ${displaySize} + Transport to Port: **${fmt(itemPrice)}** (Includes $${discount} discount)` : `🔹 ${condLabel} ${typeLabel} ${displaySize} + Transporte al Puerto: **${fmt(itemPrice)}** (Incluye descuento de $${discount})`;
+                } else {
+                    const sp = ["Reefer", "Open Side", "Double Door"].includes(itemType);
+                    const bp = (qData.container_price || 0) + (sp ? 0 : (qData.cert_fee || 0));
+                    msg = `🔹 ${condLabel} ${typeLabel} ${displaySize}: **${fmt(bp)}**`;
+                }
             } else if (itemAction === "Alquilar") {
                 msg = `🔹 Renta ${condLabel} ${typeLabel} ${displaySize}: **${fmt(itemPrice)}** (${fmt(qData.container_price || 0)}/mes + ${fmt(qData.delivery_cost || 0)} logistica)`;
             } else {
@@ -926,11 +1027,37 @@ If any information is missing, use null or "---".`;
             const isExport = (singleItem.action || session.action) === "Exportación" || (singleItem.action || session.action) === "Exportacion";
             
             if (isExport) {
-                msg = dictCurrent.export_buy_price.replace("{price}", fmt(finalTotalPrice)) + "\n\n" + dictCurrent.export_final_msg;
+                if (session.port_dest) {
+                    msg = lang === "EN" 
+                        ? `The total cost including the certified container and the full inland transportation to the port is **${fmt(finalTotalPrice)}**. Your special discount has been applied! Would you like to proceed with this order?`
+                        : `El costo total incluyendo el contenedor certificado y el transporte terrestre completo hasta el puerto es **${fmt(finalTotalPrice)}**. ¡Tu descuento especial ha sido aplicado! ¿Te gustaría proceder con esta orden?`;
+                } else {
+                    const itemSize = singleItem.size || session.size;
+                    const is20ftSize = itemSize && itemSize.startsWith("20");
+                    const qty = Number(singleItem.quantity) || Number(session.quantity) || 1;
+                    const discount = (is20ftSize ? 100 : 150) * qty;
+                    msg = dictCurrent.export_buy_price.replace("{price}", fmt(finalTotalPrice)).replace("{discount}", discount.toString());
+                }
             } else if ((singleItem.action || session.action) === "Transporte") {
                 msg = finalMessages[0]; 
             } else if ((singleItem.action || session.action) === "Alquilar") {
                 msg = finalMessages[0];
+            } else if ((singleItem.action || session.action) === "PickUp") {
+                const qtyStr = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? `${(Number(singleItem.quantity) || Number(session.quantity) || 1)} ` : "";
+                const qtyPluralS = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? "s" : "";
+                const qtyPluralES = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? "es" : "";
+                const condLabel = lang === "EN" ? ((singleItem.condition || session.condition || "Usado") === "Nuevo" ? "New" : "Used") : (singleItem.condition || session.condition || "Usado");
+                let typeLabel = (singleItem.type || session.type || "Dry") === "Dry" ? "" : (singleItem.type || session.type || "");
+                const displaySize = (singleItem.size || session.size) ? (singleItem.size || session.size).replace(" STD", "") : "";
+                
+                msg = dictCurrent.price_pickup
+                    .replace("{qty}", qtyStr)
+                    .replace(/{qty_plural_s}/g, qtyPluralS)
+                    .replace(/{qty_plural_es}/g, qtyPluralES)
+                    .replace("{cond}", condLabel)
+                    .replace("{type}", typeLabel)
+                    .replace("{size}", displaySize)
+                    .replace("{price}", fmt(finalTotalPrice));
             } else {
                 const qtyStr = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? `${(Number(singleItem.quantity) || Number(session.quantity) || 1)} ` : "";
                 const qtyPluralS = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? "s" : "";
@@ -981,7 +1108,7 @@ If any information is missing, use null or "---".`;
         historyAfterQuote.push({ role: "assistant", content: msg });
         await updateSession(senderId, { step: 6, final_amount: finalTotalPrice, history: historyAfterQuote.slice(-10) });
 
-        actions.push({ type: "quick_replies", text: msg, options: dictCurrent.proceed_btns });
+        actions.push({ type: "text", text: msg });
         return actions;
     } catch (e) {
         console.error("Quote error:", e);
