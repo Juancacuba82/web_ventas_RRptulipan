@@ -534,7 +534,7 @@ If any information is missing, use null or "---".`;
         const qSess = session.quantity || 1;
         const normSize = (s: any) => s ? s.toString().replace(" STD", "") : "";
         const changedPricingVar = 
-            (data.size && normSize(data.size) !== normSize(session.size) && session.size !== "20' & 40'") ||
+            (data.size && normSize(data.size) !== normSize(session.size)) ||
             (data.zip && data.zip !== session.zip) ||
             (data.zip_origin && data.zip_origin !== session.zip_origin) ||
             (data.zip_dest && data.zip_dest !== session.zip_dest) ||
@@ -544,12 +544,14 @@ If any information is missing, use null or "---".`;
             (data.port_dest && data.port_dest !== session.port_dest);
         
         if (!changedPricingVar) {
-            extracted.intent = "general_chat";
             const isExportSession = session.action === "Exportación" || session.action === "Exportacion";
-            if (isExportSession && !session.port_dest) {
-                extracted.ai_reply = lang === "EN" 
-                    ? "Perfect! To quote the inland transportation, please tell me the Zip Code of the port." 
-                    : "¡Perfecto! Para poder cotizarte el transporte terrestre, por favor indícame cuál es el Zip Code (código postal) del puerto.";
+            if (extracted.ai_reply || (isExportSession && !session.port_dest)) {
+                extracted.intent = "general_chat";
+                if (isExportSession && !session.port_dest && !extracted.ai_reply) {
+                    extracted.ai_reply = lang === "EN" 
+                        ? "Perfect! To quote the inland transportation, please tell me the Zip Code of the port." 
+                        : "¡Perfecto! Para poder cotizarte el transporte terrestre, por favor indícame cuál es el Zip Code (código postal) del puerto.";
+                }
             }
         }
     }
@@ -1118,7 +1120,7 @@ If any information is missing, use null or "---".`;
 }
 
 async function processMessage(senderId: string, messageText: string, isHuman: boolean = false): Promise<Action[]> {
-    const session = await getSession(senderId);
+    let session = await getSession(senderId);
 
     if (session.is_processing) {
         if (messageText.toLowerCase().trim() === "reiniciar") {
@@ -1133,17 +1135,28 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
 
     await updateSession(senderId, { is_processing: true, queued_messages: [] });
     
+    // Esperar 10 segundos para agrupar mensajes que el usuario envíe rápidamente
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    
+    // Recuperar la sesión para ver si entraron mensajes en la cola durante la espera
+    session = await getSession(senderId);
+    let finalMessage = messageText;
+    if (session.queued_messages && session.queued_messages.length > 0) {
+        finalMessage += " " + session.queued_messages.join(" ");
+        await updateSession(senderId, { queued_messages: [] });
+    }
+    
     let actions: Action[] = [];
     try {
-        actions = await processMessageInner(senderId, messageText, isHuman);
+        actions = await processMessageInner(senderId, finalMessage, isHuman);
     } catch (e) {
         console.error("Inner Error:", e);
     } finally {
-        // Check queue
+        // Check queue again just in case more messages arrived while the AI was generating the response
         const currentSession = await getSession(senderId);
         const queue = currentSession.queued_messages || [];
         if (queue.length > 0) {
-            const combinedQueueMessage = queue.join(" | ");
+            const combinedQueueMessage = queue.join(" ");
             await updateSession(senderId, { queued_messages: [] });
             try {
                 const extraActions = await processMessageInner(senderId, combinedQueueMessage, false);
