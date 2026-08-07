@@ -871,9 +871,15 @@ If any information is missing, use null or "---".`;
                 const autoNew = itemType === "Open Side" || itemType === "Double Door";
                 item.condition = autoNew ? "Nuevo" : (itemCondition || "Usado");
             }
+            if (!item.type) item.type = itemType;
+            if (i === 0) {
+                session.condition = item.condition;
+                session.type = item.type;
+            }
             
             if (itemSize === "20' HC" && item.condition !== "Nuevo") item.condition = "Nuevo";
             if (itemSize && itemSize.includes("45") && item.condition !== "Usado") item.condition = "Usado";
+            if (i === 0) session.condition = item.condition;
             
             const isExport = itemAction === "Exportación" || itemAction === "Exportacion";
             const isNew = item.condition === "Nuevo";
@@ -1108,7 +1114,14 @@ If any information is missing, use null or "---".`;
 
         const historyAfterQuote = [...(session.history || [])];
         historyAfterQuote.push({ role: "assistant", content: msg });
-        await updateSession(senderId, { step: 6, final_amount: finalTotalPrice, history: historyAfterQuote.slice(-10) });
+        await updateSession(senderId, { 
+            step: 6, 
+            final_amount: finalTotalPrice, 
+            history: historyAfterQuote.slice(-10),
+            items: session.items,
+            condition: session.condition,
+            type: session.type
+        });
 
         actions.push({ type: "text", text: msg });
         return actions;
