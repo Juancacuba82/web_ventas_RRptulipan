@@ -11,10 +11,10 @@ async function updateSession(senderId: string, updates: any) {
     await supabase.from("bot_sessions").update(updates).eq("sender_id", senderId);
 }
 
-async function handleMessage(senderId: string, messageText: string) {
+async function handleMessage(senderId: string, messageText: string, messageId?: string) {
     try {
         const { data, error } = await supabase.functions.invoke("chatbot-core", {
-            body: { sender_id: senderId, message: messageText }
+            body: { sender_id: senderId, message: messageText, message_id: messageId }
         });
         if (error || !data?.actions) { console.error("chatbot-core error:", error); return; }
         for (const action of data.actions) {
@@ -64,7 +64,7 @@ serve(async (req) => {
                         if (event.postback) {
                             let text = event.postback.title || event.postback.payload || "";
                             if (event.postback.payload === "GET_STARTED") text = "hola";
-                            if (text) await handleMessage(senderId, text);
+                            if (text) await handleMessage(senderId, text, event.message?.mid);
                             continue;
                         }
 
@@ -108,7 +108,7 @@ serve(async (req) => {
                                     continue;
                                 }
                             }
-                            if (text) await handleMessage(senderId, text);
+                            if (text) await handleMessage(senderId, text, event.message.mid);
                         }
                     }
                 }

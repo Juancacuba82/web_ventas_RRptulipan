@@ -266,7 +266,7 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
 }
 
 // ─── LÓGICA PRINCIPAL ─────────────────────────────────────────────────────────
-async function processMessageInner(senderId: string, messageText: string, isHuman: boolean = false): Promise<Action[]> {
+async function processMessageInner(senderId: string, messageText: string, isHuman: boolean = false, messageId?: string): Promise<Action[]> {
     const input = messageText.replace(/^@meta ai\s*/i, "").trim();
     const actions: Action[] = [];
     const session = await getSession(senderId);
@@ -391,8 +391,8 @@ If any information is missing, use null or "---".`;
 
     // ── Construir historial (últimos 8 mensajes para contexto) ──
     const rawHistory = session.history || [];
-    const recentHistory: Array<{role: string, content: string}> = Array.isArray(rawHistory) ? rawHistory.slice(-8) : [];
-    recentHistory.push({ role: "user", content: input });
+    const recentHistory: Array<{role: string, content: string, mid?: string}> = Array.isArray(rawHistory) ? rawHistory.slice(-8) : [];
+    recentHistory.push({ role: "user", content: input, mid: messageId });
 
     // ── Detección rápida (sin tokens de IA) o llamada a IA ──
     let extracted = quickDetect(input, senderId, session);
@@ -1119,21 +1119,44 @@ If any information is missing, use null or "---".`;
     }
 }
 
-async function processMessage(senderId: string, messageText: string, isHuman: boolean = false): Promise<Action[]> {
+async function processMessage(senderId: string, messageText: string, isHuman: boolean = false, messageId?: string): Promise<Action[]> {
     let session = await getSession(senderId);
+
+    if (messageId && session.history) {
+        const alreadyProcessed = session.history.some((h: any) => h.mid === messageId);
+        if (alreadyProcessed) {
+            console.log(`Skipping already processed message (webhook retry): ${messageId}`);
+            return [];
+        }
+    }
 
     if (session.is_processing) {
         if (messageText.toLowerCase().trim() === "reiniciar") {
             await updateSession(senderId, { is_processing: false, queued_messages: [] });
         } else {
             const queue = session.queued_messages || [];
-            queue.push(messageText);
+            if (messageId) {
+                const isDuplicate = queue.some((q: string) => {
+                    try {
+                        const parsed = JSON.parse(q);
+                        return parsed.mid === messageId;
+                    } catch { return false; }
+                });
+                if (isDuplicate) {
+                    console.log(`Skipping duplicate message (webhook retry) in queue: ${messageId}`);
+                    return [];
+                }
+            }
+            queue.push(JSON.stringify({ text: messageText, mid: messageId, type: "queue" }));
             await updateSession(senderId, { queued_messages: queue });
             return [];
         }
     }
 
-    await updateSession(senderId, { is_processing: true, queued_messages: [] });
+    await updateSession(senderId, { 
+        is_processing: true, 
+        queued_messages: [JSON.stringify({ type: "main", mid: messageId })] 
+    });
     
     // Esperar 10 segundos para agrupar mensajes que el usuario envíe rápidamente
     await new Promise(resolve => setTimeout(resolve, 10000));
@@ -1142,21 +1165,37 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
     session = await getSession(senderId);
     let finalMessage = messageText;
     if (session.queued_messages && session.queued_messages.length > 0) {
-        finalMessage += " " + session.queued_messages.join(" ");
+        const queueTexts = session.queued_messages.map((q: string) => {
+            try {
+                const parsed = JSON.parse(q);
+                return parsed.type === "queue" ? parsed.text : "";
+            } catch { return q; }
+        }).filter((t: string) => t !== "");
+        
+        if (queueTexts.length > 0) {
+            finalMessage += " " + queueTexts.join(" ");
+        }
         await updateSession(senderId, { queued_messages: [] });
     }
     
     let actions: Action[] = [];
     try {
-        actions = await processMessageInner(senderId, finalMessage, isHuman);
+        actions = await processMessageInner(senderId, finalMessage, isHuman, messageId);
     } catch (e) {
         console.error("Inner Error:", e);
     } finally {
         // Check queue again just in case more messages arrived while the AI was generating the response
         const currentSession = await getSession(senderId);
         const queue = currentSession.queued_messages || [];
-        if (queue.length > 0) {
-            const combinedQueueMessage = queue.join(" ");
+        const actualQueue = queue.map((q: string) => {
+            try {
+                const parsed = JSON.parse(q);
+                return parsed.type === "queue" ? parsed.text : "";
+            } catch { return q; }
+        }).filter((t: string) => t !== "");
+
+        if (actualQueue.length > 0) {
+            const combinedQueueMessage = actualQueue.join(" ");
             await updateSession(senderId, { queued_messages: [] });
             try {
                 const extraActions = await processMessageInner(senderId, combinedQueueMessage, false);
@@ -1182,12 +1221,12 @@ serve(async (req) => {
     if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
 
     try {
-        const { sender_id, message, is_human } = await req.json();
+        const { sender_id, message, is_human, message_id } = await req.json();
         if (!sender_id || !message) {
             return new Response(JSON.stringify({ error: "sender_id and message are required" }), { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } });
         }
 
-        const actions = await processMessage(sender_id, message, is_human);
+        const actions = await processMessage(sender_id, message, is_human, message_id);
         return new Response(JSON.stringify({ actions }), { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } });
     } catch (e) {
         console.error("chatbot-core error:", e);
