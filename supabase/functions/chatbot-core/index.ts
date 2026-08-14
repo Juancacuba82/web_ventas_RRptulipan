@@ -43,7 +43,6 @@ const chatDict: Record<string, any> = {
         human_handoff: "Veo que su solicitud requiere logística especial. Nuestro especialista en ventas revisará los detalles y le responderá por este mismo chat en breve. Por favor, espere en línea.",
         price_rent: "¡Excelente noticia! Tenemos disponibilidad para renta en {zip}.\n\n🔹 Renta Mensual: {monthly}\n🔹 Logística (Entrega y Recogida futura): {logistics} (pago único)\n\nEl pago inicial sería de {price}. ¿Proceder?",
         price_export: "Perfecto. El precio total por el contenedor es de **{price}**. ¿Te gustaría proceder con la compra?",
-        price_pickup: "¡Perfecto! Los retiros en persona se realizan exclusivamente en nuestro depósito de Miami (8500 NW 87 Ave, Miami, FL 33166). El precio total por tu{qty_plural_s} {qty}contenedor{qty_plural_es} {type} {cond} de {size} retirado por ti mismo es **{price}**.\n\n¿Te gustaría proceder?",
         price_sale: "El precio total por {qty}contenedor{qty_plural_es} {type} {cond} de {size} entregado{qty_plural_s} en {zip} es **{price}**.\n\n¿Te gustaría proceder?",
         faq_prompt: "\n\n*(Por favor responde la pregunta anterior o toca un botón para continuar con tu cotización)*",
         fallback: "Para darte un precio exacto, dime qué medida de contenedor necesitas (ej. 20 o 40 pies) y tu Zip Code de entrega.",
@@ -82,7 +81,6 @@ const chatDict: Record<string, any> = {
         human_handoff: "I see your request requires special logistics. Our sales specialist will review the details and reply to you in this chat shortly. Please wait online.",
         price_rent: "Great news! We have availability to rent to {zip}.\n\n🔹 Monthly Rent: {monthly}\n🔹 Logistics (Delivery & future pickup): {logistics} (one-time fee)\n\nInitial payment would be {price}. Proceed?",
         price_export: "Perfect. The total price for the container is **{price}**. Would you like to proceed?",
-        price_pickup: "Perfect! Self-pickups are strictly handled at our Miami depot (8500 NW 87 Ave, Miami, FL 33166). The total price for your {qty}{cond} {type} {size} container{qty_plural_s} picked up by you is **{price}**.\n\nWould you like to proceed?",
         price_sale: "The total price for {qty}{cond} {type} {size} container{qty_plural_s} delivered to {zip} is **{price}**.\n\nWould you like to proceed?",
         faq_prompt: "\n\n*(Please answer the previous question or tap a button to continue with your quote)*",
         fallback: "To give you an exact price right away, please tell me what container size you need (e.g. 20 or 40 ft) and your delivery Zip Code.",
@@ -120,7 +118,7 @@ SLANG/JARGON (interpret these correctly):
 - "photos", "pictures", "can I see it first", "pics" → set intent to "photos".
 - "where are you located", "where do you ship from", "do you deliver to" → location question.
 - "good floors", "floor condition", "floor quality" → floor question.
-- "pick up", "retirar", "lo retiro yo", "buscar", "recoger" → Customer wants to pick up the container themselves. SET action to "PickUp" AND ALWAYS SET intent to "quote" so the system can calculate the new price without delivery. NEVER invent the price yourself.
+- "pick up", "retirar", "lo retiro yo", "buscar", "recoger" → Customer wants to pick up the container themselves. SET intent to "general_chat" and output exactly this in ai_reply: (EN) "If you prefer to pick up the container yourself at our yard, please call us at 786-768-4409." (ES) "Si prefiere retirarlo usted mismo en nuestro patio, por favor llámenos al 786-768-4409." Do NOT change the action.
 - "phone number", "contact", "telefono", "numero", "speak to a human" → If the customer asks for OUR phone number or wants to call us, provide the company phone numbers enthusiastically. CRITICAL: If the customer instead says "call me", "llámame", or gives instructions on when to call them, DO NOT give our phone numbers; just acknowledge their request politely and tell them an agent will contact them.
 
 OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO extra text:
@@ -130,7 +128,7 @@ OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO
   "extracted_data": {
     "items": [
       {
-        "action": "Comprar" | "Alquilar" | "Transporte" | "Exportacion" | "PickUp" | null,
+        "action": "Comprar" | "Alquilar" | "Transporte" | "Exportacion" | null,
         "export_action": "Comprar" | "Alquilar" | null,
         "condition": "Nuevo" | "Usado" | null,
         "type": "Dry" | "Reefer" | "Open Side" | "Double Door" | null,
@@ -488,7 +486,7 @@ If any information is missing, use null or "---".`;
                         await supabase.from("call_logs").insert([{
                             customer: session.lead_name || "Unknown", phone: finalPhone,
                             service_type: session.action || "Sales", city: "---",
-                            description: session.action === "Exportacion" || session.action === "Exportación" ? `Order via AI Bot (EXPORT). Zip: ${session.zip}. Port: ${session.port_dest}. Buy/Rent: ${session.export_action}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : (session.action === "PickUp" ? `Order via AI Bot (PICKUP - NO DELIVERY). Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`),
+                            description: session.action === "Exportacion" || session.action === "Exportación" ? `Order via AI Bot (EXPORT). Zip: ${session.zip}. Port: ${session.port_dest}. Buy/Rent: ${session.export_action}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`,
                             created_by: "rptulipantransport@gmail.com", source: "chatbot",
                             status: "PENDING", date: new Date().toISOString().split("T")[0],
                             next_call_date: new Date().toISOString().split("T")[0],
@@ -824,12 +822,6 @@ If any information is missing, use null or "---".`;
             actions.push({ type: "text", text: appendAiReply(dictCurrent.step5_zip_msg) });
             return actions;
         }
-    } else if (session.action === "PickUp") {
-        if (session.type === "Reefer" && session.condition === "Usado" && !session.reefer_status) {
-            actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_reefer_status), options: dictCurrent.ask_reefer_status_btns }); return actions;
-        }
-        if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns }); return actions; }
-        if (!session.condition) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_condition), options: dictCurrent.ask_condition_btns }); return actions; }
     } else {
         if (session.action === "Comprar") {
             if (session.type === "Reefer" && session.condition === "Usado" && !session.reefer_status) {
@@ -910,13 +902,11 @@ If any information is missing, use null or "---".`;
                 sizeKey = "45hc";
             }
 
-            const isPickUp = itemAction === "PickUp";
-            
             const { data: qData, error } = await supabase.functions.invoke("calculate-quote", {
                 body: {
-                    operation_mode: itemAction === "Transporte" ? "transport_only" : (itemAction === "Alquilar" ? "rent" : (isPickUp ? "pickup" : "sale")),
+                    operation_mode: itemAction === "Transporte" ? "transport_only" : (itemAction === "Alquilar" ? "rent" : "sale"),
                     condition: isNew ? "new" : "used",
-                    zip_destino: isPickUp ? "33178" : (itemAction === "Transporte" ? session.zip_dest : session.zip),
+                    zip_destino: itemAction === "Transporte" ? session.zip_dest : session.zip,
                     zip_origen: itemAction === "Transporte" ? session.zip_origin : undefined,
                     container_size: sizeKey,
                     quantity: quantity,
@@ -939,10 +929,7 @@ If any information is missing, use null or "---".`;
             }
 
             let itemPrice = qData.total_price || 0;
-            if (isPickUp) {
-                const sp = ["Reefer", "Open Side", "Double Door"].includes(itemType);
-                itemPrice = (qData.container_price || 0) + (sp ? 0 : (qData.cert_fee || 0));
-            } else if (isExport) {
+            if (isExport) {
                 const sp = ["Reefer", "Open Side", "Double Door"].includes(itemType);
                 const bp = (qData.container_price || 0) + (sp ? 0 : (qData.cert_fee || 0));
                 
@@ -1050,22 +1037,6 @@ If any information is missing, use null or "---".`;
                 msg = finalMessages[0]; 
             } else if ((singleItem.action || session.action) === "Alquilar") {
                 msg = finalMessages[0];
-            } else if ((singleItem.action || session.action) === "PickUp") {
-                const qtyStr = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? `${(Number(singleItem.quantity) || Number(session.quantity) || 1)} ` : "";
-                const qtyPluralS = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? "s" : "";
-                const qtyPluralES = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? "es" : "";
-                const condLabel = lang === "EN" ? ((singleItem.condition || session.condition || "Usado") === "Nuevo" ? "New" : "Used") : (singleItem.condition || session.condition || "Usado");
-                let typeLabel = (singleItem.type || session.type || "Dry") === "Dry" ? "" : (singleItem.type || session.type || "");
-                const displaySize = (singleItem.size || session.size) ? (singleItem.size || session.size).replace(" STD", "") : "";
-                
-                msg = dictCurrent.price_pickup
-                    .replace("{qty}", qtyStr)
-                    .replace(/{qty_plural_s}/g, qtyPluralS)
-                    .replace(/{qty_plural_es}/g, qtyPluralES)
-                    .replace("{cond}", condLabel)
-                    .replace("{type}", typeLabel)
-                    .replace("{size}", displaySize)
-                    .replace("{price}", fmt(finalTotalPrice));
             } else {
                 const qtyStr = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? `${(Number(singleItem.quantity) || Number(session.quantity) || 1)} ` : "";
                 const qtyPluralS = (Number(singleItem.quantity) || Number(session.quantity) || 1) > 1 ? "s" : "";
