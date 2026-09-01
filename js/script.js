@@ -14,10 +14,11 @@ let DYNAMIC_PRICES = null; // Will be populated on page load
  *   RENT_PRICES_USED, RENT_PRICES_NEW, DEPOTS
  *
  * Size key mapping:
- *   "20std"  â†’ "20'"
- *   "40std"  â†’ "40' STD"
- *   "40hc"   â†’ "40' HC"
- *   "45hc"   â†’ "45'"
+ *   "20std"  → "20'"
+ *   "20hc"   → "20' HC"
+ *   "40std"  → "40' STD"
+ *   "40hc"   → "40' HC"
+ *   "45hc"   → "45'"
  * Reefer key mapping:
  *   "20func" â†’ "20'"
  *   "40func" â†’ "40' STD" and "40' HC"   (same price for both 40-foot variants)
@@ -25,6 +26,7 @@ let DYNAMIC_PRICES = null; // Will be populated on page load
 function buildPricesFromHubs(hubs) {
     const sizeMap = {
         '20std': "20'",
+        '20hc':  "20' HC",
         '40std': "40' STD",
         '40hc':  "40' HC",
         '45hc':  "45'"
@@ -132,29 +134,10 @@ async function loadDynamicPrices() {
 
 
 async function sendLeadToSupabase(leadData) {
-    if (!supabaseClient) return;
+    if (!supabaseClient) throw new Error('Supabase is not initialized');
     try {
-        // Round Robin: Isabella & Anthony
-        let assignedTo = 'rptulipantransport@gmail.com'; // Default Isabella
-        
-        // Fetch the very last lead that came from the website
-        const { data: lastLeads } = await supabaseClient
-            .from('call_logs')
-            .select('created_by')
-            .eq('source', 'website')
-            .order('id', { ascending: false })
-            .limit(1);
-
-        if (lastLeads && lastLeads.length > 0) {
-            const lastEmail = lastLeads[0].created_by;
-            // If the last one was Isabella, now it's Anthony's turn
-            if (lastEmail === 'rptulipantransport@gmail.com') {
-                assignedTo = 'anthonyps06@icloud.com';
-            } else {
-                // Otherwise (if it was Anthony or any other), back to Isabella
-                assignedTo = 'rptulipantransport@gmail.com';
-            }
-        }
+        const now = new Date();
+        const createdDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
         const payload = {
             customer: leadData.name || 'Unknown',
@@ -162,11 +145,11 @@ async function sendLeadToSupabase(leadData) {
             service_type: leadData.service || 'Sales',
             city: (leadData.city || '---').toUpperCase(),
             description: leadData.message || '---',
-            created_by: assignedTo,
-            source: 'website',
+            created_by: 'Website RP',
+            source: 'Website RP',
             status: 'PENDING',
-            date: new Date().toISOString().split('T')[0],
-            next_call_date: new Date().toISOString().split('T')[0]
+            date: createdDate,
+            next_call_date: createdDate
         };
 
         // AÃ±adir columnas personalizadas si vienen en los datos
@@ -190,10 +173,12 @@ async function sendLeadToSupabase(leadData) {
             const { error: fallbackError } = await supabaseClient.from('call_logs').insert([payload]);
             if (fallbackError) {
                 console.error("Supabase Fallback Error:", fallbackError);
+                throw fallbackError;
             }
         }
     } catch (err) {
         console.error("Supabase Exception:", err);
+        throw err;
     }
 }
 
@@ -207,11 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load dynamic prices from Supabase (async, with localStorage fallback)
     loadDynamicPrices();
-    
-    // Initialize EmailJS once
-    if (typeof emailjs !== 'undefined') {
-        emailjs.init("4x1rkqnQuj83tl-mh");
-    }
 
     // Mobile Menu Toggle
     const burger = document.querySelector('.burger');
@@ -230,9 +210,12 @@ document.addEventListener('DOMContentLoaded', () => {
         burger.classList.toggle('toggle');
     });
 
-    // Language Logic
-    let currentLang = 'en';
-    const langSwitch = document.getElementById('lang-switch');
+    // Language: follow the device (Spanish vs English)
+    const detectDeviceLang = () => {
+        const primary = (navigator.languages && navigator.languages[0]) || navigator.language || 'en';
+        return String(primary).toLowerCase().startsWith('es') ? 'es' : 'en';
+    };
+    let currentLang = detectDeviceLang();
 
     const translations = {
         en: {
@@ -314,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-back": "Back",
             "buy-back-home": "Back to Services",
             "buy-opt-20": "20' Standard",
+            "buy-opt-20hc": "20' High Cube",
             "buy-opt-40": "40' High Cube",
             "buy-opt-40std": "40' Standard",
             "buy-opt-45": "45' High Cube",
@@ -359,6 +343,8 @@ document.addEventListener('DOMContentLoaded', () => {
             "trans-step3": "3. Route Details",
             "trans-opt-empty": "Empty",
             "trans-opt-full": "Loaded",
+            "trans-opt-full-under": "Loaded under 14,000 lbs",
+            "trans-opt-full-over": "Loaded over 14,000 lbs",
             "trans-opt-crane-yes": "Crane Needed",
             "trans-opt-crane-no": "No Crane Needed",
             "trans-zip-pickup": "Pickup Zip Code",
@@ -461,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
             "buy-back": "Atrás",
             "buy-back-home": "Volver a Servicios",
             "buy-opt-20": "20' Estándar",
+            "buy-opt-20hc": "20' High Cube",
             "buy-opt-40": "40' High Cube",
             "buy-opt-40std": "40' Estándar",
             "buy-opt-45": "45' High Cube",
@@ -506,6 +493,8 @@ document.addEventListener('DOMContentLoaded', () => {
             "trans-step3": "3. Detalles de la Ruta",
             "trans-opt-empty": "Vacío",
             "trans-opt-full": "Cargado",
+            "trans-opt-full-under": "Cargado (menos de 14,000 lbs)",
+            "trans-opt-full-over": "Cargado (más de 14,000 lbs)",
             "trans-opt-crane-yes": "Necesita Grúa",
             "trans-opt-crane-no": "No necesita Grúa",
             "trans-zip-pickup": "Zip Code de Recogida",
@@ -533,6 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateLanguage = (lang) => {
+        document.documentElement.lang = lang;
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
             if (translations[lang][key]) {
@@ -561,14 +551,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (rentView.style.display === 'block') renderRentView();
         if (transView.style.display === 'block') renderTransView();
     };
-
-    if (langSwitch) {
-        langSwitch.addEventListener('click', () => {
-            currentLang = currentLang === 'en' ? 'es' : 'en';
-            langSwitch.innerText = currentLang === 'en' ? 'ES' : 'EN';
-            updateLanguage(currentLang);
-        });
-    }
 
     // SPA Navigation Logic
     const homeView = document.getElementById('home-view');
@@ -629,6 +611,26 @@ document.addEventListener('DOMContentLoaded', () => {
             history.pushState(null, null, '#' + viewName);
         }
     };
+
+    async function submitOrderToCallLogs(btn, originalText, leadData) {
+        try {
+            await sendLeadToSupabase(leadData);
+            btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
+            btn.style.backgroundColor = '#2ecc71';
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.backgroundColor = 'var(--primary-color)';
+                btn.disabled = false;
+                showView('home');
+            }, 3000);
+            return true;
+        } catch (err) {
+            console.error('Order save error:', err);
+            btn.innerText = 'Error';
+            btn.disabled = false;
+            return false;
+        }
+    }
 
     // Handle URL Hash for direct links
     if (window.location.hash) {
@@ -719,10 +721,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // EmailJS Form Submission
     const contactForm = document.querySelector('.contact-form');
     if (contactForm) {
-        contactForm.addEventListener('submit', (e) => {
+        contactForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const submitBtn = contactForm.querySelector('button');
             const originalBtnText = submitBtn.innerText;
@@ -730,49 +731,37 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.innerText = currentLang === 'en' ? 'Sending...' : 'Enviando...';
             submitBtn.disabled = true;
 
-            const templateParams = {
-                name: document.getElementById('name').value,
-                email: document.getElementById('email').value,
-                phone_number: document.getElementById('phone').value,
-                service: document.getElementById('service').value,
-                message: document.getElementById('message').value,
-                title: currentLang === 'en' ? 'Contact Message' : 'Mensaje de Contacto'
-            };
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const service = document.getElementById('service').value;
+            const message = document.getElementById('message').value;
 
-            if (typeof emailjs === 'undefined') {
-                alert('El servicio de correo ha tardado en cargar. Reintentando...');
-                location.reload(); 
-                return;
-            }
-
-            // Send to Supabase (Safe call)
-            sendLeadToSupabase({
-                name: templateParams.name,
-                phone: templateParams.phone_number,
-                service: templateParams.service,
-                message: templateParams.message
-            }).catch(e => console.error("DB Error:", e));
-
-            emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
-                .then(() => {
-                    submitBtn.innerText = currentLang === 'en' ? 'Message Sent!' : '¡Mensaje Enviado!';
-                    submitBtn.style.backgroundColor = '#2ecc71';
-                    contactForm.reset();
-                    setTimeout(() => {
-                        submitBtn.innerText = originalBtnText;
-                        submitBtn.style.backgroundColor = 'var(--primary-color)';
-                        submitBtn.disabled = false;
-                    }, 3000);
-                }, (error) => {
-                    console.error('EmailJS Error:', error);
-                    submitBtn.innerText = currentLang === 'en' ? 'Error!' : '¡Error!';
-                    submitBtn.style.backgroundColor = '#e74c3c';
-                    setTimeout(() => {
-                        submitBtn.innerText = originalBtnText;
-                        submitBtn.style.backgroundColor = 'var(--primary-color)';
-                        submitBtn.disabled = false;
-                    }, 3000);
+            try {
+                await sendLeadToSupabase({
+                    name,
+                    phone,
+                    service,
+                    message: `Email: ${email}\n\n${message}`
                 });
+                submitBtn.innerText = currentLang === 'en' ? 'Message Sent!' : '¡Mensaje Enviado!';
+                submitBtn.style.backgroundColor = '#2ecc71';
+                contactForm.reset();
+                setTimeout(() => {
+                    submitBtn.innerText = originalBtnText;
+                    submitBtn.style.backgroundColor = 'var(--primary-color)';
+                    submitBtn.disabled = false;
+                }, 3000);
+            } catch (error) {
+                console.error('Contact save error:', error);
+                submitBtn.innerText = currentLang === 'en' ? 'Error!' : '¡Error!';
+                submitBtn.style.backgroundColor = '#e74c3c';
+                setTimeout(() => {
+                    submitBtn.innerText = originalBtnText;
+                    submitBtn.style.backgroundColor = 'var(--primary-color)';
+                    submitBtn.disabled = false;
+                }, 3000);
+            }
         });
     }
 
@@ -1055,7 +1044,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Helper: returns all unique sizes that have at least one non-zero price
         const getAvailableSizes = (depotName = null, currentMode = 'buy') => {
-            const allSizes = ["20'", "40' STD", "40' HC", "45'"];
+            const allSizes = ["20'", "20' HC", "40' STD", "40' HC", "45'"];
             return allSizes.filter(size => {
                 if (currentMode === 'rent') {
                     const hasRentUsed = (RENT_PRICES_USED[size] || 0) > 0;
@@ -1172,8 +1161,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const container = viewEl.querySelector(`#${mode}-size-options-container`);
             // Show sizes that have a price in the selected depot (or any depot if none selected)
             const availableSizes = getAvailableSizes(selections.bestDepot, mode);
-            const sizeIcons  = { "20'": "fa-box", "40' STD": "fa-boxes", "40' HC": "fa-boxes", "45'": "fa-boxes" };
-            const sizeLabels = { "20'": t["buy-opt-20"], "40' STD": t["buy-opt-40std"], "40' HC": t["buy-opt-40"], "45'": t["buy-opt-45"] };
+            const sizeIcons  = { "20'": "fa-box", "20' HC": "fa-box", "40' STD": "fa-boxes", "40' HC": "fa-boxes", "45'": "fa-boxes" };
+            const sizeLabels = { "20'": t["buy-opt-20"], "20' HC": t["buy-opt-20hc"], "40' STD": t["buy-opt-40std"], "40' HC": t["buy-opt-40"], "45'": t["buy-opt-45"] };
 
             container.innerHTML = availableSizes.map(size => `
                 <div class="option-card size-option" data-value="${size}">
@@ -1386,15 +1375,16 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = '<div style="text-align:center; padding: 20px;"><div class="loader-ring" style="width: 30px; height: 30px; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div><p style="margin-top: 10px; color: #666;">Calculando ruta óptima y precios...</p></div>';
             
             let apiSize = "20std";
-            if (selections.size.includes("40' STD")) apiSize = "40std";
+            if (selections.size.includes("20' HC")) apiSize = "20hc";
+            else if (selections.size.includes("40' STD")) apiSize = "40std";
             else if (selections.size.includes("40' HC") || selections.size.includes("40' High Cube")) apiSize = "40hc";
             else if (selections.size.includes("45'")) apiSize = "45hc";
             
-            if (selections.type === 'Reefer') {
-                apiSize = selections.size.includes("20") ? "20func" : "40func";
-            }
-            
             const isNew = selections['container-condition'] === 'New';
+            if (selections.type === 'Reefer') {
+                const prefix = selections.size.includes("20") ? "20" : "40";
+                apiSize = isNew ? `${prefix}new` : `${prefix}func`;
+            }
             const apiCondition = isNew ? "new" : "used";
             const isDelivery = selections['delivery-mode'] === 'Delivery';
             
@@ -1711,7 +1701,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
         
-        viewEl.querySelector('.btn-get-pricing').addEventListener('click', (e) => {
+        viewEl.querySelector('.btn-get-pricing').addEventListener('click', async (e) => {
             const btn = e.target;
             const originalText = btn.innerText;
             btn.innerText = currentLang === 'en' ? 'Sending Request...' : 'Enviando Solicitud...';
@@ -1755,6 +1745,19 @@ Phone: ${selections.contact.phone}
                 title: mode === 'buy' ? 'New Purchase Request' : 'New Rental Request'
             };
 
+            const orderSaved = await submitOrderToCallLogs(btn, originalText, {
+                name: templateParams.name,
+                phone: templateParams.phone_number,
+                service: templateParams.service,
+                message: templateParams.message,
+                amount: selections.total,
+                delivery_place: selections.zip || selections['logistics-details'],
+                size: selections.size,
+                city: selections.bestDepot || ''
+            });
+
+            if (!orderSaved) return;
+
             // Background task: burn promo code if used
             if (selections.validPromoCode) {
                 fetch(`${SUPABASE_URL}/rest/v1/promo_codes?code=eq.${selections.validPromoCode.code}`, {
@@ -1783,34 +1786,6 @@ Phone: ${selections.contact.phone}
                 }).catch(e => console.error('Failed to activate promo code', e));
             }
 
-            if (typeof emailjs !== 'undefined') {
-                // Send to Supabase (Safe call)
-                sendLeadToSupabase({
-                    name: templateParams.name,
-                    phone: templateParams.phone_number,
-                    service: templateParams.service,
-                    message: templateParams.message
-                }).catch(e => console.error("DB Error:", e));
-                emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
-                    .then(() => {
-                        btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
-                        btn.style.backgroundColor = '#2ecc71';
-                        setTimeout(() => {
-                            btn.innerText = originalText;
-                            btn.style.backgroundColor = 'var(--primary-color)';
-                            btn.disabled = false;
-                            showView('home');
-                        }, 3000);
-                    })
-                    .catch((err) => {
-                        console.error('EmailJS Error:', err);
-                        btn.innerText = 'Error';
-                        btn.disabled = false;
-                    });
-            } else {
-                alert('Email service error. Please contact us directly.');
-                btn.disabled = false;
-            }
         });
 
         viewEl.querySelectorAll('.next-btn-action').forEach(btn => {
@@ -1994,7 +1969,8 @@ Phone: ${selections.contact.phone}
                             <h3 data-i18n="trans-step2">${t["trans-step2"]}</h3>
                             <div class="options-grid">
                                 <div class="option-card" data-value="Empty"><i class="fas fa-cube"></i><span>${t["trans-opt-empty"]}</span></div>
-                                <div class="option-card" data-value="Full"><i class="fas fa-cubes"></i><span>${t["trans-opt-full"]}</span></div>
+                                <div class="option-card" data-value="FullUnder"><i class="fas fa-boxes"></i><span>${t["trans-opt-full-under"]}</span></div>
+                                <div class="option-card" data-value="FullOver"><i class="fas fa-cubes"></i><span>${t["trans-opt-full-over"]}</span></div>
                             </div>
                         </div>
                         <!-- Step 3: Zip Codes -->
@@ -2017,10 +1993,10 @@ Phone: ${selections.contact.phone}
                                         <img id="trans-vehicle-img-contact" src="" alt="Vehicle" style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: cover;">
                                         <p id="trans-vehicle-name-contact" style="margin-top: 10px; font-weight: 600; color: #333;"></p>
                                     </div>
-                                    <p style="margin-bottom: 2px; color: #333; font-size: 1.1rem;"><strong>${currentLang === 'en' ? 'Estimated Price (Flexible Date)' : 'Mejor Precio (fecha flexible)'}:</strong> $<span class="contact-price-flexible">0.00</span></p>
-                                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;"><em>${currentLang === 'en' ? '(Only charges from pickup to delivery)' : '(Solo pagas el trayecto desde la recogida hasta la entrega)'}</em></p>
-                                    <p style="margin-bottom: 2px; color: #333; font-size: 1.1rem;"><strong>${currentLang === 'en' ? 'Estimated Price (Immediate)' : 'Servicio Inmediato'}:</strong> $<span class="contact-price-immediate">0.00</span></p>
-                                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 0;"><em>${currentLang === 'en' ? '(Includes empty trip from our depot to pickup)' : '(Incluye el envío del equipo vacío desde nuestro depósito a la recogida)'}</em></p>
+                                    <p style="margin-bottom: 2px; color: #333; font-size: 1.1rem;"><strong>${currentLang === 'en' ? 'Flexible (En Route)' : 'Flexible (En Ruta)'}:</strong> $<span class="contact-price-flexible">0.00</span></p>
+                                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;"><em>${currentLang === 'en' ? '(When our trucks are already near the pickup location)' : '(Cuando nuestros camiones estén cerca del lugar de recogida)'}</em></p>
+                                    <p style="margin-bottom: 2px; color: #333; font-size: 1.1rem;"><strong>${currentLang === 'en' ? 'Immediate Dispatch' : 'Servicio Inmediato'}:</strong> $<span class="contact-price-immediate">0.00</span></p>
+                                    <p class="trans-immed-note" style="font-size: 0.85rem; color: #666; margin-bottom: 0;"><em>${currentLang === 'en' ? '(We send a truck from our yard as soon as possible)' : '(Mandamos un camión desde nuestro patio lo antes posible)'}</em></p>
                                 </div>
                                 <input type="text" id="trans-contact-name" placeholder="${t["form-name"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
                                 <input type="email" id="trans-contact-email" placeholder="${t["form-email"]}" class="form-input" style="width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px;">
@@ -2119,8 +2095,12 @@ Phone: ${selections.contact.phone}
                     operation_mode: 'transport_only',
                     container_size: selections.size === "20'" ? "20std" : "40std",
                     options: {
-                        extra_service: false,
-                        crane_service: selections.status === 'Full'
+                        extra_service: selections.status === 'Empty',
+                        crane_service: selections.status === 'Full' || selections.status === 'FullOver',
+                        cargo_case: selections.status === 'Empty' ? 'empty'
+                            : selections.status === 'FullUnder' ? 'loaded_under_14000'
+                            : (selections.status === 'FullOver' || selections.status === 'Full') ? 'loaded_over_14000'
+                            : undefined
                     }
                 };
                 
@@ -2142,31 +2122,33 @@ Phone: ${selections.contact.phone}
                     multiplier = Math.ceil(selections.quantity / 2);
                 }
                 
-                let extraStatusCost = 0;
-                if (selections.status === 'Empty') {
-                    if (selections.size === "20'" && selections.quantity === 2) {
-                        extraStatusCost = 100 * selections.quantity;
-                    } else {
-                        extraStatusCost = 150 * selections.quantity;
-                    }
-                }
-                // Note: If 'Full', the $800 crane service fee is already included natively in costDirect and costImmediate by the backend API.
-                
-                selections.priceFlexible = (costDirect * multiplier) + extraStatusCost;
-                selections.priceImmediate = (costImmediate * multiplier) + extraStatusCost;
+                // Cargo case fee (empty / under 14k / over 14k) is already included in the API totals.
+                selections.priceFlexible = costDirect * multiplier;
+                selections.priceImmediate = costImmediate * multiplier;
                 
                 transView.querySelector('.contact-price-flexible').textContent = selections.priceFlexible.toFixed(2);
                 transView.querySelector('.contact-price-immediate').textContent = selections.priceImmediate.toFixed(2);
+                const immedNote = transView.querySelector('.trans-immed-note em');
+                if (immedNote) {
+                    const isCrane = selections.status === 'FullOver' || selections.status === 'Full';
+                    immedNote.textContent = isCrane
+                        ? (currentLang === 'en'
+                            ? '(Crane dispatched from our Miami hub as soon as possible)'
+                            : '(La grúa sale desde nuestro hub de Miami lo antes posible)')
+                        : (currentLang === 'en'
+                            ? '(We send a truck from our nearest yard as soon as possible)'
+                            : '(Mandamos un camión desde el patio más cercano lo antes posible)');
+                }
                 
                 const vehicleImgContact = transView.querySelector('#trans-vehicle-img-contact');
                 const vehicleNameContact = transView.querySelector('#trans-vehicle-name-contact');
                 const vehicleInfoContact = transView.querySelector('#trans-vehicle-info-contact');
                 
-                if (selections.status === 'Empty') {
+                if (selections.status === 'Empty' || selections.status === 'FullUnder') {
                     vehicleImgContact.src = 'assets/transport.png';
                     vehicleNameContact.innerText = currentLang === 'en' ? 'Pick up truck with tilt trailer' : 'Camioneta Pick-up con Tráiler Inclinable';
                     vehicleInfoContact.style.display = 'block';
-                } else if (selections.status === 'Full') {
+                } else if (selections.status === 'FullOver' || selections.status === 'Full') {
                     vehicleImgContact.src = 'assets/crane.png';
                     vehicleNameContact.innerText = currentLang === 'en' ? 'Side Loader Crane' : 'Grúa Side Loader';
                     vehicleInfoContact.style.display = 'block';
@@ -2256,7 +2238,11 @@ Phone: ${selections.contact.phone}
                 transView.querySelector('#trans-step-contact').style.display = 'none';
                 transView.querySelector('.summary-size').textContent = selections.size || '-';
                 transView.querySelector('.summary-quantity').textContent = selections.quantity || '-';
-                transView.querySelector('.summary-status').textContent = selections.status || '-';
+                transView.querySelector('.summary-status').textContent =
+                    selections.status === 'Empty' ? t['trans-opt-empty']
+                    : selections.status === 'FullUnder' ? t['trans-opt-full-under']
+                    : (selections.status === 'FullOver' || selections.status === 'Full') ? t['trans-opt-full-over']
+                    : (selections.status || '-');
                 transView.querySelector('.summary-route').textContent = `${selections.pickup} ➔ ${selections.delivery}`;
                 transView.querySelector('.summary-contact').textContent = `${selections.contact.name} (${selections.contact.email}) - ${selections.contact.phone}`;
                 if (selections.priceFlexible !== undefined && selections.priceImmediate !== undefined) {
@@ -2268,11 +2254,11 @@ Phone: ${selections.contact.phone}
                 const vehicleNameSummary = transView.querySelector('#trans-vehicle-name-summary');
                 const vehicleInfoSummary = transView.querySelector('#trans-vehicle-info-summary');
                 
-                if (selections.status === 'Empty') {
+                if (selections.status === 'Empty' || selections.status === 'FullUnder') {
                     vehicleImgSummary.src = 'assets/transport.png';
                     vehicleNameSummary.innerText = currentLang === 'en' ? 'Pick up truck with tilt trailer' : 'Camioneta Pick-up con Tráiler Inclinable';
                     vehicleInfoSummary.style.display = 'block';
-                } else if (selections.status === 'Full') {
+                } else if (selections.status === 'FullOver' || selections.status === 'Full') {
                     vehicleImgSummary.src = 'assets/crane.png';
                     vehicleNameSummary.innerText = currentLang === 'en' ? 'Side Loader Crane' : 'Grúa Side Loader';
                     vehicleInfoSummary.style.display = 'block';
@@ -2303,18 +2289,22 @@ Phone: ${selections.contact.phone}
 
         transView.querySelector('.btn-restart-action').addEventListener('click', () => renderTransView());
 
-        transView.querySelector('.btn-get-pricing').addEventListener('click', (e) => {
+        transView.querySelector('.btn-get-pricing').addEventListener('click', async (e) => {
             const btn = e.target;
             const originalText = btn.innerText;
             btn.innerText = currentLang === 'en' ? 'Sending Request...' : 'Enviando Solicitud...';
             btn.disabled = true;
 
+            const transStatusLabel = selections.status === 'Empty' ? t['trans-opt-empty']
+                : selections.status === 'FullUnder' ? t['trans-opt-full-under']
+                : (selections.status === 'FullOver' || selections.status === 'Full') ? t['trans-opt-full-over']
+                : (selections.status || '-');
             const summary = `
 ðŸš› TRANSPORTATION QUOTE REQUEST
 ---------------------------------
 Size: ${selections.size}
 Quantity: ${selections.quantity}
-Status: ${selections.status}
+Status: ${transStatusLabel}
 Route: ${selections.pickup} ➔ ${selections.delivery}
 Est. Price (Flexible): $${selections.priceFlexible ? selections.priceFlexible.toFixed(2) : '0.00'}
 Est. Price (Immediate): $${selections.priceImmediate ? selections.priceImmediate.toFixed(2) : '0.00'}
@@ -2326,43 +2316,16 @@ Email: ${selections.contact.email}
 Phone: ${selections.contact.phone}
             `.trim();
 
-            const templateParams = {
+            await submitOrderToCallLogs(btn, originalText, {
                 name: selections.contact.name,
-                email: selections.contact.email,
-                phone_number: selections.contact.phone,
+                phone: selections.contact.phone,
                 service: 'Transportation Quote',
                 message: summary,
-                title: 'New Transportation Quote Request'
-            };
-
-            if (typeof emailjs !== 'undefined') {
-                // Send to Supabase (Safe call)
-                sendLeadToSupabase({
-                    name: templateParams.name,
-                    phone: templateParams.phone_number,
-                    service: templateParams.service,
-                    message: templateParams.message
-                }).catch(e => console.error("DB Error:", e));
-                emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
-                    .then(() => {
-                        btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
-                        btn.style.backgroundColor = '#2ecc71';
-                        setTimeout(() => {
-                            btn.innerText = originalText;
-                            btn.style.backgroundColor = 'var(--primary-color)';
-                            btn.disabled = false;
-                            showView('home');
-                        }, 3000);
-                    })
-                    .catch((err) => {
-                        console.error('EmailJS Error:', err);
-                        btn.innerText = 'Error';
-                        btn.disabled = false;
-                    });
-            } else {
-                alert('Email service error. Please contact us directly.');
-                btn.disabled = false;
-            }
+                amount: selections.priceImmediate || selections.priceFlexible,
+                delivery_place: `${selections.pickup || ''} -> ${selections.delivery || ''}`,
+                size: selections.size,
+                city: selections.delivery || selections.pickup || ''
+            });
         });
 
         document.title = t["service-trans-h3"] + " | RP Tulipan Logistics";
@@ -2625,7 +2588,7 @@ Phone: ${selections.contact.phone}
 
         craneView.querySelector('.btn-restart-action').addEventListener('click', () => renderCraneView());
 
-        craneView.querySelector('.btn-get-pricing').addEventListener('click', (e) => {
+        craneView.querySelector('.btn-get-pricing').addEventListener('click', async (e) => {
             const btn = e.target;
             const originalText = btn.innerText;
             btn.innerText = currentLang === 'en' ? 'Sending Request...' : 'Enviando Solicitud...';
@@ -2648,43 +2611,16 @@ Email: ${selections.contact.email}
 Phone: ${selections.contact.phone}
             `.trim();
 
-            const templateParams = {
+            await submitOrderToCallLogs(btn, originalText, {
                 name: selections.contact.name,
-                email: selections.contact.email,
-                phone_number: selections.contact.phone,
+                phone: selections.contact.phone,
                 service: 'Crane Service Quote',
                 message: summary,
-                title: 'New Crane Service Request'
-            };
-
-            if (typeof emailjs !== 'undefined') {
-                // Send to Supabase (Safe call)
-                sendLeadToSupabase({
-                    name: templateParams.name,
-                    phone: templateParams.phone_number,
-                    service: templateParams.service,
-                    message: templateParams.message
-                }).catch(e => console.error("DB Error:", e));
-                emailjs.send('service_pfwtd14', 'template_0xc7f3i', templateParams)
-                    .then(() => {
-                        btn.innerText = currentLang === 'en' ? 'Request Sent!' : 'Solicitud Enviada!';
-                        btn.style.backgroundColor = '#2ecc71';
-                        setTimeout(() => {
-                            btn.innerText = originalText;
-                            btn.style.backgroundColor = 'var(--primary-color)';
-                            btn.disabled = false;
-                            showView('home');
-                        }, 3000);
-                    })
-                    .catch((err) => {
-                        console.error('EmailJS Error:', err);
-                        btn.innerText = 'Error';
-                        btn.disabled = false;
-                    });
-            } else {
-                alert('Email service error. Please contact us directly.');
-                btn.disabled = false;
-            }
+                amount: selections.priceImmediate || selections.priceFlexible,
+                delivery_place: `${selections.pickup || ''} -> ${selections.delivery || ''}`,
+                size: selections.size,
+                city: selections.delivery || selections.pickup || ''
+            });
         });
 
         document.title = t["service-crane-h3"] + " | RP Tulipan Logistics";

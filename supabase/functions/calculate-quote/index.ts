@@ -134,6 +134,24 @@ function calculateDeliveryFee(dist: number, globalRates: any, is20ft: boolean = 
     return deliveryCost;
 }
 
+function resolveReeferKey(container_size: string, condition: string): string {
+    const prefix = String(container_size).startsWith('20') ? '20' : '40';
+    const sizeLower = String(container_size).toLowerCase();
+    const condLower = String(condition || '').toLowerCase();
+
+    // New reefers use hub.reefer keys 20new / 40new (also accept 20reefer from chatbot)
+    if (condLower === 'new' || sizeLower.includes('reefer') || sizeLower.endsWith('new')) {
+        return prefix + 'new';
+    }
+    if (sizeLower.includes('nofunc') || condLower === 'nofunc') {
+        return prefix + 'nofunc';
+    }
+    if (sizeLower.includes('func') || condLower === 'func' || condLower === 'reefer') {
+        return prefix + 'func';
+    }
+    return container_size;
+}
+
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
@@ -153,27 +171,51 @@ serve(async (req) => {
         const trucksNeeded = is20ftSize ? Math.ceil(quantity / 2) : quantity;
 
         const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '';
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        const { data: licenseData, error } = await supabase
-            .from('licencias')
+        if (payload.action === 'saveConfig') {
+            if (payload.secretPassword !== 'MasterLogistics2026!') {
+                return new Response(JSON.stringify({ error: 'Contraseña incorrecta' }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                    status: 401,
+                });
+            }
+            const { error: saveError } = await supabase
+                .from('configuracion_precios')
+                .update({ config: payload.newConfig, updated_at: new Date().toISOString() })
+                .eq('id', 1);
+            if (saveError) throw saveError;
+            return new Response(JSON.stringify({ success: true }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+            });
+        }
+
+        const { data: priceData, error } = await supabase
+            .from('configuracion_precios')
             .select('config')
-            .eq('clave', 'ROL26_#kR8t!v2M')
+            .eq('id', 1)
             .single();
 
         if (error) throw error;
         
-        const config = licenseData?.config || {};
+        const config = priceData?.config || {};
         const hubs = config.hubs || [];
         const features = config.features || {};
         const deliveryRates = config.deliveryRates || { "0-30": 350, "31-60": 400, "61-80": 475, "81-100": 550, "over-100": 5.5 };
-        const activeHubs = hubs.filter((h: any) => h.active);
+        const activeHubs = hubs.filter((h: any) => h.active !== false);
         const route20ftDiscount = 0; // Desactivado para la web de ventas
         
-        // Extra fees options
-        const extraServiceFee = options.extra_service ? 150 : 0;
-        const craneServiceFee = options.crane_service ? 800 : 0;
+        const cargoPrices = config.cargoCasePrices || { empty: 150, loaded_under_14000: 350, loaded_over_14000: 800 };
+        const resolvedCargoCase = options.cargo_case
+            || payload.cargo_case
+            || (options.crane_service ? "loaded_over_14000" : (options.extra_service ? "empty" : null));
+        const cargoFee = resolvedCargoCase && cargoPrices[resolvedCargoCase] != null
+            ? (Number(cargoPrices[resolvedCargoCase]) || 0)
+            : 0;
+        const extraServiceFee = resolvedCargoCase === "empty" ? cargoFee : 0;
+        const craneServiceFee = resolvedCargoCase === "loaded_over_14000" ? cargoFee : 0;
         const is20ft = container_size ? container_size.startsWith('20') : false;
 
         // ─────────────────────────────────────────────────────────────────────────────
@@ -231,7 +273,7 @@ serve(async (req) => {
             const deliveryRanges = closest_hub_for_rates ? closest_hub_for_rates.deliveryRanges : null;
             
             let baseDelivery = calculateDeliveryFee(dist, deliveryRates, is20ft, route20ftDiscount, deliveryRanges);
-            let total = baseDelivery + extraServiceFee + craneServiceFee;
+            let total = baseDelivery + cargoFee;
             
             // Apply Redondeo 25 feature exactly like webapp
             if (features.redondeo_25) {
@@ -247,15 +289,29 @@ serve(async (req) => {
             let closest_yard_zip = null;
 
             try {
-                // Find closest active hub to zip_origen
-                let minDistToPickup = Infinity;
-                let hubDistances: any[] = [];
-                
-                // Si la grua sale de Miami, la yarda obligatoriamente tiene que ser Miami
-                if (options.crane_service) {
-                    closest_yard = activeHubs.find((h: any) => h.name.toLowerCase().includes('miami')) || { lat: 25.8640, lon: -80.4074, name: 'Miami Hub', zip: '33178' };
+                const forceMiamiCrane = resolvedCargoCase === "loaded_over_14000"
+                    || options.crane_service === true
+                    || options.crane_service === "true"
+                    || String(options.cargo_case || payload.cargo_case || "") === "loaded_over_14000";
+
+                // Cargado >14k: la grúa solo existe en Miami. No usar el hub más cercano.
+                if (forceMiamiCrane) {
+                    const miamiFallback = { lat: 25.8640, lon: -80.4074, name: "Miami", zip: "33178" };
+                    const miamiHub = [...activeHubs, ...hubs].find((h: any) => {
+                        const n = (h.name || "").toLowerCase();
+                        const z = String(h.zip || "");
+                        return n.includes("miami") || z === "33178" || z === "33166";
+                    });
+                    closest_yard = {
+                        lat: (miamiHub && miamiHub.lat) ? Number(miamiHub.lat) : miamiFallback.lat,
+                        lon: (miamiHub && miamiHub.lon) ? Number(miamiHub.lon) : miamiFallback.lon,
+                        name: "Miami",
+                        zip: (miamiHub && miamiHub.zip) ? String(miamiHub.zip) : miamiFallback.zip,
+                        deliveryRanges: miamiHub?.deliveryRanges || null
+                    };
                     closest_yard_zip = closest_yard.zip;
                 } else if (immedOriginCoords && immedOriginCoords.lat) {
+                    let minDistToPickup = Infinity;
                     for (const hub of activeHubs) {
                         if (hub.zip === '32780') continue;
                         const hubCoords = (hub.lat && hub.lon) ? {lat: hub.lat, lon: hub.lon} : null;
@@ -278,7 +334,7 @@ serve(async (req) => {
                     // We'll use global rates as fallback if it has no ranges
                     const yardRanges = closest_yard.deliveryRanges || null;
                     let baseImmed = calculateDeliveryFee(immediate_distance, deliveryRates, is20ft, route20ftDiscount, yardRanges);
-                    let immedTotal = baseImmed + extraServiceFee + craneServiceFee;
+                    let immedTotal = baseImmed + cargoFee;
                     
                     if (features.redondeo_25) {
                         const ceiledImmed = Math.ceil(immedTotal / 25) * 25;
@@ -297,6 +353,8 @@ serve(async (req) => {
                 base_delivery: baseDelivery,
                 extra_service_fee: extraServiceFee,
                 crane_service_fee: craneServiceFee,
+                cargo_case: resolvedCargoCase,
+                cargo_fee: cargoFee,
                 total_price: total,
                 immediate_price: immediate_price,
                 immediate_distance: immediate_distance,
@@ -322,17 +380,13 @@ serve(async (req) => {
         let bestTotalPrice = Infinity;
         let bestCertFee = 0;
         
-        const isReefer = container_size.includes('reefer') || container_size.includes('func') || condition === 'func' || condition === 'nofunc' || condition === 'reefer';
-        
-        let reeferKey = "";
-        if (isReefer) {
-            if (container_size.includes('func')) {
-                reeferKey = container_size; // already in format '20func' or '40func'
-            } else {
-                const prefix = container_size.startsWith('20') ? '20' : '40';
-                reeferKey = prefix + (condition === 'reefer' ? 'func' : condition); 
-            }
-        }
+        const isReefer = container_size.includes('reefer')
+            || container_size.includes('func')
+            || /^(20|40)new$/i.test(container_size)
+            || condition === 'func'
+            || condition === 'nofunc'
+            || condition === 'reefer';
+        const reeferKey = isReefer ? resolveReeferKey(container_size, condition) : "";
 
         if (zip_destino) {
             let destCoords = zip_destino;
@@ -365,14 +419,17 @@ serve(async (req) => {
                     estimatedDeliveryCost = estimatedDeliveryCost * 2;
                 } else if (isReefer) {
                     if (hub.reefer) {
-                        containerPrice = hub.reefer[reeferKey] || hub.reefer[reeferKey.toUpperCase()] || 0;
+                        const prefix = String(container_size).startsWith('20') ? '20' : '40';
+                        containerPrice = hub.reefer[reeferKey]
+                            || hub.reefer[reeferKey.toUpperCase()]
+                            || hub.reefer[prefix + 'reefer']
+                            || 0;
                     }
                 } else {
                     const priceData = condition === 'new' ? hub.new : hub.used;
                     if (priceData) {
                         containerPrice = priceData[container_size] || priceData[container_size.toUpperCase()] || priceData[container_size.toLowerCase()] || 0;
-                        if (containerPrice === 0) {
-                            // Try to find ANY key containing 45
+                        if (containerPrice === 0 && String(container_size).includes("45")) {
                             const fortyFiveKey = Object.keys(priceData).find(k => k.includes("45"));
                             if (fortyFiveKey) {
                                 containerPrice = priceData[fortyFiveKey] || 0;
@@ -411,7 +468,7 @@ serve(async (req) => {
                     }
                     
                     const localCertFee = options.export_certificate ? (is20ft ? (hub.certCosts?.['20ft'] || 250) : (hub.certCosts?.['40ft'] || 250)) : 0;
-                    const totalPrice = subtotal + craneServiceFee + localCertFee + extraServiceFee;
+                    const totalPrice = subtotal + cargoFee + localCertFee;
 
                     bestTotalPrice = totalPrice;
                     bestHub = hub;
@@ -430,12 +487,12 @@ serve(async (req) => {
         // Apply quantity multiplier
         const totalContainerPrice = bestContainerPrice * quantity;
         const totalDeliveryCost = bestDeliveryCost * trucksNeeded;
-        const totalPrice = totalContainerPrice + totalDeliveryCost + craneServiceFee + extraServiceFee + bestCertFee;
+        const totalPrice = totalContainerPrice + totalDeliveryCost + cargoFee + bestCertFee;
 
         let nonDiscountedPrice;
         if (is20ftSize && quantity >= 2) {
             const totalDeliveryCostNoDiscount = bestDeliveryCost * quantity;
-            nonDiscountedPrice = totalContainerPrice + totalDeliveryCostNoDiscount + craneServiceFee + extraServiceFee + bestCertFee;
+            nonDiscountedPrice = totalContainerPrice + totalDeliveryCostNoDiscount + cargoFee + bestCertFee;
         }
 
         return new Response(JSON.stringify({
