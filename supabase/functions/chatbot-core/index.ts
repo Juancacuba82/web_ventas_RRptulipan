@@ -7,6 +7,11 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 interface Action { type: string; text?: string; options?: string[]; }
 
+function mapCallLanguage(lang?: string | null): "ENGLISH" | "SPANISH" {
+    const raw = (lang || "").toString().trim().toLowerCase();
+    return raw.startsWith("es") ? "SPANISH" : "ENGLISH";
+}
+
 // ─── DICCIONARIO DE TEXTOS ESTÁTICOS ─────────────────────────────────────────
 const chatDict: Record<string, any> = {
     "ES": {
@@ -437,14 +442,15 @@ If any information is missing, use null or "---".`;
                 service_type: data.service_type || "Sales", 
                 city: data.city || "---",
                 description: data.description || payloadText,
-                created_by: "rptulipantransport@gmail.com", 
+                created_by: "AI BOT",
                 source: "chatbot_manual",
                 status: "PENDING", 
                 date: new Date().toISOString().split("T")[0],
                 next_call_date: new Date().toISOString().split("T")[0],
                 amount: data.amount, 
                 zip_code: data.zip_code, 
-                measures: data.measures
+                measures: data.measures,
+                language: mapCallLanguage(session.lang)
             }]);
             
             return [{ type: "text", text: `✅ Orden creada exitosamente para ${data.customer || "Unknown"}. (Teléfono: ${data.phone || "---"})` }];
@@ -601,10 +607,11 @@ If any information is missing, use null or "---".`;
                             customer: session.lead_name || "Unknown", phone: finalPhone,
                             service_type: session.action || "Sales", city: "---",
                             description: session.action === "Exportacion" || session.action === "Exportación" ? `Order via AI Bot (EXPORT SALE). Zip: ${session.zip}. Port: ${session.port_dest}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`,
-                            created_by: "rptulipantransport@gmail.com", source: "chatbot",
+                            created_by: "AI BOT", source: "chatbot",
                             status: "PENDING", date: new Date().toISOString().split("T")[0],
                             next_call_date: new Date().toISOString().split("T")[0],
-                            amount: session.final_amount, zip_code: session.zip, measures: session.size
+                            amount: session.final_amount, zip_code: session.zip, measures: session.size,
+                            language: mapCallLanguage(lang || session.lang)
                         }]);
                         actions.push({ type: "text", text: dictCurrent.order_done });
                         return actions;
@@ -904,10 +911,11 @@ If any information is missing, use null or "---".`;
                 customer: session.lead_name, phone: session.lead_phone,
                 service_type: session.action || "Sales", city: "---",
                 description: session.action === "Exportacion" || session.action === "Exportación" ? `Order via AI Bot (EXPORT SALE). Zip: ${session.zip}. Port: ${session.port_dest}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`,
-                created_by: "rptulipantransport@gmail.com", source: "chatbot",
+                created_by: "AI BOT", source: "chatbot",
                 status: "PENDING", date: new Date().toISOString().split("T")[0],
                 next_call_date: new Date().toISOString().split("T")[0],
-                amount: session.final_amount, zip_code: session.zip, measures: session.size
+                amount: session.final_amount, zip_code: session.zip, measures: session.size,
+                language: mapCallLanguage(lang || session.lang)
             }]);
             actions.push({ type: "text", text: lang === "ES" ? "¡Perfecto! Hemos añadido esta nueva orden a tu solicitud anterior." : "Perfect! We have added this new order to your previous request." });
             return actions;

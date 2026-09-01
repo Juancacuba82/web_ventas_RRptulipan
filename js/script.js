@@ -133,6 +133,18 @@ async function loadDynamicPrices() {
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
+function resolveLeadLanguage(explicit) {
+    const fromExplicit = (explicit || '').toString().trim();
+    const fromSite = (typeof window !== 'undefined' && window.__rpSiteLang)
+        ? String(window.__rpSiteLang)
+        : '';
+    const fromDevice = (typeof navigator !== 'undefined'
+        && ((navigator.languages && navigator.languages[0]) || navigator.language || navigator.userLanguage))
+        || 'en';
+    const raw = String(fromExplicit || fromSite || fromDevice).toLowerCase();
+    return raw.startsWith('es') ? 'SPANISH' : 'ENGLISH';
+}
+
 async function sendLeadToSupabase(leadData) {
     if (!supabaseClient) throw new Error('Supabase is not initialized');
     try {
@@ -149,7 +161,8 @@ async function sendLeadToSupabase(leadData) {
             source: 'Website RP',
             status: 'PENDING',
             date: createdDate,
-            next_call_date: createdDate
+            next_call_date: createdDate,
+            language: resolveLeadLanguage(leadData.language)
         };
 
         // AÃ±adir columnas personalizadas si vienen en los datos
@@ -216,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return String(primary).toLowerCase().startsWith('es') ? 'es' : 'en';
     };
     let currentLang = detectDeviceLang();
+    window.__rpSiteLang = currentLang;
 
     const translations = {
         en: {
@@ -664,6 +678,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateLanguage = (lang) => {
+        currentLang = lang;
+        window.__rpSiteLang = lang;
         document.documentElement.lang = lang;
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
