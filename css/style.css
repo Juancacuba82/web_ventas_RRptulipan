@@ -1078,6 +1078,72 @@ body.with-countdown .buy-header {
     color: var(--text-color);
 }
 
+.option-card-desc {
+    display: block;
+    font-weight: 400;
+    font-size: 0.82rem;
+    color: #666;
+    line-height: 1.4;
+    max-width: 100%;
+    padding: 0 4px;
+}
+
+.export-notice {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: #fff8e6;
+    border: 1px solid #f0d48a;
+    border-left: 4px solid #e0a100;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 8px 0 22px;
+    text-align: left;
+}
+
+.export-notice i {
+    color: #c48a00;
+    font-size: 1.25rem;
+    margin-top: 2px;
+}
+
+.export-notice strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #5c4a00;
+}
+
+.export-notice p {
+    margin: 0;
+    font-size: 0.92rem;
+    color: #5c4a00;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.step-hint {
+    color: #666;
+    font-size: 0.95rem;
+    margin: -4px auto 18px;
+    font-weight: 400;
+    line-height: 1.45;
+    max-width: 520px;
+    text-align: center;
+}
+
+.summary-excluded span {
+    color: #d90429;
+    font-weight: 700;
+}
+
+.export-price-note {
+    font-size: 0.88rem;
+    color: #666;
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.4;
+}
+
 .option-card:hover {
     border-color: var(--primary-color);
     background-color: rgba(217, 4, 41, 0.02);

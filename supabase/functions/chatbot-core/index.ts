@@ -22,9 +22,9 @@ const chatDict: Record<string, any> = {
         calc_error: "Error calculando. Escribe 'reiniciar'.",
         ask_export_type: "¿Para qué usarás el contenedor? (Almacenamiento o Exportación)",
         ask_export_btns: ["Almacenamiento", "Exportación"],
-        ask_export_buy_rent: "¿Deseas comprar el contenedor o prefieres que te lo alquilemos para el envío marítimo?",
-        ask_export_buy_rent_btns: ["Comprar", "Alquilar"],
-        ask_export_zip: "¿En qué Zip Code (código postal) de EE. UU. necesitas que te dejemos el contenedor para que lo cargues?",
+        ask_export_buy_rent: "Para exportación solo vendemos el contenedor certificado (no lo alquilamos). Continuemos con la compra.",
+        ask_export_buy_rent_btns: ["Comprar"],
+        ask_export_zip: "¿Cuál es tu código postal de 5 dígitos en EE.UU.? Lo usamos para ubicar el depósito más cercano. La entrega a ese ZIP no está incluida en el precio; es por si más adelante quieres que te lo entreguemos.",
         ask_export_port: "¿A qué puerto y país de destino enviaremos el contenedor? (Ej. Mariel, Cuba)",
         export_buy_price: "El precio de venta del contenedor es **{price}** (incluye certificado de exportación válido por 1 año recogido en nuestro patio). Nosotros no hacemos envíos marítimos, pero ofrecemos el transporte terrestre nacional: te lo llevamos vacío para cargar y luego lo llevamos cargado al puerto en EE.UU. Si haces ambos traslados con nosotros, te descontamos ${discount}. ¿Te cotizamos este transporte (indícanos el Zip Code del puerto) o prefieres proceder solo con la compra?",
         export_rent_msg: "",
@@ -66,9 +66,9 @@ const chatDict: Record<string, any> = {
         calc_error: "Calculation error. Type 'restart'.",
         ask_export_type: "What will you use the container for? (Storage or Export)",
         ask_export_btns: ["Storage", "Export"],
-        ask_export_buy_rent: "Do you want to buy the container or prefer to rent it from us for the ocean freight?",
-        ask_export_buy_rent_btns: ["Buy", "Rent"],
-        ask_export_zip: "What is the US Zip Code where you need us to drop off the container for loading?",
+        ask_export_buy_rent: "For export we only sell the certified container (we do not rent it). Let's continue with the purchase.",
+        ask_export_buy_rent_btns: ["Buy"],
+        ask_export_zip: "What is your 5-digit U.S. Zip Code? We use it to find the nearest depot. Delivery to that ZIP is not included in the price; it is in case you later want us to deliver the container.",
         ask_export_port: "What is the destination port and country for the container? (e.g., Kingston, Jamaica)",
         export_buy_price: "The sale price of the container is **{price}** (includes export certificate valid for 1 year, picked up at our yard). We do not offer maritime shipping, but we provide inland transport: we deliver it empty for loading and then take it loaded to the US port. If you do both transports with us, we give you a ${discount} discount. Shall we quote this transport (provide the Port Zip Code) or do you prefer to proceed with just the purchase?",
         export_rent_msg: "",
@@ -106,7 +106,7 @@ Your personality: Professional, friendly, and direct. You speak in the same lang
 
 COMPANY KNOWLEDGE (use this to answer questions naturally — never make things up):
 - NEW CONTAINERS: We DO have brand new (One-Trip) containers available in 20ft STD, 40ft, and 45ft (including standard Dry). NEVER say we don't have new 20' STD / 40' / 45' containers. Do NOT claim we have brand-new 20' High Cube.
-- PAYMENT: For payment on delivery (COD), we ONLY accept Cash or Zelle. If the customer wishes to pay with a Credit Card or Check, it MUST be paid in full BEFORE delivery. NO financing.
+- PAYMENT: For payment on delivery or pickup (COD), we ONLY accept Cash or Zelle. If the customer wishes to pay with a Credit Card or Check, it MUST be paid in full BEFORE the driver leaves our yard. NO financing.
 - DELIVERY TIME: 1-3 business days after order confirmation.
 - PHOTOS: The FIRST time the user asks for photos, pictures, images, or to see the container before buying, set intent to "photos" and leave ai_reply null (the system sends the full policy + gallery). CRITICAL FOLLOW-UP: If history already includes that photo/gallery explanation (gallery link, "on the day of your delivery", "el día programado para su entrega", or tag photos), do NOT set intent to "photos" again and do NOT repeat the long message or the gallery link. Set intent to "general_chat" and write a short, warm, human ai_reply (2-4 sentences): acknowledge you already explained this, reassure that the driver sends photos of the exact unit on delivery day and waits for approval before driving to their property, and ask if they want to proceed or have another question. Sound like a person, not a script. Never invent that you can email or WhatsApp photos of the exact unit now. Only share the gallery link again if they explicitly ask for the link/gallery.
 - CONDITION (Used): All used containers are Wind & Water Tight (WWT). Structurally sound, no leaks, doors seal properly. DO NOT proactively mention the guarantee here.
@@ -120,7 +120,7 @@ COMPANY KNOWLEDGE (use this to answer questions naturally — never make things 
 - REEFERS: Available Working (Functional) or Not Working (No AC), and also brand New.
 - GUARANTEES: NEVER mention or offer a guarantee/warranty unless the customer explicitly asks about it. If they ask, explain that we ONLY offer a 6-month Wind and Water Tight structural guarantee on all used containers, and NO OTHER guarantees are provided.
 - CONTACT INFO: Phone numbers: 786-768-4409 | 786-736-6288. Email: rptulipantransport@gmail.com. IMPORTANT: You ARE authorized to give these phone numbers and email to the customer when they ask to speak to a human, ask for a phone number, or want to call us. Do not refuse to give the phone number.
-- INTERNATIONAL/EXPORT SHIPPING: We can provide containers for international export! When a customer wants to ship a container to another country (e.g. Puerto Rico, Cuba, Bahamas, etc.), you MUST set the action to "Exportacion" and the intent to "quote". We ONLY sell the certified container and offer inland transport to the US port, we DO NOT offer maritime shipping. CRITICAL: When they first ask for export, do NOT ask for the port zip code. The system will automatically ask for the US zip code where they want to load the container and will quote the container first. ONLY IF the customer has ALREADY received the container quote AND explicitly asks to add or quote the inland transport to the port, you should ask for the US Port Zip Code and store it in the port_dest variable.
+- INTERNATIONAL/EXPORT SHIPPING: We can provide containers for international export! When a customer wants to ship a container to another country (e.g. Puerto Rico, Cuba, Bahamas, etc.), you MUST set the action to "Exportacion" and the intent to "quote". We ONLY SELL the certified container (export certificate valid 1 year). We do NOT rent containers for export, we do NOT include delivery to the customer's ZIP in that sale price, and we do NOT offer maritime shipping. The US ZIP is only to locate the nearest depot in case they later want delivery (quoted separately). If they ask to rent for export, explain warmly that for export we only sell the certified container; they can rent only for storage in the US. CRITICAL: When they first ask for export, do NOT ask for the port zip code. The system will automatically ask for the US zip code to locate the nearest depot and will quote the container first. ONLY IF the customer has ALREADY received the container quote AND explicitly asks to add or quote inland transport (empty drop for loading and/or loaded to a US port), you should ask for the needed US Zip Code and store the port zip in the port_dest variable.
 - TRANSPORT (moving a container the customer ALREADY OWNS): Set action to "Transporte". This is NOT a purchase or rental. Do NOT ask New vs Used, Dry vs Reefer, or "what size they need to buy". Ask what size the container they already have IS (20, 40, or 45). Then we need the 5-digit origin zip, destination zip, and load status: Empty, Loaded under 14,000 lbs, or Loaded over 14,000 lbs. A city name (e.g. Tampa) is NOT a zip code. If they only say "loaded/cargado/lleno/full" without the weight, set load_status to "Cargado_Over14000" (we quote the full loaded / crane rate). CRITICAL: When intent is "quote" for transport and you are only collecting missing fields, leave ai_reply null so the system asks with the correct wording. Only write ai_reply if they also asked a side question (payment, timing, crane, etc.).
 
 SLANG/JARGON (interpret these correctly):
@@ -142,7 +142,7 @@ OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO
     "items": [
       {
         "action": "Comprar" | "Alquilar" | "Transporte" | "Exportacion" | null,
-        "export_action": "Comprar" | "Alquilar" | null,
+        "export_action": "Comprar" | null,
         "condition": "Nuevo" | "Usado" | null,
         "type": "Dry" | "Reefer" | "Open Side" | "Double Door" | null,
         "size": "20' STD" | "20' HC" | "40'" | "40' STD" | "40' HC" | "45' HC" | null,
@@ -204,7 +204,7 @@ EXTRACTION RULES:
 - "new"/"nuevo"/"brand new" → condition "Nuevo". "used"/"usado"/"second hand"/"pre-owned" → condition "Usado". CRITICAL: Do NOT guess or default the condition if it is not explicitly mentioned; leave it null.
 - "storage"/"almacenamiento"/"to store"/"para guardar" → action "Comprar". CRITICAL: If the customer asks for a price/quote and does not specify buying or renting, ALWAYS assume action "Comprar".
 - "export"/"exportacion" → action "Exportacion".
-- "rent"/"alquiler"/"renta"/"lease" → action "Alquilar".
+- "rent"/"alquiler"/"renta"/"lease" → action "Alquilar" ONLY for storage in the US. CRITICAL: For export we NEVER rent. If they mention rent in an export conversation, keep action "Exportacion", set export_action "Comprar", and explain we only sell certified containers for export.
 - "move"/"transport"/"mover"/"transporte"/"haul"/"relocate"/"de mi casa"/"to my lot"/"hasta un terreno" → action "Transporte". Do NOT also extract type or condition unless they explicitly name them.
 - "working"/"funcionando"/"with ac"/"with motor" → reefer_status "Funcionando". "not working"/"no funciona"/"no ac"/"sin motor"/"broken" → reefer_status "No Funcionando".
 - "empty"/"vacio"/"vacío" → load_status "Vacio".
@@ -325,6 +325,8 @@ function debounceMsFor(senderId: string, isHuman: boolean): number {
 function inferServiceAction(text: string): string | null {
     const t = (text || "").toLowerCase();
     if (!t.trim()) return null;
+    const wantsExport = /\b(export|exportaci[oó]n|exportar|overseas|internacional)\b/i.test(t);
+    if (wantsExport) return "Exportacion";
     const mentionsBuy = /\b(comprar|buy|purchase|alquilar|rentar?|lease|renta)\b/i.test(t);
     const wantsMove = /\b(mover|transporte|transportar|transport|haul|relocate|mudar|traslad)/i.test(t);
     if (wantsMove && !mentionsBuy) return "Transporte";
@@ -598,7 +600,7 @@ If any information is missing, use null or "---".`;
                         await supabase.from("call_logs").insert([{
                             customer: session.lead_name || "Unknown", phone: finalPhone,
                             service_type: session.action || "Sales", city: "---",
-                            description: session.action === "Exportacion" || session.action === "Exportación" ? `Order via AI Bot (EXPORT). Zip: ${session.zip}. Port: ${session.port_dest}. Buy/Rent: ${session.export_action}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`,
+                            description: session.action === "Exportacion" || session.action === "Exportación" ? `Order via AI Bot (EXPORT SALE). Zip: ${session.zip}. Port: ${session.port_dest}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`,
                             created_by: "rptulipantransport@gmail.com", source: "chatbot",
                             status: "PENDING", date: new Date().toISOString().split("T")[0],
                             next_call_date: new Date().toISOString().split("T")[0],
@@ -671,8 +673,14 @@ If any information is missing, use null or "---".`;
     
     const isExportFlow = session.action === "Exportación" || session.action === "Exportacion";
     if (isExportFlow) {
-        if (lo.includes("comprar") || lo.includes("buy")) data.export_action = "Comprar";
-        else if (lo.includes("alquilar") || lo.includes("rent") || lo.includes("alquilo")) data.export_action = "Alquilar";
+        data.export_action = "Comprar";
+        if (/\b(alquilar|alquilo|rentar?|rental|lease|renta)\b/.test(lo)) {
+            if (!extracted.ai_reply) {
+                extracted.ai_reply = lang === "EN"
+                    ? "For export we only sell the certified container (valid 1 year). We do not rent containers for ocean freight. Rentals are only for storage in the United States. We can continue with the export sale."
+                    : "Para exportación solo vendemos el contenedor certificado (válido 1 año). No alquilamos contenedores para envío marítimo. El alquiler es solo para almacenamiento en Estados Unidos. Podemos continuar con la venta para exportación.";
+            }
+        }
 
         // Heuristic: If we are in step 6 of Export Flow, and they provide a new zip code while port_dest is missing, they are answering the port_dest prompt.
         if (step === 6 && !session.port_dest && !data.port_dest) {
@@ -698,7 +706,7 @@ If any information is missing, use null or "---".`;
         const actionStr = data.action.toString().toLowerCase();
         if (isExportFlow) {
             if (actionStr.includes("comprar") || actionStr.includes("buy") || actionStr.includes("alquilar") || actionStr.includes("rent")) {
-                updates.export_action = (actionStr.includes("comprar") || actionStr.includes("buy")) ? "Comprar" : "Alquilar";
+                updates.export_action = "Comprar";
             }
         } else {
             if (data.action === "Comprar" && !session.action) {
@@ -719,8 +727,10 @@ If any information is missing, use null or "---".`;
     if (data.quantity && data.quantity > 0) updates.quantity = data.quantity;
     
     if (data.export_action) {
-        const eaStr = data.export_action.toString().toLowerCase();
-        updates.export_action = (eaStr.includes("comprar") || eaStr.includes("buy")) ? "Comprar" : "Alquilar";
+        updates.export_action = "Comprar";
+    }
+    if (isExportFlow) {
+        updates.export_action = "Comprar";
     }
     
     if (data.port_dest) updates.port_dest = data.port_dest;
@@ -893,7 +903,7 @@ If any information is missing, use null or "---".`;
             await supabase.from("call_logs").insert([{
                 customer: session.lead_name, phone: session.lead_phone,
                 service_type: session.action || "Sales", city: "---",
-                description: session.action === "Exportacion" || session.action === "Exportación" ? `Order via AI Bot (EXPORT). Zip: ${session.zip}. Port: ${session.port_dest}. Buy/Rent: ${session.export_action}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`,
+                description: session.action === "Exportacion" || session.action === "Exportación" ? `Order via AI Bot (EXPORT SALE). Zip: ${session.zip}. Port: ${session.port_dest}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.` : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.`,
                 created_by: "rptulipantransport@gmail.com", source: "chatbot",
                 status: "PENDING", date: new Date().toISOString().split("T")[0],
                 next_call_date: new Date().toISOString().split("T")[0],
