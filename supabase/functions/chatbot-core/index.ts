@@ -137,6 +137,7 @@ SLANG/JARGON (interpret these correctly):
 - "where are you located", "where do you ship from", "do you deliver to" → location question.
 - "good floors", "floor condition", "floor quality" → floor question.
 - "pick up", "retirar", "lo retiro yo", "buscar", "recoger" → Customer wants to pick up the container themselves. SET intent to "general_chat" and output exactly this in ai_reply: (EN) "If you prefer to pick up the container yourself at our yard, please call us at 786-768-4409." (ES) "Si prefiere retirarlo usted mismo en nuestro patio, por favor llámenos al 786-768-4409." Do NOT change the action.
+- "one trip", "one-trip", "on trip", "1 trip" → industry term for a BRAND NEW container (made one voyage from factory). ALWAYS set condition to "Nuevo".
 - "phone number", "contact", "telefono", "numero", "speak to a human" → If the customer asks for OUR phone number or wants to call us, provide the company phone numbers enthusiastically. CRITICAL: If the customer instead says "call me", "llámame", or gives instructions on when to call them, DO NOT give our phone numbers; just acknowledge their request politely and tell them an agent will contact them.
 
 OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO extra text:
@@ -206,7 +207,7 @@ EXTRACTION RULES:
 - "open side"/"puertas laterales"/"abre por el lado" → type "Open Side".
 - "double door"/"puertas dobles"/"doble puerta"/"tunel"/"tunnel" → type "Double Door".
 - CRITICAL: DO NOT change or extract a new "type" unless the customer explicitly mentions one. If they just ask for another size (e.g. "y el de 40'"), leave "type" as null so it retains the current type.
-- "new"/"nuevo"/"brand new" → condition "Nuevo". "used"/"usado"/"second hand"/"pre-owned" → condition "Usado". CRITICAL: Do NOT guess or default the condition if it is not explicitly mentioned; leave it null.
+- "new"/"nuevo"/"brand new"/"one trip"/"one-trip"/"on trip"/"1 trip" → condition "Nuevo". CRITICAL: "one trip" is industry jargon for a brand-new container — ALWAYS map it to "Nuevo", never "Usado". "used"/"usado"/"second hand"/"pre-owned"/"wwt"/"cargo worthy"/"cw" → condition "Usado". CRITICAL: Do NOT guess or default the condition if it is not explicitly mentioned; leave it null.
 - "storage"/"almacenamiento"/"to store"/"para guardar" → action "Comprar". CRITICAL: If the customer asks for a price/quote and does not specify buying or renting, ALWAYS assume action "Comprar".
 - "export"/"exportacion" → action "Exportacion".
 - "rent"/"alquiler"/"renta"/"lease" → action "Alquilar" ONLY for storage in the US. CRITICAL: For export we NEVER rent. If they mention rent in an export conversation, keep action "Exportacion", set export_action "Comprar", and explain we only sell certified containers for export.
@@ -259,6 +260,177 @@ async function callAI(history: Array<{role: string, content: string}>): Promise<
     }
 }
 
+function mentionsNewCondition(text: string): boolean {
+    const lo = text.toLowerCase();
+    return /\bone[\s-]?trip\b/.test(lo)
+        || lo.includes("brand new")
+        || /\b(nuevo|new)\b/.test(lo);
+}
+
+function mentionsUsedCondition(text: string): boolean {
+    const lo = text.toLowerCase();
+    return /\b(usado|used|second hand|pre-owned|wwt|cargo worthy|cw)\b/.test(lo)
+        || lo.includes("wind water tight");
+}
+
+function inferConditionFromConversation(input: string, history: any): "Nuevo" | "Usado" | null {
+    const texts: string[] = [input];
+    if (Array.isArray(history)) {
+        for (const msg of history) {
+            if (msg?.role === "user" && msg.content) texts.push(msg.content);
+        }
+    }
+    let sawNew = false;
+    let sawUsed = false;
+    for (const text of texts) {
+        if (mentionsNewCondition(text)) sawNew = true;
+        if (mentionsUsedCondition(text)) sawUsed = true;
+    }
+    if (sawNew && !sawUsed) return "Nuevo";
+    if (sawUsed && !sawNew) return "Usado";
+    return null;
+}
+
+function conversationUserTexts(input: string, history: any): string[] {
+    const texts: string[] = [input];
+    if (Array.isArray(history)) {
+        for (const msg of history) {
+            if (msg?.role === "user" && msg.content) texts.push(msg.content);
+        }
+    }
+    return texts;
+}
+
+function extractSizeFromText(text: string): string | null {
+    const lo = text.toLowerCase();
+    if (/\b20[\s'/-]*(?:ft|foot|feet|pie|pies)?[\s'/-]*(?:hc|high\s*cube)\b/.test(lo) || /\b20\s*hc\b/.test(lo)) return "20' HC";
+    if (/\b45[\s'/-]*(?:ft|foot|feet|pie|pies)?\b/.test(lo) || /\bforty[\s-]?five\b/.test(lo)) return "45' HC";
+    if (/\b40[\s'/-]*(?:ft|foot|feet|pie|pies)?[\s'/-]*(?:hc|high\s*cube)\b/.test(lo) || /\b40\s*hc\b/.test(lo)) return "40' HC";
+    if (/\b40[\s'/-]*(?:ft|foot|feet|pie|pies)?\b/.test(lo) || /\bforty\b/.test(lo)) return "40'";
+    if (/\b20[\s'/-]*(?:ft|foot|feet|pie|pies)?\b/.test(lo) || /\btwenty\b/.test(lo) || /\b20\s+one[\s-]?trip\b/.test(lo)) return "20' STD";
+    return null;
+}
+
+function hasExplicitSingleSize(session: any, history: any, input: string): string | null {
+    if (session.size && session.size !== "20' & 40'") return session.size;
+    if (session.items?.length === 1 && session.items[0].size) return session.items[0].size;
+    const combined = conversationUserTexts(input, history).join("\n");
+    const lo = combined.toLowerCase();
+    const mentions20 = /\b20[\s'/-]/.test(lo) || /\btwenty\b/.test(lo) || /\bone[\s-]?trip\b/.test(lo);
+    const mentions40 = /\b40[\s'/-]/.test(lo) || /\bforty\b/.test(lo);
+    const mentions45 = /\b45[\s'/-]/.test(lo) || /\bforty[\s-]?five\b/.test(lo);
+    const sizeCount = [mentions20, mentions40, mentions45].filter(Boolean).length;
+    if (sizeCount === 1) return extractSizeFromText(combined);
+    return null;
+}
+
+function ensureQuoteItems(session: any, updates: any, history: any, input: string, action: string): void {
+    const hasSizeInItems = session.items && session.items.length > 0 && session.items.some((i: any) => i.size);
+    if (hasSizeInItems) return;
+
+    const singleSize = hasExplicitSingleSize(session, history, input);
+    if (singleSize) {
+        const condition = session.condition || resolveConditionFromContext(input, history, { condition: session.condition }) || undefined;
+        session.items = [{ size: singleSize, action, ...(condition ? { condition } : {}) }];
+        session.size = singleSize;
+        updates.items = session.items;
+        updates.size = singleSize;
+        return;
+    }
+
+    session.items = [{ size: "20'", action }, { size: "40'", action }];
+    session.size = "20' & 40'";
+    updates.items = session.items;
+    updates.size = session.size;
+}
+
+function extractZipFromText(text: string): string | null {
+    const match = text.match(/\b(\d{5})\b/);
+    return match ? match[1] : null;
+}
+
+function extractConditionFromText(text: string): "Nuevo" | "Usado" | null {
+    if (/\bone[\s-]?trip\b/i.test(text) || /\bbrand\s+new\b/i.test(text) || /\b(nuevo|new)\b/i.test(text)) return "Nuevo";
+    if (mentionsUsedCondition(text)) return "Usado";
+    return null;
+}
+
+function resolveConditionFromContext(input: string, history: any, data: any): "Nuevo" | "Usado" | null {
+    const userTexts = conversationUserTexts(input, history);
+    // Most recent explicit condition wins (walk backwards)
+    for (let i = userTexts.length - 1; i >= 0; i--) {
+        const c = extractConditionFromText(userTexts[i]);
+        if (c) return c;
+    }
+    if (data.condition === "Nuevo" || data.condition === "Usado") return data.condition;
+    if (data.items?.[0]?.condition === "Nuevo" || data.items?.[0]?.condition === "Usado") return data.items[0].condition;
+    return inferConditionFromConversation(input, history);
+}
+
+function applyConversationInferences(input: string, history: any, data: any): void {
+    const userTexts = conversationUserTexts(input, history);
+    const combined = userTexts.join("\n");
+    const oneTrip = userTexts.some((t) => /\bone[\s-]?trip\b/i.test(t));
+    const resolvedCondition = resolveConditionFromContext(input, history, data);
+    const inferredSize = extractSizeFromText(combined);
+    const inferredAction = inferServiceAction(combined)
+        || ((!data.action && (inferredSize || oneTrip || /\b(deliver|delivery|entrega|entregar)\b/i.test(combined))) ? "Comprar" : null);
+
+    if (resolvedCondition) {
+        data.condition = resolvedCondition;
+    }
+
+    if (inferredSize && !data.size) data.size = inferredSize;
+    if (!data.action && inferredAction) data.action = inferredAction;
+
+    const inferredZip = extractZipFromText(combined);
+    if (inferredZip && !data.zip) data.zip = inferredZip;
+
+    const mentions20 = /\b20[\s'/-]/.test(combined.toLowerCase()) || /\btwenty\b/.test(combined.toLowerCase());
+    const mentions40 = /\b40[\s'/-]/.test(combined.toLowerCase()) || /\bforty\b/.test(combined.toLowerCase());
+    if (inferredSize && mentions20 && !mentions40) {
+        data.items = [{
+            size: inferredSize,
+            action: data.action || "Comprar",
+            condition: resolvedCondition || data.condition || "Usado",
+        }];
+        data.size = inferredSize;
+        data.condition = resolvedCondition || data.condition || "Usado";
+    } else if (data.items?.length) {
+        for (const item of data.items) {
+            if (resolvedCondition) item.condition = resolvedCondition;
+            else if (!item.condition && data.condition) item.condition = data.condition;
+            if (!item.size && inferredSize && data.items.length === 1) item.size = inferredSize;
+            if (!item.action && data.action) item.action = data.action;
+        }
+    } else if (inferredSize) {
+        data.items = [{
+            size: inferredSize,
+            action: data.action || "Comprar",
+            condition: resolvedCondition || data.condition || "Usado",
+        }];
+    }
+}
+
+function buildQuoteFromText(input: string): any | null {
+    const lo = input.toLowerCase();
+    const size = extractSizeFromText(input);
+    const condition = extractConditionFromText(input);
+    const oneTrip = /\bone[\s-]?trip\b/.test(lo);
+    const action = inferServiceAction(input) || (size || oneTrip || condition ? "Comprar" : null);
+    const zipMatch = input.match(/\b(\d{5})\b/);
+    if (!size && !oneTrip && !condition && !action) return null;
+
+    const item: any = { action: action || "Comprar" };
+    if (size) item.size = size;
+    if (condition) item.condition = condition;
+
+    const extracted_data: any = { items: [item] };
+    if (condition) extracted_data.condition = condition;
+    if (zipMatch) extracted_data.zip = zipMatch[1];
+    return { intent: "quote", extracted_data };
+}
+
 // ─── DETECCIÓN RÁPIDA SIN IA ──────────────────────────────────────────────────
 function quickDetect(input: string, senderId: string, session: any): any | null {
     const lo = input.toLowerCase().trim();
@@ -267,11 +439,18 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
     if (["comprar", "buy"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ action: "Comprar" }] } };
     if (["alquilar", "rent"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ action: "Alquilar" }] } };
     if (["transporte", "transport"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ action: "Transporte" }] } };
+
+    // Composite messages first (e.g. "20' one trip to 33470") before partial keyword matches
+    const composite = buildQuoteFromText(input);
+    if (composite) return composite;
+
     if (lo === "20'") return { intent: "quote", extracted_data: { items: [{ size: "20'" }] } };
     if (["20 hc", "20' hc", "20ft hc", "20 high cube", "20' high cube"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ size: "20' HC" }] } };
     if (lo === "40'") return { intent: "quote", extracted_data: { items: [{ size: "40'" }] } };
     if (lo === "45'") return { intent: "quote", extracted_data: { items: [{ size: "45'" }] } };
-    if (["nuevo", "new"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ condition: "Nuevo" }] } };
+    if (["nuevo", "new", "one trip", "one-trip", "brand new"].includes(lo)) {
+        return { intent: "quote", extracted_data: { items: [{ condition: "Nuevo" }] } };
+    }
     if (["usado", "used"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ condition: "Usado" }] } };
     if (["dry (estándar)", "dry (standard)", "dry"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ type: "Dry" }] } };
     if (["refrigerado", "refrigerated"].includes(lo)) return { intent: "quote", extracted_data: { items: [{ type: "Reefer" }] } };
@@ -337,6 +516,7 @@ function inferServiceAction(text: string): string | null {
     if (wantsMove && !mentionsBuy) return "Transporte";
     if (/\b(alquilar|rentar?|lease|renta)\b/i.test(t) && !/\b(comprar|buy|purchase)\b/i.test(t) && !wantsMove) return "Alquilar";
     if (/\b(comprar|buy|purchase)\b/i.test(t) && !wantsMove) return "Comprar";
+    if (/\b(need|want|looking for|busco|necesito|quiero)\b/i.test(t) && /\b(20|40|45|container|contenedor|footer|ft|one[\s-]?trip)\b/i.test(t)) return "Comprar";
     return null;
 }
 
@@ -476,10 +656,10 @@ If any information is missing, use null or "---".`;
         if (cmd !== "reiniciar" && cmd !== "restart" && cmd !== "menu") return [];
     }
 
-    // Reiniciar
-    if (["reiniciar", "restart", "menu"].includes(input.toLowerCase())) {
-        await updateSession(senderId, { step: 0, lang: null, action: null, condition: null, size: null, type: null, zip: null, reefer_status: null, load_status: null, quantity: null, zip_origin: null, zip_dest: null, history: null, items: null });
-        step = 0;
+    // Reiniciar (backup — processMessage handles this first for web/Meta)
+    if (["reiniciar", "restart", "menu"].includes(input.toLowerCase().trim())) {
+        const restartLang: "EN" | "ES" = session.lang === "ES" ? "ES" : "EN";
+        return await resetChatSession(senderId, restartLang);
     }
 
     // Detectar idioma básico
@@ -524,6 +704,12 @@ If any information is missing, use null or "---".`;
         dictCurrent = chatDict[lang];
     }
     const data = extracted.extracted_data || {};
+    applyConversationInferences(input, session.history, data);
+
+    if (extracted.intent === "general_chat" && (data.size || data.action === "Comprar") && extractSizeFromText(conversationUserTexts(input, session.history).join("\n"))) {
+        extracted.intent = "quote";
+        extracted.ai_reply = null;
+    }
     
     if (data.items && data.items.length > 0) {
         const hasSize = data.items.some((i: any) => i.size);
@@ -634,8 +820,8 @@ If any information is missing, use null or "---".`;
         // Sanitize possible AI hallucinations on follow-up questions
         const lowerInput = input.toLowerCase();
         if (data.condition && data.condition !== session.condition) {
-            const mentionedNew = lowerInput.includes("nuevo") || lowerInput.includes("new");
-            const mentionedUsed = lowerInput.includes("usad") || lowerInput.includes("used");
+            const mentionedNew = mentionsNewCondition(lowerInput);
+            const mentionedUsed = mentionsUsedCondition(lowerInput);
             if (!mentionedNew && !mentionedUsed) {
                 data.condition = session.condition; // Revert hallucinated condition
                 if (data.items && data.items.length > 0) data.items[0].condition = session.condition;
@@ -1037,13 +1223,7 @@ If any information is missing, use null or "---".`;
         if (!session.zip) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_export_zip) }); return actions; }
     } else if (session.action === "Alquilar") {
         if (!session.size) {
-            const hasSizeInItems = session.items && session.items.length > 0 && session.items.some((i: any) => i.size);
-            if (!hasSizeInItems) {
-                session.items = [ { size: "20'", action: "Alquilar" }, { size: "40'", action: "Alquilar" } ];
-                updates.items = session.items;
-                session.size = "20' & 40'";
-                updates.size = session.size;
-            }
+            ensureQuoteItems(session, updates, session.history, input, "Alquilar");
         }
         if (!session.zip) {
             actions.push({ type: "text", text: appendAiReply(dictCurrent.step5_zip_msg) });
@@ -1056,13 +1236,7 @@ If any information is missing, use null or "---".`;
             }
         }
         if (!session.size) {
-            const hasSizeInItems = session.items && session.items.length > 0 && session.items.some((i: any) => i.size);
-            if (!hasSizeInItems) {
-                session.items = [ { size: "20'", action: "Comprar" }, { size: "40'", action: "Comprar" } ];
-                updates.items = session.items;
-                session.size = "20' & 40'";
-                updates.size = session.size;
-            }
+            ensureQuoteItems(session, updates, session.history, input, "Comprar");
         }
         if (!session.zip) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_zip) }); return actions; }
     }
@@ -1087,9 +1261,17 @@ If any information is missing, use null or "---".`;
             const itemQty = Number(item.quantity) || Number(session.quantity) || 1;
             const itemExportAction = item.export_action || session.export_action;
             
-            if (!itemCondition || itemType === "Open Side" || itemType === "Double Door") {
+            const convCondition = resolveConditionFromContext(input, session.history, {
+                condition: itemCondition || session.condition,
+                items: itemsToQuote,
+            });
+            if (convCondition === "Nuevo") {
+                item.condition = "Nuevo";
+            } else if (convCondition === "Usado") {
+                item.condition = "Usado";
+            } else if (!itemCondition || itemType === "Open Side" || itemType === "Double Door") {
                 const autoNew = itemType === "Open Side" || itemType === "Double Door";
-                item.condition = autoNew ? "Nuevo" : (itemCondition || "Usado");
+                item.condition = autoNew ? "Nuevo" : (itemCondition || convCondition || "Usado");
             }
             if (!item.type) item.type = itemType;
             if (i === 0) {
@@ -1374,7 +1556,42 @@ If any information is missing, use null or "---".`;
     }
 }
 
+async function resetChatSession(senderId: string, lang: "EN" | "ES" = "EN"): Promise<Action[]> {
+    await updateSession(senderId, {
+        step: 0,
+        lang,
+        action: null,
+        condition: null,
+        size: null,
+        type: null,
+        zip: null,
+        reefer_status: null,
+        load_status: null,
+        quantity: null,
+        zip_origin: null,
+        zip_dest: null,
+        history: null,
+        items: null,
+        is_processing: false,
+        queued_messages: null,
+        final_amount: null,
+        export_action: null,
+        port_dest: null,
+        lead_name: null,
+        lead_phone: null,
+    });
+    const dict = chatDict[lang];
+    return [{ type: "quick_replies", text: dict.step1_msg, options: dict.step1_btns }];
+}
+
 async function processMessage(senderId: string, messageText: string, isHuman: boolean = false, messageId?: string, extraMidsFromClient: string[] = []): Promise<Action[]> {
+    const restartCmd = messageText.toLowerCase().trim();
+    if (["reiniciar", "restart", "menu"].includes(restartCmd)) {
+        const existing = await getSession(senderId);
+        const restartLang: "EN" | "ES" = existing?.lang === "ES" ? "ES" : "EN";
+        return await resetChatSession(senderId, restartLang);
+    }
+
     let session = await getSession(senderId);
 
     if (historyHasMid(session, messageId) && extraMidsFromClient.every((id) => historyHasMid(session, id))) {
@@ -1390,7 +1607,7 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
     }
 
     if (session.is_processing) {
-        if (messageText.toLowerCase().trim() === "reiniciar" || messageText.toLowerCase().trim() === "restart") {
+        if (messageText.toLowerCase().trim() === "reiniciar" || messageText.toLowerCase().trim() === "restart" || messageText.toLowerCase().trim() === "menu") {
             await updateSession(senderId, { is_processing: false, queued_messages: [] });
         } else {
             const queue = session.queued_messages || [];

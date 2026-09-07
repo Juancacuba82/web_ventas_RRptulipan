@@ -2973,17 +2973,6 @@ Phone: ${selections.contact.phone}
             setTimeout(() => { aiChatBtn.style.display = 'flex'; }, 300);
         });
 
-        if (aiChatRestart) {
-            aiChatRestart.addEventListener('click', () => {
-                // Clear all chat messages
-                const msgs = aiChatMessages.querySelectorAll('.chat-message, .chat-buttons-container');
-                msgs.forEach(m => m.remove());
-                // Generate a fresh session ID so the core resets
-                localStorage.setItem('rpt_chat_sender_id', 'web_' + Math.random().toString(36).substr(2, 12));
-                location.reload();
-            });
-        }
-
         // ── Render helpers ────────────────────────────────────
         const appendMessage = (text, sender) => {
             const div = document.createElement('div');
@@ -3024,6 +3013,17 @@ Phone: ${selections.contact.phone}
         };
 
         // ── Core API call ─────────────────────────────────────
+        const renderCoreActions = (actions) => {
+            for (const action of actions) {
+                if (action.type === 'quick_replies' && action.options && action.options.length) {
+                    appendMessage(action.text, 'bot');
+                    showQuickReplies(action.options);
+                } else if (action.text) {
+                    appendMessage(action.text, 'bot');
+                }
+            }
+        };
+
         const sendToCore = async (text) => {
             typingIndicator.classList.add('active');
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
@@ -3041,20 +3041,51 @@ Phone: ${selections.contact.phone}
                     return;
                 }
 
-                for (const action of data.actions) {
-                    if (action.type === 'quick_replies' && action.options && action.options.length) {
-                        appendMessage(action.text, 'bot');
-                        showQuickReplies(action.options);
-                    } else {
-                        appendMessage(action.text, 'bot');
-                    }
-                }
+                renderCoreActions(data.actions);
             } catch (err) {
                 typingIndicator.classList.remove('active');
                 console.error('chatbot-core error:', err);
                 appendMessage('Error de conexión. Por favor inténtalo de nuevo.', 'bot');
             }
         };
+
+        const restartChat = async () => {
+            aiChatMessages.querySelectorAll('.chat-message, .chat-buttons-container').forEach(m => m.remove());
+            aiChatInput.value = '';
+            typingIndicator.classList.add('active');
+            aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+
+            try {
+                // Always start a brand-new server session — never reuse old quote state
+                const freshId = 'web_' + Math.random().toString(36).substr(2, 12);
+                localStorage.setItem('rpt_chat_sender_id', freshId);
+
+                const { data, error } = await supabaseClient.functions.invoke('chatbot-core', {
+                    body: { sender_id: freshId, message: 'hello' }
+                });
+
+                typingIndicator.classList.remove('active');
+
+                if (error || !data?.actions?.length) {
+                    appendMessage('Lo siento, no se pudo reiniciar. Por favor inténtalo de nuevo.', 'bot');
+                    return;
+                }
+
+                renderCoreActions(data.actions);
+            } catch (err) {
+                typingIndicator.classList.remove('active');
+                console.error('chatbot restart error:', err);
+                appendMessage('Error de conexión al reiniciar. Por favor inténtalo de nuevo.', 'bot');
+            }
+        };
+
+        if (aiChatRestart) {
+            aiChatRestart.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                restartChat();
+            });
+        }
 
         // ── Text input ────────────────────────────────────────
         const handleUserInput = () => {

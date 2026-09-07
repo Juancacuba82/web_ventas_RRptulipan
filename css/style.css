@@ -1517,6 +1517,7 @@ body.with-countdown .buy-header {
     background: #dc2b45; /* Blends well with the gradient */
     border-radius: 20px;
     z-index: -1;
+    pointer-events: none;
 }
 
 .ai-chat-restart::before {
@@ -1529,6 +1530,7 @@ body.with-countdown .buy-header {
     background: conic-gradient(transparent 0deg, transparent 260deg, rgba(255, 255, 255, 1) 360deg);
     animation: rotate-light 2.5s linear infinite;
     z-index: -2;
+    pointer-events: none;
 }
 
 @keyframes rotate-light {
