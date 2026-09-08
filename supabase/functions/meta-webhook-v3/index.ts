@@ -93,12 +93,12 @@ async function handleEvent(event: any) {
     if (event.message.quick_reply?.payload) text = event.message.quick_reply.payload;
     else if (event.message.text) text = event.message.text;
     else if (event.message.sticker_id) {
-        text = "ok";
+        return;
     }
     else if (event.message.attachments) {
         const isSticker = event.message.attachments.some((att: any) => att.payload?.sticker_id);
         if (isSticker) {
-            text = "ok";
+            return;
         } else {
             await updateSession(senderId, { step: -1 });
             const { data: session } = await supabase.from("bot_sessions").select("lang").eq("sender_id", senderId).single();

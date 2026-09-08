@@ -234,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const translations = {
         en: {
             "ai-restart-btn": "Restart",
+            "ai-chat-placeholder": "Type your message...",
             "nav-home": "Home",
             "nav-services": "Services",
             "nav-about": "About Us",
@@ -456,6 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         es: {
             "ai-restart-btn": "Reiniciar",
+            "ai-chat-placeholder": "Escribe tu mensaje...",
             "nav-home": "Inicio",
             "nav-services": "Servicios",
             "nav-about": "Nosotros",
@@ -2956,11 +2958,8 @@ Phone: ${selections.contact.phone}
     const aiChatMessages = document.getElementById('ai-chat-messages');
     const typingIndicator = document.getElementById('ai-typing-indicator');
 
-    // Generate a unique session ID per browser so chatbot-core can track state
-    if (!localStorage.getItem('rpt_chat_sender_id')) {
-        localStorage.setItem('rpt_chat_sender_id', 'web_' + Math.random().toString(36).substr(2, 12));
-    }
-    const SENDER_ID = localStorage.getItem('rpt_chat_sender_id');
+    // Fresh conversation on every page load — refresh starts from zero
+    let chatSenderId = 'web_' + Math.random().toString(36).substr(2, 12);
 
     if (aiChatBtn && aiChatWindow) {
         aiChatBtn.addEventListener('click', () => {
@@ -2988,9 +2987,12 @@ Phone: ${selections.contact.phone}
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
         };
 
+        const clearQuickReplies = () => {
+            aiChatMessages.querySelectorAll('.chat-buttons-container').forEach((el) => el.remove());
+        };
+
         const showQuickReplies = (options) => {
-            const old = aiChatMessages.querySelector('.chat-buttons-container');
-            if (old) old.remove();
+            clearQuickReplies();
 
             const container = document.createElement('div');
             container.classList.add('chat-buttons-container');
@@ -3001,7 +3003,7 @@ Phone: ${selections.contact.phone}
                 btn.textContent = opt;
                 btn.style.cssText = 'padding:8px 15px;border-radius:20px;border:1px solid #c8102e;background:white;color:#c8102e;cursor:pointer;font-weight:bold;';
                 btn.addEventListener('click', () => {
-                    container.remove();
+                    clearQuickReplies();
                     appendMessage(opt, 'user');
                     sendToCore(opt);
                 });
@@ -3014,6 +3016,8 @@ Phone: ${selections.contact.phone}
 
         // ── Core API call ─────────────────────────────────────
         const renderCoreActions = (actions) => {
+            // A new bot turn always kills leftover chips so typed answers cannot mix with old cards.
+            clearQuickReplies();
             for (const action of actions) {
                 if (action.type === 'quick_replies' && action.options && action.options.length) {
                     appendMessage(action.text, 'bot');
@@ -3029,14 +3033,13 @@ Phone: ${selections.contact.phone}
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
 
             try {
-                const senderId = localStorage.getItem('rpt_chat_sender_id');
                 const { data, error } = await supabaseClient.functions.invoke('chatbot-core', {
-                    body: { sender_id: senderId, message: text }
+                    body: { sender_id: chatSenderId, message: text }
                 });
 
                 typingIndicator.classList.remove('active');
 
-                if (error || !data?.actions) {
+                if (error || !data?.actions?.length) {
                     appendMessage('Lo siento, hubo un error. Por favor escribe "reiniciar" o haz clic en Restart.', 'bot');
                     return;
                 }
@@ -3049,6 +3052,13 @@ Phone: ${selections.contact.phone}
             }
         };
 
+        const chatGreetWord = () => {
+            const langs = [navigator.language, ...(navigator.languages || [])]
+                .filter(Boolean)
+                .map((l) => l.toLowerCase());
+            return langs.some((l) => l.startsWith('es')) ? 'hola' : 'hello';
+        };
+
         const restartChat = async () => {
             aiChatMessages.querySelectorAll('.chat-message, .chat-buttons-container').forEach(m => m.remove());
             aiChatInput.value = '';
@@ -3057,11 +3067,10 @@ Phone: ${selections.contact.phone}
 
             try {
                 // Always start a brand-new server session — never reuse old quote state
-                const freshId = 'web_' + Math.random().toString(36).substr(2, 12);
-                localStorage.setItem('rpt_chat_sender_id', freshId);
+                chatSenderId = 'web_' + Math.random().toString(36).substr(2, 12);
 
                 const { data, error } = await supabaseClient.functions.invoke('chatbot-core', {
-                    body: { sender_id: freshId, message: 'hello' }
+                    body: { sender_id: chatSenderId, message: chatGreetWord() }
                 });
 
                 typingIndicator.classList.remove('active');
@@ -3092,6 +3101,7 @@ Phone: ${selections.contact.phone}
             const text = aiChatInput.value.trim();
             if (!text) return;
             aiChatInput.value = '';
+            clearQuickReplies();
             appendMessage(text, 'user');
             sendToCore(text);
         };
@@ -3108,7 +3118,7 @@ Phone: ${selections.contact.phone}
                 aiChatWindow.classList.add('active');
                 aiChatBtn.style.display = 'none';
             }
-            sendToCore('hello');
+            sendToCore(chatGreetWord());
         }, 1000);
     }
 
