@@ -25,6 +25,11 @@ test("language detection follows the last meaningful message", () => {
     // A bare zip inherits the language already established
     assert.equal(core.detectMessageLanguage("33139", "ES", null), "ES");
     assert.equal(core.detectMessageLanguage("33139", "EN", null), "EN");
+    // After a Spanish greeting, a full English question must switch to English
+    assert.equal(core.detectMessageLanguage("Where are you located?", "ES", [
+        { role: "user", content: "hola" },
+        { role: "assistant", content: "¡Hola! ¿En qué te puedo ayudar hoy?" },
+    ]), "EN");
 });
 
 test("size extraction keeps STD vs HC straight", () => {
@@ -41,6 +46,14 @@ test("condition words include plurals", () => {
     assert.equal(core.extractConditionFromText("wwt"), "Usado");
 });
 
+test("WWT / looks-dont-matter / price-is-right means used, not a new-vs-used question", () => {
+    const msg = "No leaks , doors close .  How it looks no concern. It's for short  term storage . \n   I'm looking for price is right deal !";
+    assert.equal(core.mentionsUsedCondition(msg), true);
+    assert.equal(core.extractConditionFromText(msg), "Usado");
+    assert.equal(core.extractConditionFromText("sin filtraciones, las puertas cierran, el aspecto no me importa"), "Usado");
+    assert.equal(core.extractConditionFromText("40ft the whole package deal how much"), null);
+});
+
 test("reefer wording maps to Reefer", () => {
     assert.equal(core.extractTypeFromText("quiero un refrigerado"), "Reefer");
     assert.equal(core.extractTypeFromText("un contenedor refrigerada"), "Reefer");
@@ -53,7 +66,44 @@ test("reefer wording maps to Reefer", () => {
 test("service inference covers the three services", () => {
     assert.equal(core.inferServiceAction("quiero comprar un contenedor"), "Comprar");
     assert.equal(core.inferServiceAction("necesito alquilar uno"), "Alquilar");
+    assert.equal(core.inferServiceAction("Hola ustedes rentan contenedores?"), "Alquilar");
+    assert.equal(core.inferServiceAction("do you rent containers"), "Alquilar");
     assert.equal(core.inferServiceAction("necesito mover un contenedor"), "Transporte");
+    assert.equal(core.inferServiceAction("Need one moved"), "Transporte");
+    assert.equal(core.inferServiceAction("need it moved"), "Transporte");
+    assert.equal(core.inferServiceAction("can you move it"), "Transporte");
+    assert.deepEqual([...core.servicesNamedInMessage("Need one moved")], ["Transporte"]);
+});
+
+test("a rent conversation does not become a sale when they pick a size", () => {
+    const hist = [
+        { role: "user", content: "Hola ustedes rentan contenedores?" },
+        { role: "assistant", content: "Sí, alquilamos contenedores. Solo ofrecemos contenedores de almacenamiento DRY para uso en Estados Unidos." },
+    ];
+    const data = { action: "Comprar", items: [{ action: "Comprar", size: "40'" }] };
+    core.applyConversationInferences("de 40 pies", hist, data, { action: null });
+    assert.equal(data.action, "Alquilar");
+    assert.equal(data.items[0].action, "Alquilar");
+    const kept = {};
+    core.applyConversationInferences("usado", hist, kept, { action: "Alquilar", size: "40'" });
+    assert.equal(kept.action, "Alquilar");
+});
+
+test("need one moved switches a buy session to transport without asking used vs new", () => {
+    const buySession = { step: 2, action: "Comprar", size: "40'", lang: "EN" };
+    const qd = core.quickDetect("Need one moved", "web_test", buySession);
+    assert.equal(qd?.intent, "quote");
+    assert.equal(qd?.extracted_data?.action, "Transporte");
+    assert.equal(qd?.extracted_data?.items?.[0]?.action, "Transporte");
+    assert.equal(qd?.extracted_data?.condition, undefined);
+});
+
+test("AI-extracted transport is not vetoed when the regex is incomplete", () => {
+    assert.equal(core.resolveExtractedAction("Need one moved", "Comprar", "Transporte"), "Transporte");
+    assert.equal(core.resolveExtractedAction("I already have the box, can you haul it?", "Comprar", "Transporte"), "Transporte");
+    assert.equal(core.resolveExtractedAction("usado", "Alquilar", "Comprar"), "Alquilar");
+    assert.equal(core.resolveExtractedAction("33139", "Transporte", "Comprar"), "Transporte");
+    assert.equal(core.resolveExtractedAction("mejor lo alquilo", "Comprar", "Alquilar"), "Alquilar");
 });
 
 test("only an explicit mention can switch the service", () => {
@@ -73,12 +123,92 @@ test("only an explicit mention can switch the service", () => {
     assert.deepEqual(named("es para exportacion"), ["Exportacion"]);
 });
 
+test("lo quiero poner on my lot is not treated as order confirmation", () => {
+    const s = quotedSession({ size: "45' HC", type: "Dry" });
+    const msg = "lo quiero poner en un terreno detras de mi casa, necesito algun permiso para eso?";
+    assert.equal(core.isReadyToProceed(msg, s), false);
+    assert.equal(core.isOpenEducationalQuestion(msg, s), true);
+    assert.match(core.buildSideQuestionReply(msg, "ES", s) || "", /permiso|condado|municipio/i);
+});
+
+test("transport scheduling is not the 1-3 day sales delivery window", () => {
+    const move = quotedSession({ action: "Transporte", size: "40'" });
+    const ask = "pero para que dia seria?";
+    assert.equal(core.isSchedulingQuestion(ask), true);
+    const reply = core.buildSideQuestionReply(ask, "ES", move) || "";
+    assert.match(reply, /despacho|pactar|llama/i);
+    assert.doesNotMatch(reply, /1 a 3 d[ií]as/i);
+    const sale = core.buildSideQuestionReply("cuanto tarda la entrega?", "ES", quotedSession()) || "";
+    assert.match(sale, /1 a 3 d[ií]as/i);
+});
+
+test("payment on delivery stays in Spanish after a Spanish quote", () => {
+    const s = quotedSession({ size: "45' HC", type: "Dry", lang: "ES" });
+    const msg = "pago cuando lo reciba";
+    assert.equal(core.detectMessageLanguage(msg, "ES", s.history), "ES");
+    assert.match(core.buildSideQuestionReply(msg, "ES", s) || "", /entrega|efectivo|Zelle/i);
+    assert.doesNotMatch(core.buildSideQuestionReply(msg, "ES", s) || "", /Yes, we accept/i);
+});
+
+test("español por favor is recognised as a language switch", () => {
+    assert.equal(core.detectLanguageSwitchRequest("español por favor"), "ES");
+    assert.equal(core.detectLanguageSwitchRequest("english please"), "EN");
+});
+
 test("proceed is only triggered by real confirmations", () => {
     const s = quotedSession();
     assert.equal(core.isReadyToProceed("Sí, proceder", s), true);
     assert.equal(core.isReadyToProceed("lo quiero", s), true);
+    assert.equal(core.isReadyToProceed("zelle", s), true);
+    assert.equal(core.isReadyToProceed("efectivo", s), true);
+    assert.equal(core.isReadyToProceed("si", s), true);
+    assert.equal(core.isReadyToProceed("si como seria?", s), true);
+    assert.equal(core.isReadyToProceed("lo quiero poner en mi terreno", s), false);
     assert.equal(core.isReadyToProceed("y los nuevos son mucho mas caros?", s), false);
     assert.equal(core.isReadyToProceed("cuanto cuesta el de 40?", s), false);
+    assert.equal(core.isReadyToProceed("si el de 20", s), false);
+});
+
+test("after the Miami HC warning, yes 20 HC quotes instead of repeating the warning", () => {
+    const warned = { size: "20' HC", condition: "Usado", hc_used_warn_shown: true, zip: "32720" };
+    assert.equal(core.isHcUsedInsistRequest("yes 20' HC", warned), true);
+    assert.equal(core.isHcUsedInsistRequest("HC", warned), true);
+    assert.equal(core.isHcUsedInsistRequest("yes 20' HC", { size: "20' HC", condition: "Usado" }), true);
+    assert.equal(core.isHcUsedInsistRequest("Quote 20' STD", warned), false);
+    assert.equal(core.isHcUsedInsistRequest("20 ft high cube delivered to 32720", { size: null }), false);
+});
+
+test("name and phone in one message are contact details, not a FAQ", () => {
+    const s = quotedSession({ quoted_conditions: ["Usado", "Nuevo"], condition: "Nuevo" });
+    const contact = core.parseContactFromInput("Juan Carlos 7867684409");
+    assert.equal(contact.name, null);
+    assert.equal(contact.phone, "7867684409");
+    assert.equal(core.parseContactFromInput("okay thank you!").name, null);
+    assert.equal(core.parseContactFromInput("ok hagamsolo").name, null);
+    assert.equal(core.parseContactFromInput("mi nombre es Jonh").name, null);
+    assert.equal(core.isOrderConfirmationPhrase("ok hagamsolo"), true);
+    assert.equal(core.isReadyToProceed("ok hagamsolo", s), true);
+    assert.equal(core.isOpenEducationalQuestion("Juan Carlos 7867684409", s), false);
+    assert.equal(core.isChoosingAlreadyQuotedCondition("prefiero el usado entonces", s), true);
+    assert.equal(core.isReadyToProceed("prefiero el usado entonces", s), true);
+    assert.equal(core.wantsQuoteRecalculation("prefiero el usado entonces", s, { condition: "Usado" }, {
+        alternateSizeRequested: false, asksAlternatePrice: false, stdHcComparison: false, conditionComparison: false,
+    }), false);
+});
+
+test("zelle after a quote is a payment choice, not a payment FAQ", () => {
+    const s = quotedSession();
+    assert.equal(core.isChoosingPaymentMethod("zelle"), true);
+    assert.equal(core.isChoosingPaymentMethod("pago con zelle"), true);
+    assert.equal(core.isPaymentPolicyQuestion("zelle"), false);
+    assert.equal(core.isPaymentPolicyQuestion("¿cuándo pago?"), true);
+    assert.equal(core.isOpenEducationalQuestion("zelle", s), false);
+    assert.equal(core.buildSideQuestionReply("zelle", "ES", s), null);
+    const payMsg = "20 std is good.how do you do the payment. Pay cash when delivered or pay before delivery";
+    assert.equal(core.isPaymentPolicyQuestion(payMsg), true);
+    assert.equal(core.isConversationalSideAsk(payMsg), true);
+    assert.match(core.buildSideQuestionReply(payMsg, "EN", s) || "", /at delivery|Cash or Zelle/i);
+    assert.equal(core.isOpenEducationalQuestion(payMsg, s), true);
 });
 
 test("asking the price of the other condition triggers a real re-quote", () => {
@@ -124,9 +254,30 @@ test("initial price inquiry gets the warm welcome path", () => {
 test("a straight price question on first contact is welcomed, not quoted blindly", () => {
     const fresh = { step: 0 };
     const hit = core.quickDetect("cuanto cuesta un contenedor", "web_1", fresh);
-    assert.ok(hit, "first-contact price question should be handled without the AI");
-    assert.equal(hit.intent, "general_chat");
-    assert.match(hit.ai_reply, /Comprar|Alquilar|Transporte/);
+    assert.equal(hit, null);
+});
+
+test("advice about rain is educational, not a canned used-vs-new overwrite", () => {
+    const msg = "que me conviene mas para que mis cosas no se mojen";
+    assert.equal(core.isOpenEducationalQuestion(msg, { action: "Comprar", step: 2 }), true);
+    const ai = "El usado WWT está certificado contra filtraciones; el nuevo one-trip también sella. El usado suele alcanzar para patio.";
+    const canned = "Perfecto. ¿Lo quieres **usado (WWT)** o **nuevo one-trip**?";
+    assert.equal(core.joinWithoutRepeating(ai, canned), ai);
+});
+
+test("do you sell used is answered, not a ZIP request", () => {
+    const msg = "Hola, buenas tardes, venden contenedores usados";
+    assert.equal(core.isCatalogQuestion(msg), true);
+    assert.equal(core.wantsQuoteNow(msg, { step: 0 }), false);
+    assert.equal(core.isOpenEducationalQuestion(msg, { step: 0 }), true);
+    assert.equal(core.isCatalogQuestion("Hola como estas, queria saber si vendes usados"), true);
+    const polite = core.buildCatalogAvailabilityReply("queria saber si vendes usados", "ES");
+    assert.match(polite, /s[ií].*usado/i);
+    assert.doesNotMatch(polite, /qu[eé] m[aá]s te gustar[ií]a saber/i);
+    assert.doesNotMatch(polite, /ind[ií]came qu[eé] medida/i);
+    assert.equal(core.isCatalogQuestion("te hice una pregunta"), true);
+    assert.equal(core.wantsQuoteNow("cuanto cuesta un usado a 33139", { step: 0 }), true);
+    assert.equal(core.isCatalogQuestion("cuanto cuesta un usado a 33139"), false);
 });
 
 test("photo requests do not swallow price questions", () => {
@@ -160,6 +311,12 @@ test("quickDetect answers buttons without calling the AI", () => {
     assert.equal(buy.extracted_data.items[0].action, "Comprar");
     assert.equal(buy.intent, "quote");
 
+    const hello = core.quickDetect("hola", "web_1", fresh);
+    assert.equal(hello, null);
+    assert.equal(core.isBareGreeting("hola"), true);
+    assert.equal(core.isBareGreeting("buenas tardes"), true);
+    assert.equal(core.isBareGreeting("quiero comprar"), false);
+
     const zip = core.quickDetect("33139", "web_1", { step: 5, action: "Comprar", size: "40' STD", condition: "Usado" });
     assert.ok(zip, "a bare zip should be handled deterministically");
     assert.equal(zip.extracted_data.zip, "33139");
@@ -183,6 +340,24 @@ test("quoted price bookkeeping", () => {
     assert.equal(core.hasQuotedPrice({ step: 5, final_amount: 100 }), false);
     assert.deepEqual(core.sessionQuotedConditions(s), ["Usado"]);
     assert.equal(core.sizeAlreadyInQuotedSet(s, "40' STD"), true);
+});
+
+test("what does WWT mean is an acronym answer, not the leak copy-paste", () => {
+    const s = quotedSession({ size: "20' STD" });
+    const meaning = core.buildSideQuestionReply("que significa WWT?", "ES", s) || "";
+    assert.match(meaning, /significa|siglas/i);
+    assert.match(meaning, /Wind & Water Tight/i);
+    const leak = core.buildSideQuestionReply("me aseguras que no tiene filtraciones?", "ES", s) || "";
+    assert.match(leak, /sin filtraciones/i);
+    assert.notEqual(meaning, leak);
+
+    const afterWwt = quotedSession({
+        size: "20' STD",
+        history: [{ role: "assistant", content: leak }],
+    });
+    const again = core.buildSideQuestionReply("que significa WWT?", "ES", afterWwt) || "";
+    assert.match(again, /siglas|hermético|hermetico/i);
+    assert.notEqual(again, leak);
 });
 
 test("Spanish word endings are matched, not just the stem", () => {
@@ -240,4 +415,203 @@ test("the customer's latest explicit condition wins", () => {
     assert.equal(core.resolveExplicitCondition("y los nuevos son mas caros?", null, {}, s), "Nuevo");
     // A used/new comparison must not silently flip the stored condition
     assert.equal(core.isConditionComparisonQuestion("el usado es mas barato que el nuevo?"), true);
+});
+
+test("asking which container type a quote covers is not an order for that type", () => {
+    // The reported bug: after a dry quote, "¿estos precios son de secos o refrigerados?"
+    // switched the session to Reefer and jumped into the reefer motor question.
+    assert.equal(core.isTypeClarificationQuestion("estos precios son de contenedores secos o refrigerados?"), true);
+    assert.equal(core.extractTypeFromText("estos precios son de contenedores secos o refrigerados?"), null);
+    assert.equal(core.isTypeClarificationQuestion("cual es la diferencia entre un seco y un refrigerado?"), true);
+    assert.equal(core.isTypeClarificationQuestion("are these prices for dry or reefer containers?"), true);
+
+    // A real reefer request must still be picked up
+    assert.equal(core.extractTypeFromText("hola quiero comprar un contenedor refrigerado"), "Reefer");
+    assert.equal(core.extractTypeFromText("me cotizas un reefer de 40?"), "Reefer");
+    assert.equal(core.isTypeClarificationQuestion("tienen refrigerados?"), false);
+    assert.equal(core.extractTypeFromText("tienen refrigerados?"), "Reefer");
+    assert.equal(core.extractTypeFromText("quiero un open side"), "Open Side");
+
+    // Mixed conversation: the earlier real request survives the later question
+    assert.equal(core.extractTypeFromText("estos precios son de secos o refrigerados?\nquiero un refrigerado"), "Reefer");
+});
+
+test("the type clarification is answered from the session, never invented", () => {
+    const dry = quotedSession({ type: "Dry" });
+    const reply = core.buildSideQuestionReply("estos precios son de contenedores secos o refrigerados?", "ES", dry);
+    assert.match(reply, /secos/);
+    assert.doesNotMatch(reply, /\$/); // must not restate or invent any amount
+
+    const reefer = quotedSession({ type: "Reefer" });
+    assert.match(core.buildSideQuestionReply("estos precios son de secos o refrigerados?", "ES", reefer), /refrigerados/);
+});
+
+test("asking for reefer prices after a dry quote is a real re-quote, not a clarification", () => {
+    const s = quotedSession({ type: "Dry" });
+    const opts = { alternateSizeRequested: false, asksAlternatePrice: false, stdHcComparison: false, conditionComparison: false };
+    assert.equal(core.isTypeClarificationQuestion("estos precios son de refrigerados?"), true);
+    assert.equal(core.typePriceRequestFromInput("estos precios son de refrigerados?", s), null);
+    assert.equal(core.typePriceRequestFromInput("quiero saber el precio de los refrigerados", s), "Reefer");
+    assert.equal(core.wantsQuoteRecalculation("quiero saber el precio de los refrigerados", s, { type: "Reefer" }, opts), true);
+});
+
+test("answering the reefer motor question continues the quote", () => {
+    const s = quotedSession({ type: "Reefer", reefer_status: null });
+    const opts = { alternateSizeRequested: false, asksAlternatePrice: false, stdHcComparison: false, conditionComparison: false };
+    assert.equal(core.extractReeferStatus("Funcionando"), "Funcionando");
+    assert.equal(core.extractReeferStatus("No Funcionando"), "No Funcionando");
+    assert.equal(core.extractReeferStatus("Working"), "Funcionando");
+    assert.equal(core.wantsQuoteRecalculation("Funcionando", s, { reefer_status: "Funcionando" }, opts), true);
+    // Merging the motor answer onto the previous dry cart attaches a size that was
+    // already quoted — that must not block the reefer recalculation
+    assert.equal(core.wantsQuoteRecalculation("Funcionando", s, { size: "20'", reefer_status: "Funcionando" }, opts), true);
+    assert.equal(core.needsBuyType({ action: "Comprar", type: null, size: "20'" }), true);
+    assert.equal(core.needsBuyType({ action: "Comprar", type: null, size: "20' & 40'" }), true);
+    assert.equal(core.needsBuyType({ action: "Comprar", type: null, zip: "33139" }), true);
+    assert.equal(core.needsBuyType({ action: "Comprar", type: null }), false);
+    assert.equal(core.needsBuyType({ action: "Comprar", type: null, size: "45'" }), false);
+    assert.equal(core.needsBuyType({ action: "Comprar", type: "Dry" }), false);
+    assert.equal(core.needsBuyType({ action: "Alquilar", type: null }), false);
+    assert.equal(core.isReeferEligibleBuySize("20'"), true);
+    assert.equal(core.isReeferEligibleBuySize("40' STD"), true);
+    assert.equal(core.isReeferEligibleBuySize("20' & 40'"), true);
+    assert.equal(core.isReeferEligibleBuySize("45' HC"), false);
+    const s45 = { action: "Comprar", type: null, size: "45'" };
+    core.applyBuyTypeDefaults(s45, {}, "45'", null);
+    assert.equal(s45.type, "Dry");
+});
+
+test("location question stays in Spanish after a Spanish quote", () => {
+    const s = quotedSession({ lang: "ES" });
+    const msg = "donde estan ubicados?";
+    assert.equal(core.detectMessageLanguage(msg, "ES", s.history), "ES");
+    assert.match(core.buildSideQuestionReply(msg, "ES", s) || "", /9804 NW 80th Ave|Hialeah Gardens/i);
+    assert.doesNotMatch(core.buildSideQuestionReply(msg, "ES", s) || "", /Our central office/i);
+});
+
+test("storage on my patio is not a visit to our office", () => {
+    const msg = "estoy buscando un contenedor para almacenar en mi patio";
+    assert.equal(core.isAskingOurLocation(msg), false);
+    assert.equal(core.isAskingOurLocation("in my yard for storage"), false);
+    assert.equal(core.isAskingOurLocation("donde estan ubicados?"), true);
+    assert.equal(core.isAskingOurLocation("Where are you located?"), true);
+    assert.equal(core.isAskingOurLocation("puedo visitar la oficina?"), true);
+    const reply = core.buildSideQuestionReply(msg, "ES", { lang: "ES", step: 0 });
+    if (reply) assert.doesNotMatch(reply, /9804 NW 80th Ave|oficina central/i);
+    assert.match(core.buildSideQuestionReply("Where are you located?", "EN", { lang: "EN", step: 0 }) || "", /9804 NW 80th Ave, Hialeah Gardens FL 33016/i);
+});
+
+test("hesitation about buying without seeing gets a warm reply, not the generic fallback", () => {
+    const msg = "mmm no me gusta comprar sin antes ver lo que compro";
+    assert.equal(core.isPhotoHesitationConcern(msg), true);
+    const s = quotedSession({ condition: "Usado" });
+    const reply = core.buildPhotoHesitationReply("ES", s);
+    assert.match(reply, /Te entiendo|entrega|apruebes|WWT/i);
+    assert.doesNotMatch(reply, /qué más te gustaría saber/i);
+    assert.match(core.buildSideQuestionReply(msg, "ES", s) || "", /apruebes/i);
+});
+
+test("street numbers are not mistaken for ZIP codes", () => {
+    assert.equal(core.extractZipFromText("26571 Chaparel Dr, Bonita Springs, FL"), null);
+    assert.deepEqual(core.extractAllValidZips("26571 Chaparel Dr, Bonita Springs"), []);
+    assert.equal(core.extractZipFromText("20 ft high cube if possible used/good condition delivered to Deland Florida 32720. CO$T please.will need at the 1st of October"), "32720");
+    assert.equal(core.extractZipFromText("33139"), "33139");
+});
+
+test("transport route parses X to Y and in-X-delivered-to-Y patterns", () => {
+    assert.deepEqual(core.extractTransportZipsFromText("34135 to 34119"), { zip_origin: "34135", zip_dest: "34119" });
+    assert.deepEqual(
+        core.extractTransportZipsFromText("Container is in 34135 need delivered to 34119"),
+        { zip_origin: "34135", zip_dest: "34119" },
+    );
+});
+
+test("miami to tampa does not ask to type the same ZIP twice", () => {
+    const msg = "necesito mover un contenedor de mi casaen miami a mi terreno en tampa, ustedes hacen este servicio?";
+    assert.deepEqual(core.namedTransportCities(msg).map((c) => c.toLowerCase()), ["miami", "tampa"]);
+    const parts = core.splitTransportAddressParts(msg);
+    assert.match(parts.pickup || "", /miami/i);
+    assert.match(parts.delivery || "", /tampa/i);
+    const ask = core.buildTransportZipsAsk("ES", msg, []);
+    assert.match(ask, /miami/i);
+    assert.match(ask, /tampa/i);
+    assert.doesNotMatch(ask, /dos veces|33139 33139|mismo código postal dos/i);
+});
+
+test("transport session does not drift to Comprar on zip-only messages", () => {
+    const transportSession = { step: 3, action: "Transporte", size: "40' HC", lang: "EN" };
+    const qd = core.quickDetect("34135 to 34119", transportSession);
+    assert.equal(qd?.extracted_data?.action, "Transporte");
+    assert.equal(qd?.extracted_data?.zip_origin, "34135");
+    assert.equal(qd?.extracted_data?.zip_dest, "34119");
+    assert.notEqual(qd?.extracted_data?.action, "Comprar");
+    assert.equal(core.isReadyToProceed("Container is in 34135 need delivered to 34119", transportSession), false);
+});
+
+test("good condition maps to used; regular container means dry not reefer", () => {
+    assert.equal(core.mentionsUsedCondition("two 40' in good condition"), true);
+    assert.equal(core.extractTypeFromText("I am looking for a regular container"), "Dry");
+    assert.equal(core.typeSwitchFromInput("I don't need new reefer", { type: "Reefer" }), "Dry");
+    assert.equal(core.typeSwitchFromInput("I am looking for a regular container", { type: "Reefer" }), "Dry");
+});
+
+test("not a regular container + freezer switches to reefer quote", () => {
+    const msg = "Not a regular container, a 40 foot freezer container.";
+    const session = { step: 6, final_amount: 2000, action: "Comprar", type: "Dry", condition: "Usado", size: "40'", zip: "34105" };
+    assert.equal(core.isRegularDryAffirmation(msg), false);
+    assert.equal(core.isRegularDryAffirmation("I am looking for a regular container"), true);
+    assert.equal(core.typeSwitchFromInput(msg, session), "Reefer");
+    const qd = core.quickDetect(msg, "web_test", session);
+    assert.equal(qd?.intent, "quote");
+    assert.equal(qd?.extracted_data?.type, "Reefer");
+    assert.equal(
+        core.wantsQuoteRecalculation(msg, session, { type: "Reefer" }, { alternateSizeRequested: false, asksAlternatePrice: false, stdHcComparison: false, conditionComparison: false }),
+        true,
+    );
+});
+
+test("sanitizeInferredType strips reefer when customer never asked for it", () => {
+    const data = { type: "Reefer", items: [{ type: "Reefer", action: "Comprar" }] };
+    core.sanitizeInferredType("Hi, I'm looking for two 40' in good condition", { action: "Comprar", history: [] }, data);
+    assert.equal(data.type, "Dry");
+});
+
+test("forget it is treated as cancel", () => {
+    assert.equal(core.isCancellationMessage("Forget it"), true);
+    const qd = core.quickDetect("Forget it", "web_test", { action: "Comprar", step: 6, final_amount: 5000 });
+    assert.equal(qd?.intent, "cancel");
+});
+
+test("human quote in assistant history hydrates buy session", () => {
+    const quote = "The total price for Used 40' container delivered to 33756 is $2,200 (container + delivery, no hidden fees).";
+    assert.equal(core.extractQuotedAmountFromText(quote), 2200);
+    assert.equal(core.looksLikeHumanQuote(quote), true);
+    assert.equal(core.looksLikeHumanQuote("We cannot send photos right now."), false);
+
+    const session = {
+        step: 0,
+        action: null,
+        history: [
+            { role: "user", content: "Looking for a 40ft delivery to zip code 33756" },
+            { role: "assistant", content: quote },
+        ],
+    };
+    const hydration = core.hydrateSessionFromConversation(session);
+    assert.equal(hydration.action, "Comprar");
+    assert.equal(hydration.size, "40'");
+    assert.equal(hydration.zip, "33756");
+    assert.equal(hydration.condition, "Usado");
+    assert.equal(hydration.final_amount, 2200);
+    assert.equal(hydration.step, 6);
+});
+
+test("hydration does not overwrite an existing quoted session", () => {
+    const session = { step: 6, final_amount: 1800, action: "Comprar", size: "20'", zip: "33139" };
+    const hydration = core.hydrateSessionFromConversation({
+        ...session,
+        history: [{ role: "assistant", content: "The total price for Used 40' container delivered to 33756 is $2,200." }],
+    });
+    assert.equal(hydration.final_amount, undefined);
+    assert.equal(hydration.step, undefined);
+    assert.equal(hydration.action, undefined);
 });

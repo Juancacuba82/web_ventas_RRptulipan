@@ -6,6 +6,12 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 const VERIFY_TOKEN = Deno.env.get("META_VERIFY_TOKEN") || "tulipan-webhook-token-v3";
+const MESSENGER_DEBOUNCE_MS = 5000;
+
+/** Messenger/Instagram replies only when this secret is exactly "true". Web chat is unaffected. */
+function messengerRepliesEnabled(): boolean {
+    return (Deno.env.get("MESSENGER_BOT_ENABLED") || "").trim().toLowerCase() === "true";
+}
 
 declare const EdgeRuntime: { waitUntil: (p: Promise<unknown>) => void } | undefined;
 
@@ -25,8 +31,28 @@ function keepAlive(work: Promise<unknown>) {
     return false;
 }
 
+function isBotPaused(session: any): boolean {
+    return Number(session?.step) === -1;
+}
+
+type DebouncePayload = { texts: string[]; mids: string[] };
+
+function parseDebouncePayload(raw: string | null | undefined): DebouncePayload {
+    if (!raw) return { texts: [], mids: [] };
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.texts)) {
+            return { texts: parsed.texts, mids: Array.isArray(parsed.mids) ? parsed.mids : [] };
+        }
+    } catch { /* ignore */ }
+    return { texts: [], mids: [] };
+}
+
 async function handleMessage(senderId: string, messageText: string, messageId?: string, extraIds: string[] = []) {
     try {
+        if (!messengerRepliesEnabled()) return;
+        const { data: session } = await supabase.from("bot_sessions").select("step").eq("sender_id", senderId).single();
+        if (isBotPaused(session)) return;
         const body: { sender_id: string; message: string; message_id?: string; message_ids?: string[] } = {
             sender_id: senderId,
             message: messageText,
@@ -59,8 +85,53 @@ async function handleMessage(senderId: string, messageText: string, messageId?: 
     }
 }
 
+/** Wait for the customer to finish typing before invoking chatbot-core (human-like pause). */
+async function enqueueDebouncedMessage(senderId: string, messageText: string, messageId?: string, extraIds: string[] = []) {
+    if (!messengerRepliesEnabled()) return;
+    const { data: session } = await supabase
+        .from("bot_sessions")
+        .select("step,pending_debounce_version,pending_debounce_payload")
+        .eq("sender_id", senderId)
+        .single();
+    if (isBotPaused(session)) return;
+
+    const payload = parseDebouncePayload(session?.pending_debounce_payload);
+    payload.texts.push(messageText);
+    if (messageId) payload.mids.push(messageId);
+    for (const id of extraIds) {
+        if (id && id !== messageId) payload.mids.push(id);
+    }
+
+    const version = (Number(session?.pending_debounce_version) || 0) + 1;
+    await updateSession(senderId, {
+        pending_debounce_version: version,
+        pending_debounce_payload: JSON.stringify(payload),
+    });
+
+    const capturedVersion = version;
+    const work = (async () => {
+        await new Promise((r) => setTimeout(r, MESSENGER_DEBOUNCE_MS));
+        const { data: fresh } = await supabase
+            .from("bot_sessions")
+            .select("step,pending_debounce_version,pending_debounce_payload")
+            .eq("sender_id", senderId)
+            .single();
+        if (!fresh || Number(fresh.pending_debounce_version) !== capturedVersion) return;
+        if (isBotPaused(fresh)) return;
+
+        const batch = parseDebouncePayload(fresh.pending_debounce_payload);
+        const merged = batch.texts.join(" ").trim();
+        const mids = batch.mids.filter(Boolean);
+        await updateSession(senderId, { pending_debounce_payload: null });
+        if (merged) await handleMessage(senderId, merged, mids[0], mids.slice(1));
+    })();
+
+    keepAlive(work);
+}
+
 async function handleEvent(event: any) {
     if (!event.sender?.id) return;
+    if (!messengerRepliesEnabled()) return;
     const senderId = event.sender.id;
 
     if (event.postback) {
@@ -77,9 +148,11 @@ async function handleEvent(event: any) {
             const txt = event.message.text.trim().toLowerCase();
             const customerId = event.recipient.id;
             if (txt.includes("//activar") || txt.includes("//activate") || txt.includes("// reiniciar") || txt.includes("//restart")) {
-                await updateSession(customerId, { step: 0 });
+                const { data: session } = await supabase.from("bot_sessions").select("final_amount, action").eq("sender_id", customerId).single();
+                const restoreStep = session?.final_amount != null ? 6 : (session?.action ? 3 : 0);
+                await updateSession(customerId, { step: restoreStep, is_processing: false, queued_messages: null, pending_debounce_payload: null });
             } else if (txt.startsWith("//")) {
-                await updateSession(customerId, { step: -1 });
+                await updateSession(customerId, { step: -1, is_processing: false, queued_messages: null, pending_debounce_payload: null });
             } else {
                 await supabase.functions.invoke("chatbot-core", {
                     body: { sender_id: customerId, message: event.message.text, is_human: true }
@@ -110,7 +183,7 @@ async function handleEvent(event: any) {
             return;
         }
     }
-    if (text) await handleMessage(senderId, text, event.message.mid);
+    if (text) await enqueueDebouncedMessage(senderId, text, event.message.mid);
 }
 
 function eventText(event: any): string {
@@ -146,7 +219,7 @@ async function processPayload(body: any) {
                 if (events[j].message?.mid) mids.push(events[j].message.mid);
                 j++;
             }
-            await handleMessage(senderId, texts.join(" "), mids[0], mids.slice(1));
+            await enqueueDebouncedMessage(senderId, texts.join(" "), mids[0], mids.slice(1));
             i = j;
         } else {
             await handleEvent(event);
@@ -169,6 +242,9 @@ serve(async (req) => {
         try {
             const body = await req.json();
             if (body.object === "page" || body.object === "instagram") {
+                if (!messengerRepliesEnabled()) {
+                    console.log("Messenger bot paused (MESSENGER_BOT_ENABLED!=true); webhook ACK only");
+                }
                 const work = processPayload(body).catch((e) => console.error("Background event error:", e));
                 const ack = new Response("EVENT_RECEIVED", { status: 200 });
 

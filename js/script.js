@@ -3028,16 +3028,22 @@ Phone: ${selections.contact.phone}
             }
         };
 
+        const invokeCore = (text) => {
+            const call = supabaseClient.functions.invoke('chatbot-core', {
+                body: { sender_id: chatSenderId, message: text }
+            });
+            const timeout = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('timeout')), 25000);
+            });
+            return Promise.race([call, timeout]);
+        };
+
         const sendToCore = async (text) => {
             typingIndicator.classList.add('active');
             aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
 
             try {
-                const { data, error } = await supabaseClient.functions.invoke('chatbot-core', {
-                    body: { sender_id: chatSenderId, message: text }
-                });
-
-                typingIndicator.classList.remove('active');
+                const { data, error } = await invokeCore(text);
 
                 if (error || !data?.actions?.length) {
                     appendMessage('Lo siento, hubo un error. Por favor escribe "reiniciar" o haz clic en Restart.', 'bot');
@@ -3046,9 +3052,10 @@ Phone: ${selections.contact.phone}
 
                 renderCoreActions(data.actions);
             } catch (err) {
-                typingIndicator.classList.remove('active');
                 console.error('chatbot-core error:', err);
                 appendMessage('Error de conexión. Por favor inténtalo de nuevo.', 'bot');
+            } finally {
+                typingIndicator.classList.remove('active');
             }
         };
 
@@ -3069,11 +3076,7 @@ Phone: ${selections.contact.phone}
                 // Always start a brand-new server session — never reuse old quote state
                 chatSenderId = 'web_' + Math.random().toString(36).substr(2, 12);
 
-                const { data, error } = await supabaseClient.functions.invoke('chatbot-core', {
-                    body: { sender_id: chatSenderId, message: chatGreetWord() }
-                });
-
-                typingIndicator.classList.remove('active');
+                const { data, error } = await invokeCore(chatGreetWord());
 
                 if (error || !data?.actions?.length) {
                     appendMessage('Lo siento, no se pudo reiniciar. Por favor inténtalo de nuevo.', 'bot');
@@ -3082,9 +3085,10 @@ Phone: ${selections.contact.phone}
 
                 renderCoreActions(data.actions);
             } catch (err) {
-                typingIndicator.classList.remove('active');
                 console.error('chatbot restart error:', err);
                 appendMessage('Error de conexión al reiniciar. Por favor inténtalo de nuevo.', 'bot');
+            } finally {
+                typingIndicator.classList.remove('active');
             }
         };
 

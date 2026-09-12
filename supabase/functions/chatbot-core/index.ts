@@ -17,8 +17,8 @@ function scoreLanguage(text: string): { es: number; en: number } {
     let es = 0;
     let en = 0;
 
-    const esRe = /\b(busco|busca|buscar|necesito|necesitamos|quiero|queremos|quisiera|hola|gracias|contenedor|contenedores|cotizaci[oó]n|precio|cu[aá]nto|comprar|alquilar|rentar|renta|mover|transporte|transportar|usado|nuevo|vac[ií]o|cargado|lleno|s[ií]|por favor|entrega|entregar|proceder|exportaci[oó]n|flexible|inmediato|pies|español|espanol|tengo|tienen|hacen|pueden|uno|una|dos|tres|cuatro|para|desde|hasta|terreno|patio|env[ií]o|tambi[eé]n|me|mi|tu|su|del|al|el|la|los|las|estoy|est[aá]|ser[ií]a|podr[ií]an|d[ií]game|dime|ayuda|ayudar)\b/gi;
-    const enRe = /\b(hello|hi|thanks|thank you|need|looking|want|container|containers|quote|price|how much|buy|rent|transport|move|moving|used|new|empty|loaded|delivery|deliver|proceed|export|flexible|immediate|feet|english|yes|please|one|two|three|four|can you|do you|yard|lot|ship|help|would|could|also|your|my|the|this|that|looking for|i need|i want)\b/gi;
+    const esRe = /\b(busco|busca|buscar|necesito|necesitamos|quiero|queremos|quisiera|hola|gracias|contenedor|contenedores|cotizaci[oó]n|precio|cu[aá]nto|comprar|alquilar|rentar|renta|mover|transporte|transportar|usado|nuevo|vac[ií]o|cargado|lleno|s[ií]|por favor|entrega|entregar|proceder|exportaci[oó]n|flexible|inmediato|pies|español|espanol|tengo|tienen|hacen|pueden|uno|una|dos|tres|cuatro|para|desde|hasta|terreno|patio|env[ií]o|env[ií]os|tambi[eé]n|me|mi|tu|su|del|al|el|la|los|las|estoy|est[aá]n|est[aá]|ser[ií]a|podr[ií]an|d[ií]game|dime|ayuda|ayudar|pago|pagar|recibo|reciba|cuando|permiso|permisos|filtraci[oó]n|hueco|foto|fotos|d[ií]as|h[aá]bil|d[oó]nde|ubicad\w*|oficina|direcci[oó]n|cuba|visitar)\b/gi;
+    const enRe = /\b(hello|hi|thanks|thank you|need|looking|want|container|containers|quote|price|how much|buy|rent|transport|move|moving|used|new|empty|loaded|delivery|deliver|proceed|export|flexible|immediate|feet|english|yes|please|one|two|three|four|can you|do you|yard|lot|ship|help|would|could|also|your|my|the|this|that|looking for|i need|i want|where|are|you|located|based|we|our|office|address|visit|call|schedule|appointment)\b/gi;
 
     const esMatches = lo.match(esRe);
     const enMatches = lo.match(enRe);
@@ -51,8 +51,19 @@ function isLanguageNeutralInput(input: string): boolean {
     return neutral.has(lo);
 }
 
+function detectLanguageSwitchRequest(input: string): "EN" | "ES" | null {
+    const lo = (input || "").trim().toLowerCase();
+    if (/^(espa[nñ]ol|espanol|es)(\s+por favor)?\.?$/.test(lo)) return "ES";
+    if (/\b(habla|hablen|escribe|escrib[ae]|en)\s+espa[nñ]ol\b/.test(lo)) return "ES";
+    if (/^(english|en)(\s+please)?\.?$/.test(lo)) return "EN";
+    if (/\b(speak|write|in)\s+english\b/.test(lo)) return "EN";
+    return null;
+}
+
 function detectMessageLanguage(input: string, sessionLang?: string | null, history?: any): "EN" | "ES" {
     const trimmed = (input || "").trim().toLowerCase();
+    const langSwitch = detectLanguageSwitchRequest(input);
+    if (langSwitch) return langSwitch;
     if (["español", "espanol", "es"].includes(trimmed)) return "ES";
     if (["english", "en"].includes(trimmed)) return "EN";
 
@@ -82,7 +93,7 @@ const chatDict: Record<string, any> = {
         step1_btns: ["Comprar", "Alquilar", "Transporte"],
         step3_size_msg: "Perfecto. Ahora indícame qué medida necesitas.",
         step3_size_msg_rent: "Para renta, ¿qué medida necesitas? El **20'** es el más popular para patio o terreno; el **40'** si necesitas más espacio.",
-        step3_size_msg_transport: "¿Qué medida tiene el contenedor que vamos a mover?",
+        step3_size_msg_transport: "Sí, hacemos ese tipo de traslado. ¿De qué medida es el contenedor que ya tienes (20, 40 o 45 pies)?",
         step3_size_btns: ["20'", "40'", "45'"],
         calculating: "Calculando precio exacto... ⏳",
         ask_zip: "¿Cuál es tu código postal (Zip Code) de 5 dígitos para la entrega?",
@@ -121,13 +132,15 @@ const chatDict: Record<string, any> = {
         ask_name: "¡Excelente! Por favor, escribe tu nombre completo para iniciar la orden.",
         ask_phone: "Gracias, {name}. Ahora, por favor escribe tu número de teléfono de contacto.",
         order_done: "¡Perfecto! Hemos recibido tu solicitud. Un agente te contactará en breve por teléfono o WhatsApp para finalizar los detalles. ¡Que tengas un gran día!",
-        ask_transport_details: "Para darle una cotización exacta de transporte, por favor indíquenos los siguientes detalles:\n\n1. Código postal de recogida y de entrega (si ambos comparten el mismo código postal, por favor ingréselo dos veces con un espacio de separación).\n2. ¿El contenedor está vacío, cargado con menos de 14,000 lbs, o cargado con más de 14,000 lbs?\n\nUna vez tengamos esta información, ¡le daremos el precio de inmediato!",
-        ask_transport_zips: "Perfecto. Ahora necesito el código postal de 5 dígitos de recogida y el de entrega. Si es el mismo lugar, escríbelo dos veces separado por un espacio (ej. 33139 33139).",
+        ask_transport_details: "Para cotizar el traslado necesitamos: ZIP de recogida, ZIP de entrega, y si va vacío o cargado (menos o más de 14,000 lbs).",
+        ask_transport_zips: "Para cotizar el traslado necesito el código postal de 5 dígitos de recogida y el de entrega.",
         ask_transport_load: "¿Cómo está el contenedor?\n\n• Vacío\n• Cargado con menos de 14,000 lbs\n• Cargado con más de 14,000 lbs",
         ask_load_btns: ["Vacío", "Cargado <14k", "Cargado >14k"],
         price_transport: "El precio por mover tu{qty_plural_s} {qty}contenedor{qty_plural_es} de {size} ({load}) desde el Zip {origin} hasta el Zip {dest} es:\n\n🔹 Flexible (En Ruta): **{price}**\nCuando uno de nuestros camiones esté cerca del lugar de recogida.\n\n🔹 Inmediato (Desde {yard}): **{immed}**\nMandamos un camión desde nuestro patio para moverlo lo antes posible.{crane_note}\n\n¿Cuál opción prefieres?",
         price_transport_single: "El precio por mover tu{qty_plural_s} {qty}contenedor{qty_plural_es} de {size} ({load}) desde el Zip Code {origin} hasta el Zip Code {dest} es de **{price}**.\n\n¿Te gustaría proceder?",
         transport_option_btns: ["Flexible", "Inmediato"],
+        transport_zips_confirm: "Tengo recogida en el ZIP **{origin}** y entrega en el ZIP **{dest}**. ¿Es correcto?",
+        transport_zips_confirm_btns: ["Sí, correcto", "No, escribo los ZIP"],
         human_handoff: "Veo que su solicitud requiere logística especial. Nuestro especialista en ventas revisará los detalles y le responderá por este mismo chat en breve. Por favor, espere en línea.",
         price_rent: "¡Excelente noticia! Tenemos disponibilidad para renta en {zip}.\n\n🔹 Renta Mensual: {monthly}\n🔹 Logística (Entrega y Recogida futura): {logistics} (pago único)\n\nEl pago inicial sería de {price}. ¿Proceder?",
         price_export: "Perfecto. El precio total por el contenedor es de **{price}**. ¿Te gustaría proceder con la compra?",
@@ -141,7 +154,7 @@ const chatDict: Record<string, any> = {
         step1_btns: ["Buy", "Rent", "Transport"],
         step3_size_msg: "Perfect. Now, please let me know what size you need.",
         step3_size_msg_rent: "For rent, what size do you need? **20'** is most popular for yard storage; **40'** if you need more space.",
-        step3_size_msg_transport: "What size is the container we would be moving?",
+        step3_size_msg_transport: "Yes, we do that kind of move. What size is the container you already have (20, 40, or 45 ft)?",
         step3_size_btns: ["20'", "40'", "45'"],
         calculating: "Calculating exact price... ⏳",
         ask_zip: "What is your 5-digit delivery Zip Code?",
@@ -180,13 +193,15 @@ const chatDict: Record<string, any> = {
         ask_name: "Excellent! Please enter your full name to start the order.",
         ask_phone: "Thank you, {name}. Now, please enter your contact phone number.",
         order_done: "Perfect! We have received your request. An agent will contact you shortly by phone or WhatsApp to finalize the details. Have a great day!",
-        ask_transport_details: "To give you an accurate transportation quote, please provide us with the following details:\n\n1. Pickup and delivery zip codes (if both locations share the same zip code, please enter it twice with a space in between).\n2. Is the container empty, loaded under 14,000 lbs, or loaded over 14,000 lbs?\n\nOnce we have this info, we’ll get back to you with pricing right away!",
-        ask_transport_zips: "Perfect. Now I need the 5-digit pickup zip code and the delivery zip code. If both places share the same zip, enter it twice with a space (e.g. 33139 33139).",
+        ask_transport_details: "To quote the move we need: pickup ZIP, delivery ZIP, and whether it is empty or loaded (under or over 14,000 lbs).",
+        ask_transport_zips: "To quote the move I need the 5-digit pickup zip code and the delivery zip code.",
         ask_transport_load: "How is the container loaded?\n\n• Empty\n• Loaded under 14,000 lbs\n• Loaded over 14,000 lbs",
         ask_load_btns: ["Empty", "Loaded <14k", "Loaded >14k"],
         price_transport: "The price to move your {qty} {size} ({load}) container{qty_plural_s} from Zip {origin} to Zip {dest} is:\n\n🔹 Flexible (En Route): **{price}**\nWhen one of our trucks is already near the pickup location.\n\n🔹 Immediate (From {yard}): **{immed}**\nWe dispatch a truck from our yard to move it as soon as possible.{crane_note}\n\nWhich option do you prefer?",
         price_transport_single: "The price to move your {qty} {size} ({load}) container{qty_plural_s} from Zip Code {origin} to Zip Code {dest} is **{price}**.\n\nWould you like to proceed?",
         transport_option_btns: ["Flexible", "Immediate"],
+        transport_zips_confirm: "I have pickup at ZIP **{origin}** and delivery at ZIP **{dest}**. Is that correct?",
+        transport_zips_confirm_btns: ["Yes, that's correct", "No, I'll type the zips"],
         human_handoff: "I see your request requires special logistics. Our sales specialist will review the details and reply to you in this chat shortly. Please wait online.",
         price_rent: "Great news! We have availability to rent to {zip}.\n\n🔹 Monthly Rent: {monthly}\n🔹 Logistics (Delivery & future pickup): {logistics} (one-time fee)\n\nInitial payment would be {price}. Proceed?",
         price_export: "Perfect. The total price for the container is **{price}**. Would you like to proceed?",
@@ -218,15 +233,15 @@ WHAT WE SELL (facts — never make anything up):
 - 40' USED: we have BOTH STD and HC at the EXACT SAME PRICE.
 - 45': ONLY Dry and ONLY High Cube. Never ask a 45' customer about Reefer or Open Side.
 - CONDITIONS: brand new (One-Trip) is available in 20ft STD, 40ft and 45ft — NEVER say we don't have new 20' STD / 40' / 45'. Used containers are all Wind & Water Tight (WWT): structurally sound, no leaks, doors seal properly, hardwood or bamboo floors in good structural condition.
-- TYPES: Dry, Reefer, Open Side, Double Door. Reefers come Working (functional), Not Working (no AC), or brand new. Open Side and Double Door are ONLY brand new and ONLY in 20ft and 40ft — never offer 45ft for them.
+- TYPES: Dry, Reefer, Open Side, Double Door. SALE (Comprar) offers Dry and Reefer (the system asks with buttons). We do NOT rent reefers — rentals are DRY storage only. Reefers come Working (functional), Not Working (no AC), or brand new. Open Side and Double Door are ONLY brand new, ONLY for sale, and ONLY in 20ft and 40ft — never offer 45ft for them.
 - REEFER POWER: they run on 440V 3-phase (440V trifásica). We also sell transformers that convert 220V to 440V: Used $2,500, New $3,000.
 
 COMPANY FACTS:
 - PAYMENT: on delivery or pickup (COD) we ONLY accept Cash or Zelle. Credit Card or Check MUST be paid in full BEFORE the driver leaves our yard. NO financing.
-- DELIVERY TIME: 1-3 business days after order confirmation.
+- DELIVERY TIME (SALE/RENT of a container we provide): 1-3 business days after order confirmation. TRANSPORT (moving a container they already own): NEVER say 1-3 business days. Say that once their name and phone are in our system, dispatch will call to agree on pickup and delivery dates based on route availability.
 - PRICING POLICY: ads show the container price at the port only; delivery varies by zip distance, so we cannot advertise one price. Our quote is FINAL: container + flatbed delivery, no hidden fees. Prices are already the lowest wholesale port prices with zero hidden margins — there are NO additional discounts of any kind, including military, senior, veteran, and first responder.
 - GUARANTEES: NEVER mention or offer a guarantee unless the customer explicitly asks. If they ask: we offer ONLY a 6-month Wind and Water Tight structural guarantee on used containers, and NO other guarantee.
-- LOCATIONS/HUBS: distribution centers in Miami, Tampa, Titusville, Jacksonville, Savannah, and Atlanta. Main office: 8500 NW 87 Ave, Miami, FL 33166. WHENEVER you give the office address, you MUST also say they need to call first to schedule an appointment so they don't find the office closed.
+- LOCATIONS/HUBS: distribution centers in Miami, Tampa, Titusville, Jacksonville, Savannah, and Atlanta. Central office: 9804 NW 80th Ave, Hialeah Gardens FL 33016. When they ask where WE are, how to visit, or our address, list the hubs AND give this office address. Always say they must call first to schedule an appointment. If they say they want the container on their patio/yard/lot, they want delivery there — greet that and continue buy/rent, never our office address.
 - CONTACT: 786-768-4409 | 786-736-6288 — rptulipantransport@gmail.com. You ARE authorized to give these out when they ask for a phone number, want to call us, or want a human. Never refuse. BUT if they say "call me" / "llámame" or tell you when to call them, do NOT give our numbers — just acknowledge warmly and say an agent will contact them.
 - PHOTOS POLICY: we cannot send the exact unit now (port stacks move constantly). On delivery day the driver sends photos of the exact container and waits for the customer's approval before driving to their property. Never invent that you can email or WhatsApp photos of the exact unit now.
 - EXPORT: we DO provide containers for international export (Puerto Rico, Cuba, Bahamas, etc.). We ONLY SELL the certified container (export certificate valid 1 year). We do NOT rent for export, the sale price does NOT include delivery to their ZIP, and we do NOT offer maritime shipping. The US ZIP is only to locate the nearest depot in case they later want delivery (quoted separately). If they ask to rent for export, explain warmly that for export we only sell the certified container and rentals are for storage inside the US only.
@@ -235,9 +250,10 @@ COMPANY FACTS:
 
 SLANG THAT IS EASY TO MISREAD:
 - "one trip" / "one-trip" / "on trip" / "1 trip" → industry term for a BRAND NEW container (one voyage from the factory). ALWAYS condition "Nuevo", never "Usado".
-- "wwt" / "wind water tight" / "cargo worthy" / "cw" / "water tight" / "no leaks" → used-condition quality wording → answer with our WWT info.
+- "wwt" / "wind water tight" / "cargo worthy" / "cw" / "water tight" / "no leaks" / "doors close" / looks don't matter → they want a USED WWT unit. Extract condition "Usado". If they also ask about leaks/quality, answer with our WWT info.
 - "need closer" / "can you do better" / "bottom line" / "best price" / "lowest" / "closer deal" / any discount request → they want a price reduction → explain our pricing policy warmly.
-- "pick up" / "retirar" / "lo retiro yo" / "buscar" / "recoger" → they want to collect it themselves. Use intent "general_chat" and output EXACTLY this in ai_reply: (EN) "If you prefer to pick up the container yourself at our yard, please call us at 786-768-4409." (ES) "Si prefiere retirarlo usted mismo en nuestro patio, por favor llámenos al 786-768-4409." Do NOT change the action.
+- "pick up" / "retirar" / "lo retiro yo" / "recoger en su patio" → they want to collect it themselves at OUR yard. Use intent "general_chat" and output EXACTLY this in ai_reply: (EN) "If you prefer to pick up the container yourself at our yard, please call us at 786-768-4409." (ES) "Si prefiere retirarlo usted mismo en nuestro patio, por favor llámenos al 786-768-4409." Do NOT change the action. NEVER treat "estoy buscando" / "I'm looking for" as pickup.
+- "en mi patio" / "my yard" / "my lot" / "almacenar" / "para guardar" → they want a container delivered to THEIR property for storage (buy or rent). That is NOT a visit to our office. Do not give our address.
 
 OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO extra text:
 {
@@ -268,25 +284,27 @@ OUTPUT: You MUST output a valid JSON object with NO markdown, NO code blocks, NO
 }
 
 INTENT RULES (pick exactly one):
-- "quote" → they are giving new data (size, zip, condition, quantity) or asking for ANY price that is not already in CURRENT SESSION STATE. Leave ai_reply null so the system sends the exact number; never write filler like "I'll get you a quote shortly". A short "Yes" is fine if they also asked a yes/no question. Specific cases: if they need to MOVE/haul a container they already own, action MUST be "Transporte" (never ask if they want to buy or rent); if the container is going to another country, action MUST be "Exportacion"; if they explicitly ORDER a 20' HC, size "20' HC".
-- "general_chat" → any question that is not a request for a new price: quality, payment, guarantees, discounts, delivery time, logistics, technical questions, size or condition comparisons, and doubts about prices you already quoted. Write a natural 2-5 sentence ai_reply like an experienced salesperson. You MAY reference prices listed in CURRENT SESSION STATE, and no other number. Never repeat the quote template, and don't tack "¿Proceder?" onto every answer — only mention it when it fits naturally.
+- "quote" → they are giving new data (size, zip, condition, type, reefer motor, quantity) or asking for ANY price that is not already in CURRENT SESSION STATE. Leave ai_reply null so the system sends the exact number ONLY when they did not also ask a side question. Never write filler like "I'll get you a quote shortly". If they need to MOVE/haul a container they already own, action MUST be "Transporte"; if going to another country, action MUST be "Exportacion".
+- "general_chat" → greetings, small talk, payment/how-it-works, and any question that is not a request for a NEW price from the database. If they confirm a size ("20 std is good") AND ask something else in the SAME message (payment, delivery, photos), answer THAT question in ai_reply — do NOT leave ai_reply null. Greetings ("hola", "cómo estás"): reply like a real person in 1–2 short sentences, vary the wording, do NOT paste a company intro or list buy/rent/transport unless they asked for prices. Customers will ask things you have never seen. Answer like an experienced salesperson in 2-5 sentences using COMPANY FACTS. You MAY reference prices listed in CURRENT SESSION STATE, and no other number. NEVER invent a policy, a price, or a capability. There are NO buttons — never say "elige una opción" or "tap".
 - "proceed" → they clearly confirm the order AFTER receiving a final price (sí proceder, yes proceed, let's do it, I'll take it, listo, adelante, lo quiero, confirmo). Never for questions, and never for a lone "yes"/"si" that answers a different question. If they agree but change the quantity at the same time, use "quote" so the price is recalculated.
 - "cancel" → they clearly want to stop (bye, no thanks, not interested, too expensive, I'll think about it, shopping around). NEVER for "ok" / "okay" / "vale" / "perfecto" / a thumbs-up — those are acknowledgments, use general_chat and invite them to proceed or ask something else. If they thanked you, reply "¡De nada!" / "You're welcome!"; if they just said goodbye, "¡Gracias!" / "Thank you!".
 - "photos" → their FIRST request for photos, pictures, images, gallery, or to see the unit before buying. Leave ai_reply null; the system sends the full policy and gallery. If that policy is ALREADY in this conversation, use "general_chat" with a short warm reply (2-4 sentences): acknowledge you already explained it, reassure them the driver sends photos of the exact unit on delivery day and waits for their approval, and ask if they want to proceed. Sound like a person, not a script, and don't repeat the long message or the gallery link unless they ask for the link.
+- PHOTO HESITATION ("no me gusta comprar sin ver", "I won't buy blind"): use "general_chat" with a warm, empathetic ai_reply (3-5 sentences). Validate their concern, explain delivery-day photos + approval before the truck leaves, mention WWT/guarantee if used, and gently invite them to proceed — never reply with a generic "what else would you like to know?".
 - "dimensions" → their FIRST request for exact dimensions, measurements, length, width, or height. NOT for delivery time ("how long"). If already sent in this conversation, use "general_chat".
 - "provide_info" → they are giving their name or phone number.
 
-FIRST CONTACT: if they have NOT chosen buy/rent/transport yet and ask for prices ("precios?", "how much", "quiero saber los precios"), use "general_chat" with a warm, welcoming ai_reply: greet them even if they didn't say hello, explain briefly that you need to know the service first, and ask whether they want to buy, rent, or transport a container. Sound like a real salesperson, never a cold generic greeting. Leave button labels to the system.
+FIRST CONTACT: greetings go in ai_reply, naturally. If they ask for prices without a service, briefly ask whether they want to buy, rent, or move a container they already own — in your own words, no script dump. Customers type everything; do not mention buttons.
 
 CONVERSATION RULES:
-- Leave ai_reply null ONLY when the system must show a structured prompt (ZIP field, condition buttons, size chips) or the intent is photos/dimensions. Otherwise, if they asked something, answer it in ai_reply — even when the intent is "quote" or "proceed".
-- NEVER accuse the customer of saying something they did not say. Do not defend your prices unless they actually questioned them. If they picked a size or condition, confirm that choice and answer whatever they asked alongside it.
+- Always answer the LAST customer message first, politely, like a salesperson. If they asked whether you sell used containers, say yes (WWT used, one-trip new also available) and invite them to tell you size or ZIP when they want a quote. Do NOT jump to ZIP, size chips, or "what service" until they ask for a price or start giving quote data. When they ARE ready to quote (how much, a size they want, a ZIP, "cotízame"), then collect the missing fields and close.
+- NEVER accuse the customer of saying something they did not say.
 - PRICE DOUBTS / SIZE COMPARISONS (e.g. "el 40' es más barato, ¿está mal?") → "general_chat". Explain honestly and do NOT re-quote. For used reefers a 20' CAN cost more than a 40' because 20' units are scarcer in inventory and delivery economics differ; that is normal.
 - CONDITION COMPARISONS ("is used cheaper?", "el usado es más barato no?") → "general_chat", and do NOT extract a condition from that question. But "¿los nuevos son más caros?" is a request for the NEW price → "quote" with condition "Nuevo" and ai_reply null.
-- NEVER assume Used or New for a purchase or rent. If they didn't say it, leave condition null and let the system ask.
-- RENT FLOW: the system asks SIZE first (20'/40'/45'), then Used vs New, then ZIP. Never skip size. If they ask something else mid-flow, use "general_chat" and answer it while the system keeps collecting the missing fields.
+- NEVER assume New. Do assume Used when they describe a WWT / budget storage unit without asking for new: "no leaks", "doors close/seal", "how it looks no concern" / appearance doesn't matter, "price is right", short-term storage. Then set condition "Usado" and do NOT ask used vs brand-new. If they didn't describe that and didn't say used/new, leave condition null and let the system ask.
+- RENT FLOW: we only rent DRY containers for US storage. If they ask to rent a reefer, say we don't rent reefers and continue with dry rental. The system asks SIZE first (20'/40'/45'), then Used vs New, then ZIP. Never skip size. If they ask something else mid-flow, use "general_chat" and answer it while the system keeps collecting the missing fields.
+- BUY FLOW: ask Dry vs Reefer ONLY when the customer is buying a normal **20' or 40'** container. Never ask for 45' (dry only), Open Side, or Double Door — reefers exist ONLY as normal 20' and 40'. Order: condition → size → Dry/Reefer (if 20/40) → reefer motor (if used reefer) → ZIP.
 - EXPORT FLOW: when they first ask for export, do NOT ask for the port zip code. The system asks for the US zip to locate the nearest depot and quotes the container first. ONLY after they received that quote AND explicitly ask to add inland transport (empty drop for loading and/or loaded to a US port) should you ask for the zip and store it in port_dest.
-- TRANSPORT FLOW: when you are only collecting missing fields, leave ai_reply null so the system asks with the correct wording. Only write ai_reply if they also asked a side question (payment, timing, crane).
+- TRANSPORT FLOW: YES we move a container they already own (e.g. Miami house → Tampa lot). Answer that first like an expert. In ai_reply, ask whatever is still missing in YOUR OWN WORDS: the size it IS (20/40/45), the 5-digit pickup ZIP and delivery ZIP, and empty vs loaded (under/over 14,000 lbs). If they named two cities, ask for each city's ZIP and NEVER tell them to type the same ZIP twice — that is only if BOTH ends share one zip. NEVER invent a ZIP or a dollar amount; the system quotes from the database. Do not leave ai_reply null while collecting these fields.
 - 20' HC QUESTIONS: if they ask whether a 20' is HC or whether we have HC ("es HC?", "is it high cube?", "tienen HC?"), do NOT extract size "20' HC" — use "general_chat" with ai_reply null and the system explains STD vs HC. NEVER answer "yes" to 20' HC availability.
 - 40' HC QUESTIONS: if they ask whether a 40' used is HC or STD, or say "este de 40 es HC", explain we have BOTH at the exact same price and extract size "40' HC".
 - REEFER TECHNICAL DETAILS: if they ask technical questions about reefers such as the year or the data sheet, the FIRST time you MUST reply exactly with this message in ai_reply depending on the language:
@@ -301,15 +319,15 @@ CONVERSATION RULES:
 
 EXTRACTION RULES (only populate what you can confidently extract; use null for everything else):
 - SIZE. "20" / "20'" / "20ft" / "twenty" / "20 pies" → "20' STD". "20 HC" / "20 High Cube" → "20' HC" (a plain 20' is NEVER "20' HC"). "40" / "40'" / "40ft" / "forty" / "40 pies" → "40'" exactly — do NOT output "40' STD" for a plain 40'. "40 HC" / "40 High Cube" / "es HC" while discussing a 40 → "40' HC". "45" / "45'" / "45ft" / "forty five" → "45' HC".
-- CONDITION. "new" / "nuevo" / "brand new" / "one trip" / "one-trip" / "on trip" / "1 trip" → "Nuevo". "used" / "usado" / "second hand" / "pre-owned" / "wwt" / "cargo worthy" / "cw" → "Usado". If they did not explicitly say it, leave it null — never guess or default.
+- CONDITION. "new" / "nuevo" / "brand new" / "one trip" / "one-trip" / "on trip" / "1 trip" → "Nuevo". "used" / "usado" / "second hand" / "pre-owned" / "wwt" / "cargo worthy" / "cw" → "Usado". Also "Usado" when they specify WWT needs or a cheap storage unit: no leaks, doors close/seal, appearance doesn't matter, "price is right" deal. Only leave it null if they said neither used/new NOR those used-quality cues.
 - TYPE. "reefer" / "refrigerado" / "refrigerated" / "cold" / "freezer" → "Reefer". "standard" / "dry" / "estandar" / "regular" / "normal" → "Dry". "open side" / "puertas laterales" / "abre por el lado" → "Open Side". "double door" / "puertas dobles" / "doble puerta" / "tunel" / "tunnel" → "Double Door". NEVER change the type unless they explicitly name one — if they just ask for another size ("y el de 40'"), leave type null so the current one is kept.
-- ACTION. "storage" / "almacenamiento" / "para guardar" → "Comprar"; if they ask for a price without saying buy or rent, assume "Comprar". "rent" / "alquiler" / "renta" / "lease" → "Alquilar" (US storage only). "move" / "transport" / "mover" / "haul" / "relocate" / "de mi casa" / "to my lot" / "hasta un terreno" → "Transporte", and do NOT also extract type or condition unless they named them. "export" / "exportacion" → "Exportacion"; if they mention renting in an export conversation, keep "Exportacion" and set export_action "Comprar".
+- ACTION. Infer from meaning, not from a keyword list. If they want to move/haul/relocate a container they already own ("need one moved", "I have a container", "pick it up from my lot") → "Transporte"; do NOT extract condition or type. If they want to rent for US storage → "Alquilar". If they want to buy or get a container they do not already own → "Comprar". Do NOT default to Comprar just because they asked "price" or named a size. If CURRENT SESSION already has a Service, keep it unless this last message clearly switches. On a pure field answer (zip, used/new, empty/loaded, a size tap), leave action null. "export" / "exportacion" → "Exportacion"; renting in an export conversation stays "Exportacion" with export_action "Comprar".
 - QUANTITY. "two"/"2"/"dos"/"couple"/"a pair" → 2. "three"/"3"/"tres" → 3. "one"/"1"/"un"/"uno" → 1.
 - REEFER STATUS. "working" / "funcionando" / "with ac" / "with motor" → "Funcionando". "not working" / "no funciona" / "no ac" / "sin motor" / "broken" → "No Funcionando".
 - LOAD STATUS. "empty" / "vacio" → "Vacio". "under 14000" / "menos de 14000" / "<14k" → "Cargado_Under14000". "over 14000" / "más de 14000" / ">14k" → "Cargado_Over14000". "loaded" / "cargado" / "lleno" / "full" with NO weight → "Cargado_Over14000".
 - ZIPS. Extract 5-digit zips exactly and NEVER treat a 3 or 4-digit number (e.g. 1400) as a zip. For transport, "del 33139 al 32470" / "from 33139 to 32470" / "33139 32470" means zip_origin=33139 AND zip_dest=32470 — extract both. If they CORRECT a zip ("me confundí, el zip de entrega es 32148"), use intent "quote" and update zip_dest or zip.
 - ITEMS is the full shopping cart. If they previously asked for several sizes (e.g. 20 and 40), output ALL of them with their sizes in EVERY response, even when they are only answering a follow-up question. Never wipe the cart.
-- customer_name: a personal or business name (e.g. "Crossties of Ocala"). If they say "already did" or "see above", find it earlier in the conversation. customer_phone: any 10-digit number.
+- customer_name: YOU alone decide if they gave a person's or company name. Put ONLY that name (e.g. "Jonh", "Juan Carlos", "Crossties of Ocala"). If they say "mi nombre es Jonh" / "my name is Jonh", customer_name is "Jonh". NEVER copy the whole sentence. NEVER use thanks, okay, proceed, greetings, used/new, ZIP, prices, or questions as a name — those are customer_name null. If they say "already did" or "see above", find the name earlier in the conversation. customer_phone: any 10-digit number, else null.
 - is_complex_order: true ONLY when they request multiple DIFFERENT services in one message (e.g. "buy a 20ft AND move two 40ft"). Asking prices for several sizes or conditions is NOT complex — that is false.`;
 
 // ─── HELPERS DE SUPABASE ──────────────────────────────────────────────────────
@@ -332,6 +350,8 @@ async function updateSession(senderId: string, updates: any) {
         "history", "quantity", "export_action", "port_dest", "items", "is_processing", "queued_messages",
         "quoted_conditions", "new_stock_cache", "hc_stock_pending", "hc_stock_interest",
         "hc_used_force_quote", "hc_used_warn_shown",
+        "pending_debounce_version", "pending_debounce_payload",
+        "transport_pending_origin", "transport_pending_dest",
     ]);
     const minimal: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(updates)) {
@@ -354,8 +374,18 @@ async function updateSession(senderId: string, updates: any) {
 
 // ─── LLAMADA A OPENAI ─────────────────────────────────────────────────────────
 function buildSessionContextBlock(session: any): string {
-    if (!session?.action && !session?.size && !session?.zip) return "";
-    const lines = ["CURRENT SESSION STATE (already collected — do NOT ask for these again):"];
+    if (!session?.action && !session?.size && !session?.zip) {
+        if (session?.lang === "ES") return "CRITICAL: The customer is speaking SPANISH. Your ai_reply MUST be in Spanish. Set lang to \"ES\".";
+        if (session?.lang === "EN") return "CRITICAL: The customer is speaking ENGLISH. Your ai_reply MUST be in English. Set lang to \"EN\".";
+        return "";
+    }
+    const lines: string[] = [];
+    if (session.lang === "ES") {
+        lines.push("CRITICAL: The customer is speaking SPANISH. Your ai_reply MUST be in Spanish. Set lang to \"ES\".");
+    } else if (session.lang === "EN") {
+        lines.push("CRITICAL: The customer is speaking ENGLISH. Your ai_reply MUST be in English. Set lang to \"EN\".");
+    }
+    lines.push("CURRENT SESSION STATE (already collected — do NOT ask for these again):");
     if (session.action) lines.push(`- Service: ${session.action}`);
     if (session.size) lines.push(`- Size: ${session.size}`);
     if (session.condition) lines.push(`- Condition: ${session.condition}`);
@@ -379,7 +409,55 @@ function buildSessionContextBlock(session: any): string {
     }
     if (step === 7) lines.push("- Status: Waiting for customer FULL NAME only.");
     if (step === 8) lines.push("- Status: Waiting for customer PHONE NUMBER only.");
+    if (session.action === "Transporte") {
+        const need: string[] = [];
+        if (!session.size) need.push("size of the container they already own (20/40/45)");
+        if (!session.zip_origin || !session.zip_dest) {
+            need.push("two 5-digit ZIPs (pickup AND delivery). If they named two different cities, ask one ZIP per city. NEVER say to enter the same ZIP twice unless they said it is the same place. NEVER invent a ZIP.");
+        }
+        if (!session.load_status) need.push("load status: empty / loaded under 14,000 lbs / loaded over 14,000 lbs");
+        if (need.length) {
+            lines.push("STILL NEEDED — you MUST ask these in ai_reply, in your own words, like a logistics advisor:");
+            for (const n of need) lines.push(`- ${n}`);
+        }
+    }
+    lines.push("HARD RULE: never write a $ amount that is not listed in this session state. The database quotes prices.");
     return lines.join("\n");
+}
+
+function isBareGreeting(input: string): boolean {
+    const lo = (input || "").toLowerCase().trim();
+    return /^(hola+|hello|hi|hey|buenas|buenos d[ií]as|buenas tardes|buenas noches|good (morning|afternoon|evening))[\s!.]*$/i.test(lo);
+}
+
+async function callGreetingAI(input: string, lang: string): Promise<string | null> {
+    const key = Deno.env.get("OPENAI_API_KEY");
+    if (!key) return null;
+    const spoken = lang === "ES" ? "Spanish" : "English";
+    try {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
+            body: JSON.stringify({
+                model: "gpt-4o-mini",
+                temperature: 0.95,
+                max_tokens: 90,
+                messages: [
+                    {
+                        role: "system",
+                        content: `You are Tulip, a warm salesperson at RP Tulipan (Florida shipping containers). The customer just opened chat with a greeting. Reply in ${spoken} with 1–2 short, natural sentences. Vary the wording every time. Do not introduce a service menu (no buy/rent/transport list). Do not mention buttons or “elige una opción”. Do not quote prices. Invite them, in your own words, to tell you what they need.`,
+                    },
+                    { role: "user", content: input },
+                ],
+            }),
+        });
+        const json = await res.json();
+        const text = json?.choices?.[0]?.message?.content;
+        if (typeof text === "string" && text.trim()) return text.trim();
+    } catch (e) {
+        console.error("greeting AI error:", e);
+    }
+    return null;
 }
 
 async function callAI(history: Array<{role: string, content: string}>, session?: any): Promise<any> {
@@ -395,7 +473,7 @@ async function callAI(history: Array<{role: string, content: string}>, session?:
                 model: "gpt-4o-mini",
                 messages: [{ role: "system", content: systemContent }, ...history],
                 response_format: { type: "json_object" },
-                temperature: 0.45
+                temperature: 0.7
             })
         });
         const json = await res.json();
@@ -408,15 +486,33 @@ async function callAI(history: Array<{role: string, content: string}>, session?:
 
 function mentionsNewCondition(text: string): boolean {
     const lo = text.toLowerCase();
+    if (/\b(don'?t|do not|no)\s+(need|want)\b/i.test(lo) && /\b(new|nuevo|reefer|refriger)/i.test(lo)) return false;
+    if (/\b(not|without)\s+(interested in\s+)?(a\s+)?(new|nuevo)\b/i.test(lo)) return false;
     return /\bone[\s-]?trip\b/.test(lo)
         || lo.includes("brand new")
         || /\b(nuevos?|nuevas?|new)\b/.test(lo);
 }
 
-function mentionsUsedCondition(text: string): boolean {
+function mentionsUsedConditionExplicit(text: string): boolean {
     const lo = text.toLowerCase();
     return /\b(usados?|usadas?|used|second hand|pre-owned|wwt|cargo worthy|cw)\b/.test(lo)
-        || lo.includes("wind water tight");
+        || lo.includes("wind water tight")
+        || /\b(good condition|in good condition|decent condition|fair condition)\b/.test(lo);
+}
+
+/** Customer described a used WWT / budget storage unit without saying the word "used". */
+function impliesUsedFromQualityPrefs(text: string): boolean {
+    if (mentionsNewCondition(text)) return false;
+    const lo = (text || "").toLowerCase();
+    const looksDontMatter = /how it looks.{0,60}no concern|no concern.{0,40}how it looks|looks?\s+(don'?t|doesn'?t|do not|does not)\s+matter|appearance.{0,40}(no concern|doesn'?t matter|not a concern|no importa)|no me importa.{0,50}(aspecto|apariencia|c[oó]mo se ve|como se ve|est[eé]tica)|aspecto.{0,25}no (me )?import|el aspecto no/i.test(lo);
+    const wwtNeed = /\bno leaks\b|sin filtracion|sin goteras|sin fugas|doors?\s+(close|seal)|puertas?\s+(cierren?|cierran|sellan)/i.test(lo);
+    const bargainStorage = /price is right/i.test(lo)
+        || (/looking for.{0,30}deal/i.test(lo) && /\b(storag|almacen)/i.test(lo));
+    return looksDontMatter || wwtNeed || bargainStorage;
+}
+
+function mentionsUsedCondition(text: string): boolean {
+    return mentionsUsedConditionExplicit(text) || impliesUsedFromQualityPrefs(text);
 }
 
 function inferConditionFromConversation(input: string, history: any): "Nuevo" | "Usado" | null {
@@ -563,19 +659,61 @@ function ensureQuoteItems(session: any, updates: any, history: any, input: strin
     updates.size = session.size;
 }
 
-function extractZipFromText(text: string): string | null {
-    const match = text.match(/\b(\d{5})\b/);
-    return match ? match[1] : null;
+function isLikelyStreetNumber(text: string, match: RegExpMatchArray): boolean {
+    const idx = match.index ?? 0;
+    const after = text.slice(idx + match[0].length);
+    const before = text.slice(Math.max(0, idx - 4), idx);
+    if (/#\s*$/.test(before)) return true;
+    // Suffix must follow the number as its own token (or after a short street name).
+    // Do not scan the rest of the sentence — "1st of October" used to look like "st".
+    return /^\s*(?:#\s*)?(?:(?:apt|unit|ste|suite)\s+)?(?:[A-Za-z][A-Za-z0-9.'-]*\s+){0,4}(?:dr|drive|st|street|ave|avenue|rd|road|ln|lane|blvd|boulevard|way|ct|court|pl|place|cir|circle|hwy|highway)\b/i.test(after);
 }
 
-/** Extract origin + destination ZIP pair for transport (del 33139 al 32470, 33139 32470, etc.) */
+function isNonContinentalZipPrefix(prefix: string): boolean {
+    return ["006", "007", "009", "995", "996", "997", "998", "999", "967", "968"].includes(prefix);
+}
+
+function isValidUsZip(code: string): boolean {
+    if (!/^\d{5}$/.test(code)) return false;
+    const n = parseInt(code, 10);
+    if (n < 501 || n > 99950) return false;
+    return !isNonContinentalZipPrefix(code.substring(0, 3));
+}
+
+function extractAllValidZips(text: string): string[] {
+    const found: string[] = [];
+    const re = /\b(\d{5})\b/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+        if (isLikelyStreetNumber(text, m)) continue;
+        if (!isValidUsZip(m[1])) continue;
+        found.push(m[1]);
+    }
+    return found;
+}
+
+function extractZipFromText(text: string): string | null {
+    const zips = extractAllValidZips(text);
+    return zips[0] || null;
+}
+
+/** Extract origin + destination ZIP pair for transport (del 33139 al 32470, 34135 to 34119, etc.) */
 function extractTransportZipsFromText(text: string): { zip_origin: string; zip_dest: string } | null {
     const t = text || "";
-    const routeMatch = t.match(/(?:del|de|desde|from)\s*(\d{5})\s*(?:al|a|hasta|to)\s*(\d{5})/i);
-    if (routeMatch) return { zip_origin: routeMatch[1], zip_dest: routeMatch[2] };
-    const twoZips = t.match(/\b(\d{5})\s+(\d{5})\b/);
-    if (twoZips) return { zip_origin: twoZips[1], zip_dest: twoZips[2] };
-    const allZips = [...t.matchAll(/\b(\d{5})\b/g)].map((m) => m[1]);
+    const routePatterns = [
+        /(?:del|de|desde|from)\s*(\d{5})\s*(?:al|a|hasta|to)\s*(\d{5})/i,
+        /\b(\d{5})\s+(?:to|→)\s+(\d{5})\b/i,
+        /\bin\s+(\d{5})\b[\s\S]*?(?:delivered|delivery|entrega|entregar|need delivered|need to be delivered)\s+(?:to\s+)?(\d{5})\b/i,
+        /(?:container\s+is\s+)?in\s+(\d{5})[\s\S]*?(?:delivered|delivery|to)\s+(\d{5})\b/i,
+        /\b(\d{5})\s+(\d{5})\b/,
+    ];
+    for (const pat of routePatterns) {
+        const m = t.match(pat);
+        if (m && isValidUsZip(m[1]) && isValidUsZip(m[2])) {
+            return { zip_origin: m[1], zip_dest: m[2] };
+        }
+    }
+    const allZips = extractAllValidZips(t);
     if (allZips.length >= 2) return { zip_origin: allZips[0], zip_dest: allZips[1] };
     return null;
 }
@@ -596,6 +734,104 @@ function inferZipFromConversation(input: string, history: any): string | null {
     return null;
 }
 
+const TRANSPORT_CITY_RE = /\b(miami|tampa|orlando|jacksonville|savannah|atlanta|titusville|naples|hialeah|kendall|homestead|hollywood|sarasota|bradenton|clearwater|tallahassee|gainesville|ocala|lakeland|pensacola|fort\s+myers|fort\s+lauderdale|west\s+palm|boca\s+raton|st\.?\s*petersburg|bonita\s+springs)\b/gi;
+
+function namedTransportCities(text: string): string[] {
+    const found = [...(text || "").matchAll(TRANSPORT_CITY_RE)].map((m) => m[1].replace(/\s+/g, " ").trim());
+    const out: string[] = [];
+    for (const c of found) {
+        if (!out.some((u) => u.toLowerCase() === c.toLowerCase())) out.push(c);
+    }
+    return out;
+}
+
+function conversationCityRoute(input: string, history?: any): { pickup: string; delivery: string } | null {
+    for (const text of conversationUserTexts(input, history)) {
+        const cities = namedTransportCities(text);
+        if (cities.length >= 2) return { pickup: cities[0], delivery: cities[1] };
+    }
+    return null;
+}
+
+function splitTransportAddressParts(text: string): { pickup?: string; delivery?: string } {
+    const t = (text || "").replace(/\n/g, " ").replace(/casaen/gi, "casa en");
+    const seps = [/\s+\bto\b\s+/i, /\s+→\s+/, /\s+hasta\s+/i, /\s+\ba\b\s+/i, /\s+al\s+/i];
+    for (const sep of seps) {
+        const parts = t.split(sep);
+        if (parts.length >= 2) {
+            return { pickup: parts[0].trim(), delivery: parts.slice(1).join(" ").trim() };
+        }
+    }
+    const cities = namedTransportCities(t);
+    if (cities.length >= 2) {
+        return { pickup: `${cities[0]}, USA`, delivery: `${cities[1]}, USA` };
+    }
+    return {};
+}
+
+function buildTransportZipsAsk(lang: string, input: string, history?: any): string {
+    const route = conversationCityRoute(input, history);
+    const samePlace = /\b(mismo\s+(zip|lugar|sitio)|same\s+(zip|place|spot)|aqu[ií]\s+mismo)\b/i.test(
+        conversationUserTexts(input, history).join(" "),
+    );
+    if (lang === "ES") {
+        if (route && route.pickup.toLowerCase() !== route.delivery.toLowerCase() && !samePlace) {
+            return `Sí, hacemos ese traslado. Para cotizar necesito el **ZIP de 5 dígitos de recogida en ${route.pickup}** y el **de entrega en ${route.delivery}**. No es el mismo código postal.`;
+        }
+        return "Para cotizar el traslado necesito el **código postal de 5 dígitos de recogida** y el **de entrega**.";
+    }
+    if (route && route.pickup.toLowerCase() !== route.delivery.toLowerCase() && !samePlace) {
+        return `Yes, we do that move. To quote it I need the **5-digit pickup ZIP in ${route.pickup}** and the **delivery ZIP in ${route.delivery}**. Those are not the same ZIP.`;
+    }
+    return "To quote the move I need the **5-digit pickup ZIP** and the **delivery ZIP**.";
+}
+
+async function resolveAddressToZip(addressText: string): Promise<string | null> {
+    const q = (addressText || "").trim();
+    if (!q || q.length < 8) return null;
+    const embedded = extractZipFromText(q);
+    if (embedded) return embedded;
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=us&limit=1&q=${encodeURIComponent(q)}`;
+        const res = await fetch(url, { headers: { "User-Agent": "RPTulipan-Chatbot/1.0 (contact@rptulipan.com)" } });
+        if (!res.ok) return null;
+        const json = await res.json();
+        if (!Array.isArray(json) || !json[0]?.address?.postcode) return null;
+        const pc = json[0].address.postcode.toString().replace(/\D/g, "").substring(0, 5);
+        return isValidUsZip(pc) ? pc : null;
+    } catch {
+        return null;
+    }
+}
+
+async function tryGeocodeTransportRoute(input: string, history: any): Promise<{ zip_origin: string; zip_dest: string } | null> {
+    for (const text of conversationUserTexts(input, history)) {
+        const pair = extractTransportZipsFromText(text);
+        if (pair) return pair;
+        const parts = splitTransportAddressParts(text);
+        if (parts.pickup && parts.delivery) {
+            const [origin, dest] = await Promise.all([
+                resolveAddressToZip(parts.pickup),
+                resolveAddressToZip(parts.delivery),
+            ]);
+            if (origin && dest) return { zip_origin: origin, zip_dest: dest };
+        }
+    }
+    return null;
+}
+
+function isTransportZipConfirmation(input: string): boolean {
+    const lo = (input || "").toLowerCase().trim();
+    return ["yes", "sí", "si", "correct", "correcto", "that's correct", "thats correct", "yes, that's correct", "sí, correcto", "exacto"].includes(lo)
+        || /^(yes|sí|si)[\s,!.]*$/i.test(lo);
+}
+
+function isTransportZipRejection(input: string): boolean {
+    const lo = (input || "").toLowerCase().trim();
+    return /\b(no|incorrect|wrong|not right)\b/.test(lo)
+        || /\b(no,? i('|')?ll type|d[eé]jame escrib|escribo los zip)\b/.test(lo);
+}
+
 /** Customer corrects a ZIP already quoted (e.g. "me confundí, el zip de entrega es 32148"). */
 function isZipCorrectionMessage(input: string, session?: any): boolean {
     const lo = (input || "").toLowerCase();
@@ -606,6 +842,8 @@ function isZipCorrectionMessage(input: string, session?: any): boolean {
         && /\b(zip|c[oó]digo postal|postal|code)\b/i.test(lo)) return true;
     if (/\b(el|la|the)\s+(zip|c[oó]digo postal)\s+(de\s+)?(entrega|destino|delivery|recogida|origen|origin)\b/i.test(lo)) return true;
     if (session?.action === "Transporte") {
+        const pair = extractTransportZipsFromText(input);
+        if (pair && (pair.zip_origin !== session?.zip_origin || pair.zip_dest !== session?.zip_dest)) return true;
         if (/\b(entrega|destino|delivery|destination|hasta| to )\b/i.test(lo) && z !== session?.zip_dest) return true;
         if (/\b(recogida|origen|origin|pickup|desde|from)\b/i.test(lo) && z !== session?.zip_origin) return true;
     } else if (session?.zip && z !== session.zip && /\b(entrega|delivery|zip|c[oó]digo postal|confund|corrijo)\b/i.test(lo)) {
@@ -661,6 +899,112 @@ function isConditionComparisonQuestion(text: string): boolean {
         && /\b(m[aá]s\s*barat[oa]s?|m[aá]s\s*car[oa]s?|cheaper|more expensive|mejor|better)\b/.test(lo);
 }
 
+/**
+ * The customer is asking WHICH container type a price refers to, or comparing types
+ * ("¿estos precios son de secos o refrigerados?"), instead of ordering that type.
+ * Naming a type inside such a question must never switch the quote to it.
+ */
+function isTypeClarificationQuestion(text: string): boolean {
+    const lo = (text || "").toLowerCase().trim();
+    if (!/\?/.test(lo) && !/\b(no\?|verdad|cierto|right)\s*$/.test(lo)) return false;
+    if (!/\b(reefer\w*|refrigerad\w*|congelad\w*|open[\s-]?side|double[\s-]?door|doble[\s-]?puerta)\b/.test(lo)) return false;
+
+    // "¿... secos o refrigerados?" — they want us to say which one it is
+    if (/\b(seco\w*|dry|est[aá]ndar|standard|normal\w*)\b/.test(lo) && /\b(o|or)\b/.test(lo)) return true;
+    // "¿estos precios son de refrigerados?" — asking what the quote we already sent covers
+    if (/\b(precios?|prices?|cotizaci[oó]n|quote)\b/.test(lo) && /\b(son|es|are|is|incluyen|include)\b/.test(lo)) return true;
+    // "¿cuál es la diferencia entre un seco y un refrigerado?"
+    if (/\b(diferencia|difference)\b/.test(lo)) return true;
+    return false;
+}
+
+/**
+ * Post-quote: they want the price of a different container type
+ * ("quiero saber el precio de los refrigerados"), not a clarification of the current quote.
+ */
+function typePriceRequestFromInput(input: string, session: any): "Reefer" | "Open Side" | "Double Door" | "Dry" | null {
+    if (!hasQuotedPrice(session)) return typeSwitchFromInput(input, session);
+    if (isTypeClarificationQuestion(input)) return null;
+    const switched = typeSwitchFromInput(input, session);
+    if (switched) return switched;
+    const lo = (input || "").toLowerCase();
+    const named = extractTypeFromText(input);
+    const wantsPrice = /\b(precio|price|cotiz|cu[aá]nto|how much|cuestan|cuesta|cost|prices)\b/.test(lo)
+        || /^(prices?|precios?)\??$/i.test(lo.trim())
+        || statesProductChoice(input);
+    if (named && wantsPrice) return named;
+    if (named && /\b(entonces|instead|mejor|rather)\b/.test(lo)) return named;
+    if (wantsPrice && /\b(seco\w*|dry|regular|standard|normal)\b/.test(lo) && !named) return "Dry";
+    return null;
+}
+
+function needsBuyType(session: any, input?: string, history?: any): boolean {
+    if (session?.action !== "Comprar" || session?.type) return false;
+    const combined = input ? conversationUserTexts(input, history).join("\n") : "";
+    const inferred = extractTypeFromText(combined);
+    if (inferred) return false;
+    const size = session?.size;
+    if (size && !isReeferEligibleBuySize(size)) return false;
+    if (size && isReeferEligibleBuySize(size)) return true;
+    // Dual quote (20'+40') when zip is known but no explicit size — still need Dry/Reefer
+    if (!size && session?.zip && !hasExplicitSingleSize(session, history, input || "")) return true;
+    return false;
+}
+
+/** Reefers and the Dry/Reefer question only apply to normal 20' and 40' — never 45'. */
+function isReeferEligibleBuySize(size: string | null | undefined): boolean {
+    if (!size) return false;
+    if (size.includes("45")) return false;
+    if (size === "20' & 40'") return true;
+    return size.includes("20") || size.includes("40");
+}
+
+function isSpecialtyBuyType(type: string | null | undefined): boolean {
+    return type === "Open Side" || type === "Double Door";
+}
+
+/** Size chips for purchase — reefers and specialty types are 20'/40' only; 45' only for dry. */
+function buySizeButtons(session: any, dict: any): string[] {
+    if (session?.type === "Reefer" || isSpecialtyBuyType(session?.type)) return ["20'", "40'"];
+    if (session?.type === "Dry" && session?.size?.includes("45")) return ["20'", "40'", "45'"];
+    return dict.step3_size_btns;
+}
+
+/** Auto-set type when Dry/Reefer question does not apply (45', Open Side, Double Door, explicit type). */
+function applyBuyTypeDefaults(session: any, updates: any, input: string, history: any): void {
+    if (session?.action !== "Comprar" || session?.type) return;
+    const combined = conversationUserTexts(input, history).join("\n");
+    const inferred = extractTypeFromText(combined);
+    if (inferred === "Open Side" || inferred === "Double Door") {
+        session.type = inferred;
+        updates.type = inferred;
+        session.condition = "Nuevo";
+        updates.condition = "Nuevo";
+        applyTypeToItems(session, inferred);
+        if (session.items) updates.items = session.items;
+        return;
+    }
+    if (inferred === "Reefer" || inferred === "Dry") {
+        session.type = inferred;
+        updates.type = inferred;
+        applyTypeToItems(session, inferred);
+        if (session.items) updates.items = session.items;
+        return;
+    }
+    const size = session.size || extractSizeFromText(combined);
+    if (size && size.includes("45")) {
+        session.type = "Dry";
+        updates.type = "Dry";
+        applyTypeToItems(session, "Dry");
+        if (session.items) updates.items = session.items;
+    }
+}
+
+function applyTypeToItems(session: any, type: string | null | undefined): void {
+    if (!type || !Array.isArray(session?.items)) return;
+    for (const item of session.items) item.type = type;
+}
+
 /** Message states an explicit product choice / order intent, not a doubt about pricing. */
 function statesProductChoice(input: string): boolean {
     const lo = (input || "").toLowerCase();
@@ -697,17 +1041,77 @@ function hasExplicitSize(session: any): boolean {
 
 function extractConditionFromText(text: string): "Nuevo" | "Usado" | null {
     if (isConditionComparisonQuestion(text)) return null;
-    if (/\bone[\s-]?trip\b/i.test(text) || /\bbrand\s+new\b/i.test(text) || /\b(nuevo|new)\b/i.test(text)) return "Nuevo";
-    if (mentionsUsedCondition(text)) return "Usado";
+    const used = mentionsUsedCondition(text);
+    const neu = mentionsNewCondition(text);
+    if (used && !neu) return "Usado";
+    if (neu && !used) return "Nuevo";
+    if (neu) return "Nuevo";
     return null;
 }
 
-function extractTypeFromText(text: string): "Reefer" | "Open Side" | "Double Door" | null {
-    const lo = (text || "").toLowerCase();
+function extractReeferStatus(text: string): "Funcionando" | "No Funcionando" | null {
+    const lo = (text || "").toLowerCase().trim();
+    if (!lo) return null;
+    if (["funcionando", "working"].includes(lo)) return "Funcionando";
+    if (["no funcionando", "not working"].includes(lo)) return "No Funcionando";
+    if (/\b(no\s+funcionand\w*|not\s+working|sin\s+motor|no\s+ac|broken)\b/.test(lo)) return "No Funcionando";
+    if (/\b(funcionand\w*|working|with\s+ac|con\s+motor)\b/.test(lo)) return "Funcionando";
+    return null;
+}
+
+function extractTypeFromText(text: string): "Reefer" | "Open Side" | "Double Door" | "Dry" | null {
+    // Callers pass whole conversations joined by newlines, so filter per message: a
+    // clarification question must not count as ordering the type it names.
+    const lo = (text || "")
+        .split("\n")
+        .filter((line) => !isTypeClarificationQuestion(line))
+        .join("\n")
+        .toLowerCase();
     if (/\b(reefer|refrigerad\w*|refrigerated|freezer|cold storage|congelad\w*)\b/.test(lo)) return "Reefer";
     if (/\b(open[\s-]?side|puertas?\s+laterales?|side[\s-]?opening|abre\s+por\s+el\s+lado)\b/.test(lo)) return "Open Side";
     if (/\b(double[\s-]?door|doble[\s-]?puerta|tunnel|tunel|túnel)\b/.test(lo)) return "Double Door";
+    if (/\b(dry|seco\w*|regular|est[aá]ndar|standard|normal)\b/.test(lo)) return "Dry";
     return null;
+}
+
+function isCancellationMessage(input: string): boolean {
+    const lo = (input || "").toLowerCase().trim();
+    return ["forget it", "never mind", "nevermind", "not interested", "no thanks", "no thank you", "olvidalo", "olvídalo", "déjalo", "dejalo"].includes(lo)
+        || /\b(forget it|never mind|not interested|leave it)\b/.test(lo);
+}
+
+/** Customer rejects the quoted type or asks for a different one — including without saying "price". */
+function typeSwitchFromInput(input: string, session?: any): "Reefer" | "Open Side" | "Double Door" | "Dry" | null {
+    const lo = (input || "").toLowerCase();
+    if (/\b(don'?t|do not|no)\s+(need|want)\s+(a\s+)?(new\s+)?reefer/i.test(lo)) return "Dry";
+    if (/\b(don'?t|do not|no)\s+(need|want)\s+(a\s+)?(new\s+)?refriger/i.test(lo)) return "Dry";
+    if (/\b(not|without|no)\s+(a\s+)?reefer/i.test(lo)) return "Dry";
+    if (/\b(not|without|no)\s+(a\s+)?refriger/i.test(lo)) return "Dry";
+    const named = extractTypeFromText(input);
+    if (named) return named;
+    if (/\b(regular|standard|normal)\s+(container|contenedor)/i.test(lo)) return "Dry";
+    if (/\b(looking for|want|need|i need|i want)\s+(a\s+)?(regular|standard|normal|dry|seco)/i.test(lo)) return "Dry";
+    if (session?.type === "Reefer" && /\b(don'?t|do not|no)\s+(need|want)\b/i.test(lo)) return "Dry";
+    return null;
+}
+
+function sanitizeInferredType(input: string, session: any, data: any): void {
+    if (session?.action !== "Comprar" && data.action !== "Comprar") return;
+    const combined = conversationUserTexts(input, session?.history).join("\n");
+    const explicit = typeSwitchFromInput(input, session) || extractTypeFromText(combined);
+    if (explicit) {
+        data.type = explicit;
+        if (data.items?.length) {
+            for (const item of data.items) item.type = explicit;
+        }
+        return;
+    }
+    if (data.type === "Reefer" && !/\b(reefer|refrigerad\w*|refrigerated|freezer|cold|congelad\w*)\b/i.test(combined)) {
+        data.type = "Dry";
+        if (data.items?.length) {
+            for (const item of data.items) item.type = "Dry";
+        }
+    }
 }
 
 function resolveExplicitCondition(input: string, history: any, data: any, session?: any): "Nuevo" | "Usado" | null {
@@ -761,6 +1165,7 @@ function sanitizeInferredCondition(input: string, session: any, data: any): void
 }
 
 function applyExplicitConditionToUpdates(input: string, session: any, data: any, updates: any): void {
+    if ((data.action || updates.action || session.action) === "Transporte") return;
     const explicitCond = resolveExplicitCondition(input, session.history, data, session);
     if (explicitCond) {
         updates.condition = explicitCond;
@@ -771,14 +1176,27 @@ function applyExplicitConditionToUpdates(input: string, session: any, data: any,
 function ensureDryDefaultType(session: any, updates: any, input: string, history: any): void {
     const combined = conversationUserTexts(input, history).join("\n");
     const inferredType = extractTypeFromText(combined);
+    if (session.action === "Alquilar") {
+        session.type = "Dry";
+        updates.type = "Dry";
+        applyTypeToItems(session, "Dry");
+        if (session.items) updates.items = session.items;
+        return;
+    }
     if (inferredType) {
         session.type = inferredType;
         updates.type = inferredType;
+        applyTypeToItems(session, inferredType);
+        if (session.items) updates.items = session.items;
         if (inferredType === "Open Side" || inferredType === "Double Door") {
             session.condition = "Nuevo";
             updates.condition = "Nuevo";
         }
-    } else if (!session.type || session.type === "Dry") {
+        return;
+    }
+    // Sale asks Dry vs Reefer with buttons — do not assume Dry
+    if (session.action === "Comprar") return;
+    if (!session.type || session.type === "Dry") {
         session.type = "Dry";
         updates.type = "Dry";
     }
@@ -797,31 +1215,56 @@ function resolveConditionFromContext(input: string, history: any, data: any, ses
     return inferConditionFromConversation(input, history);
 }
 
-function applyConversationInferences(input: string, history: any, data: any): void {
+function applyConversationInferences(input: string, history: any, data: any, session?: any): void {
     const userTexts = conversationUserTexts(input, history);
     const combined = userTexts.join("\n");
     const oneTrip = userTexts.some((t) => /\bone[\s-]?trip\b/i.test(t));
     const resolvedCondition = resolveExplicitCondition(input, history, data);
     const inferredSize = extractSizeFromText(combined);
-    const inferredAction = inferServiceAction(combined)
-        || ((!data.action && (inferredSize || oneTrip || /\b(deliver|delivery|entrega|entregar)\b/i.test(combined))) ? "Comprar" : null);
+    const lastInferredAction = inferServiceAction(input);
+    const convoRent = inferServiceAction(combined) === "Alquilar"
+        || servicesNamedInMessage(combined).has("Alquilar")
+        || session?.action === "Alquilar";
+    const thisMessageBuys = inferServiceAction(input) === "Comprar" || servicesNamedInMessage(input).has("Comprar");
+    const sizeDefaultsToBuy = !data.action
+        && session?.action !== "Transporte"
+        && session?.action !== "Alquilar"
+        && !convoRent
+        && (inferredSize || oneTrip || /\b(deliver|delivery|entrega|entregar)\b/i.test(combined));
+    const inferredAction = lastInferredAction
+        || inferServiceAction(combined)
+        || (sizeDefaultsToBuy ? "Comprar" : null);
+
+    if (lastInferredAction) data.action = lastInferredAction;
+    else if (!data.action && inferredAction) data.action = inferredAction;
+    if (convoRent && !thisMessageBuys && data.action !== "Transporte") {
+        data.action = "Alquilar";
+    }
 
     const inferredType = extractTypeFromText(combined);
     if (inferredType) {
         data.type = inferredType;
     }
 
-    if (resolvedCondition) {
+    if (resolvedCondition && data.action !== "Transporte" && session?.action !== "Transporte") {
         data.condition = resolvedCondition;
     }
 
     if (inferredSize && !data.size) data.size = inferredSize;
-    if (!data.action && inferredAction) data.action = inferredAction;
-    if (!data.type && (data.action === "Comprar" || data.action === "Alquilar" || inferredAction === "Comprar")) {
+    if (!data.type && (data.action === "Alquilar" || inferredAction === "Alquilar")) {
         data.type = "Dry";
+    }
+    if (!data.type && (data.action === "Comprar" || inferredAction === "Comprar") && !extractTypeFromText(combined)) {
+        data.type = "Dry";
+    }
+    if (resolvedCondition === "Usado" || mentionsUsedCondition(combined)) {
+        if (data.action !== "Transporte" && session?.action !== "Transporte") {
+            if (!resolvedCondition && mentionsUsedCondition(combined)) data.condition = "Usado";
+        }
     }
 
     const isTransport = (data.action || data.items?.[0]?.action) === "Transporte"
+        || session?.action === "Transporte"
         || inferServiceAction(combined) === "Transporte";
     if (isTransport) {
         if (!data.action) data.action = "Transporte";
@@ -830,7 +1273,8 @@ function applyConversationInferences(input: string, history: any, data: any): vo
             if (!data.zip_origin) data.zip_origin = transportZips.zip_origin;
             if (!data.zip_dest) data.zip_dest = transportZips.zip_dest;
         }
-    } else {
+        data.zip = null;
+    } else if (session?.action !== "Transporte") {
         const inferredZip = inferZipFromConversation(input, history);
         if (inferredZip && !data.zip) data.zip = inferredZip;
     }
@@ -846,6 +1290,7 @@ function applyConversationInferences(input: string, history: any, data: any): vo
         const item = { ...base };
         if (!item.size && inferredSize) item.size = inferredSize;
         if (!item.action && data.action) item.action = data.action;
+        if (data.action === "Alquilar") item.action = "Alquilar";
         if (currentLoad) item.load_status = currentLoad;
         else if (data.load_status) item.load_status = data.load_status;
         if (!isTransport) {
@@ -863,26 +1308,117 @@ function applyConversationInferences(input: string, history: any, data: any): vo
     } else if (inferredSize && mentions20 && !mentions40) {
         data.items = [mergeItem({
             size: inferredSize,
-            action: data.action || (isTransport ? "Transporte" : "Comprar"),
+            action: data.action || session?.action || (isTransport ? "Transporte" : "Comprar"),
         })];
         data.size = inferredSize;
     } else if (inferredSize) {
         data.items = [mergeItem({
             size: inferredSize,
-            action: data.action || (isTransport ? "Transporte" : "Comprar"),
+            action: data.action || session?.action || (isTransport ? "Transporte" : "Comprar"),
         })];
     }
 }
 
+function conversationAssistantTexts(history: any): string[] {
+    const texts: string[] = [];
+    if (Array.isArray(history)) {
+        for (const msg of history) {
+            if (msg?.role === "assistant" && msg.content) texts.push(msg.content);
+        }
+    }
+    return texts;
+}
+
+function extractQuotedAmountFromText(text: string): number | null {
+    const m = (text || "").match(/\$\s*([\d]{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+(?:\.\d{2})?)/);
+    if (!m) return null;
+    const n = Number(m[1].replace(/,/g, ""));
+    return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Human agent pasted a price quote in chat — not a generic bot policy message. */
+function looksLikeHumanQuote(text: string): boolean {
+    if (extractQuotedAmountFromText(text) == null) return false;
+    return /\b(total\s+price|precio\s+total|delivered\s+to|delivery\s+to|entreg\w*\s+(a|en|hasta)|container\s+delivered|contenedor\s+entreg|cotizaci[oó]n|quoted|quote\s+is|is\s+\$)\b/i.test(text || "");
+}
+
+/** Recover buy/rent/transport + quote fields when a human agent quoted mid-conversation. */
+function hydrateSessionFromConversation(session: any, input?: string): Record<string, any> {
+    const history = session?.history;
+    const userCombined = conversationUserTexts(input || "", history).join("\n");
+    const inferredAction = inferServiceAction(userCombined)
+        || ((extractSizeFromText(userCombined) || /\b(deliver|delivery|entrega|entregar)\b/i.test(userCombined))
+            && !servicesNamedInMessage(userCombined).has("Alquilar")
+            ? "Comprar" : null);
+
+    const found: Record<string, any> = {};
+    for (const text of conversationAssistantTexts(history)) {
+        if (!looksLikeHumanQuote(text)) continue;
+        const amount = extractQuotedAmountFromText(text);
+        const size = extractSizeFromText(text);
+        const condition = extractConditionFromText(text);
+        const zip = extractZipFromText(text);
+        const action = inferServiceAction(text) || (/\b(deliver|delivery|entreg)\b/i.test(text) ? "Comprar" : null);
+        if (amount != null) {
+            found.final_amount = amount;
+            found.step = 6;
+        }
+        if (size && !found.size) found.size = size;
+        if (condition && !found.condition) found.condition = condition;
+        if (zip && !found.zip) found.zip = zip;
+        if (action && !found.action) found.action = action;
+    }
+
+    if (!found.action && inferredAction) found.action = inferredAction;
+    if (!found.size) {
+        const sz = extractSizeFromText(userCombined);
+        if (sz) found.size = sz;
+    }
+    if (!found.condition) {
+        const cond = resolveExplicitCondition(input || "", history, {}, session)
+            || extractConditionFromText(userCombined);
+        if (cond) found.condition = cond;
+    }
+    if (!found.zip) {
+        const z = inferZipFromConversation(input || "", history);
+        if (z) found.zip = z;
+    }
+    if ((found.action === "Comprar" || session?.action === "Comprar") && !found.type && !session?.type) {
+        found.type = "Dry";
+    }
+
+    const updates: Record<string, any> = {};
+    for (const [key, value] of Object.entries(found)) {
+        if (value == null || value === "") continue;
+        if (key === "step" || key === "final_amount") {
+            if (!hasQuotedPrice(session)) updates[key] = value;
+        } else if (session?.[key] == null) {
+            updates[key] = value;
+        }
+    }
+    return updates;
+}
+
 function buildQuoteFromText(input: string): any | null {
     const lo = input.toLowerCase();
+    const transportZips = extractTransportZipsFromText(input);
+    if (transportZips) {
+        return {
+            intent: "quote",
+            extracted_data: {
+                action: "Transporte",
+                zip_origin: transportZips.zip_origin,
+                zip_dest: transportZips.zip_dest,
+                items: [{ action: "Transporte" }],
+            },
+        };
+    }
     const size = extractSizeFromText(input);
     const condition = extractConditionFromText(input);
     const oneTrip = /\bone[\s-]?trip\b/.test(lo);
     const action = inferServiceAction(input) || (size || oneTrip || condition ? "Comprar" : null);
-    const transportZips = extractTransportZipsFromText(input);
-    const zipMatch = input.match(/\b(\d{5})\b/);
-    if (!size && !oneTrip && !condition && !action && !transportZips) return null;
+    const zip = extractZipFromText(input);
+    if (!size && !oneTrip && !condition && !action && !zip) return null;
 
     const item: any = { action: action || "Comprar" };
     if (size) item.size = size;
@@ -891,12 +1427,7 @@ function buildQuoteFromText(input: string): any | null {
     const extracted_data: any = { items: [item], action: action || item.action };
     if (condition) extracted_data.condition = condition;
     if (size) extracted_data.size = size;
-    if (action === "Transporte" && transportZips) {
-        extracted_data.zip_origin = transportZips.zip_origin;
-        extracted_data.zip_dest = transportZips.zip_dest;
-    } else if (zipMatch) {
-        extracted_data.zip = zipMatch[1];
-    }
+    if (zip) extracted_data.zip = zip;
     return { intent: "quote", extracted_data };
 }
 
@@ -915,12 +1446,12 @@ function buildWarmWelcomeReply(lang: string, input?: string): string {
         if (priceAsk) {
             return "¡Hola! Con gusto te ayudo con los precios. Para darte una cotización exacta primero necesito saber **qué servicio** buscas:\n\n• **Comprar** un contenedor\n• **Alquilar** para almacenamiento\n• **Transporte** — mover un contenedor que ya tienes\n\n¿Cuál de estos necesitas?";
         }
-        return "¡Hola! Bienvenido a **RP Tulipan**. Soy tu asesor logístico — con gusto te ayudo.\n\nPara ofrecerte un precio exacto, primero necesito saber qué servicio buscas: **¿comprar**, **alquilar** o **transporte** de un contenedor?\n\nElige una opción y te guío paso a paso.";
+        return "¡Hola! ¿En qué te puedo ayudar hoy?";
     }
     if (priceAsk) {
         return "Hi! Happy to help with pricing. To give you an exact quote, I first need to know **which service** you're looking for:\n\n• **Buy** a container\n• **Rent** for storage\n• **Transport** — move a container you already own\n\nWhich one do you need?";
     }
-    return "Hi! Welcome to **RP Tulipan** — I'm your logistics advisor and I'm here to help.\n\nTo give you an exact price, I first need to know what you need: **buy**, **rent**, or **transport** a container?\n\nPick an option and I'll walk you through it step by step.";
+    return "Hi! How can I help you today?";
 }
 
 // ─── DETECCIÓN RÁPIDA SIN IA ──────────────────────────────────────────────────
@@ -930,19 +1461,13 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
     const currentAction = session?.action;
 
     if (!session?.action && !quoted && isInitialPriceInquiry(input)) {
-        const lang = detectMessageLanguage(input, session?.lang, session?.history);
-        return { intent: "general_chat", lang, ai_reply: buildWarmWelcomeReply(lang, input), extracted_data: {} };
-    }
-
-    if (["hola", "hello", "hi", "buenas", "buenos días", "buenos dias", "good morning", "hey"].includes(lo) && !session?.action && !quoted) {
-        const lang = ["hola", "buenas", "buenos días", "buenos dias"].some((w) => lo.includes(w)) ? "ES" : "EN";
-        return { intent: "general_chat", lang, ai_reply: buildWarmWelcomeReply(lang), extracted_data: {} };
+        return null;
     }
 
     if (["ok", "okay", "ok.", "vale", "perfecto"].includes(lo)) {
         const ack = (session?.lang === "ES")
-            ? (quoted ? "Perfecto. Cuando quieras seguimos: toca Proceder o dime tu nombre." : "Perfecto, dime cómo te ayudo.")
-            : (quoted ? "Sounds good. Whenever you're ready, tap Proceed or send your name." : "Sounds good — how can I help?");
+            ? (quoted ? "Perfecto. Cuando quieras seguimos: dime tu nombre o escribe proceder." : "Perfecto, dime cómo te ayudo.")
+            : (quoted ? "Sounds good. Whenever you're ready, send your name or type proceed." : "Sounds good — how can I help?");
         return { intent: "general_chat", lang: session?.lang, ai_reply: ack, extracted_data: {} };
     }
 
@@ -951,6 +1476,34 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
     }
     if (isDimensionsRequest(input)) {
         return { intent: "dimensions", lang: session?.lang, extracted_data: {} };
+    }
+    if (isCancellationMessage(input)) {
+        return { intent: "cancel", extracted_data: {} };
+    }
+
+    const typeSwitch = typeSwitchFromInput(input, session);
+    if (typeSwitch && (quoted || session?.type) && typeSwitch !== session?.type) {
+        return {
+            intent: "quote",
+            extracted_data: {
+                type: typeSwitch,
+                action: session?.action,
+                items: [{ type: typeSwitch, action: session?.action, size: session?.size }],
+            },
+        };
+    }
+    if (/^(prices?|precios?)\??$/i.test(lo) && quoted) {
+        return {
+            intent: "quote",
+            extracted_data: {
+                action: session?.action,
+                type: session?.type || "Dry",
+                size: session?.size,
+                condition: session?.condition,
+                zip: session?.zip,
+                quantity: session?.quantity,
+            },
+        };
     }
 
     const transportZips = extractTransportZipsFromText(input);
@@ -979,9 +1532,21 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
         if (quoted && currentAction === "Alquilar") return { intent: "proceed", extracted_data: {} };
         return { intent: "quote", extracted_data: { items: [{ action: "Alquilar" }] } };
     }
-    if (["transporte", "transport"].includes(lo)) {
-        if (quoted && currentAction === "Transporte") return { intent: "proceed", extracted_data: {} };
-        return { intent: "quote", extracted_data: { items: [{ action: "Transporte" }] } };
+    if (["transporte", "transport"].includes(lo) || (inferServiceAction(input) === "Transporte" && servicesNamedInMessage(input).has("Transporte"))) {
+        if (quoted && currentAction === "Transporte" && ["transporte", "transport"].includes(lo)) {
+            return { intent: "proceed", extracted_data: {} };
+        }
+        const sz = extractSizeFromText(input);
+        const item: any = { action: "Transporte" };
+        if (sz) item.size = sz;
+        return {
+            intent: "quote",
+            extracted_data: {
+                action: "Transporte",
+                items: [item],
+                ...(sz ? { size: sz } : {}),
+            },
+        };
     }
 
     // Exact chip labels first — never infer a new service from a size/load tap
@@ -998,7 +1563,10 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
 
     // Composite messages first (e.g. "20' one trip to 33470") before partial keyword matches
     const composite = buildQuoteFromText(input);
-    if (composite) return composite;
+    if (composite) {
+        if (quoted && isConversationalSideAsk(input)) return null;
+        return composite;
+    }
     if (["nuevo", "new", "one trip", "one-trip", "brand new"].includes(lo)) {
         return { intent: "quote", extracted_data: { condition: "Nuevo", items: [{ condition: "Nuevo" }] } };
     }
@@ -1030,15 +1598,17 @@ function quickDetect(input: string, senderId: string, session: any): any | null 
         return { intent: "proceed", extracted_data: {} };
     }
 
-    const twoZips = lo.match(/\b(\d{5})\s+(\d{5})\b/);
-    if (twoZips) return { intent: "quote", extracted_data: { zip_origin: twoZips[1], zip_dest: twoZips[2], action: "Transporte", items: [{ action: "Transporte" }] } };
-    if (/^\d{5}$/.test(lo)) return { intent: "quote", extracted_data: { zip: lo } };
+    if (transportZips) {
+        return { intent: "quote", extracted_data: { zip_origin: transportZips.zip_origin, zip_dest: transportZips.zip_dest, action: "Transporte", items: [{ action: "Transporte" }] } };
+    }
+    const singleZip = extractZipFromText(input);
+    if (singleZip && /^\d{5}$/.test(lo)) return { intent: "quote", extracted_data: { zip: singleZip } };
 
     return null;
 }
 
 // ─── LÓGICA PRINCIPAL ─────────────────────────────────────────────────────────
-function parseQueueItem(q: string): { text?: string; mid?: string; type?: string } {
+function parseQueueItem(q: string): { text?: string; mid?: string; type?: string; ts?: number } {
     try {
         const parsed = JSON.parse(q);
         if (parsed && typeof parsed === "object") return parsed;
@@ -1068,22 +1638,70 @@ function isStaleProcessingLock(session: any): boolean {
 function debounceMsFor(senderId: string, isHuman: boolean): number {
     if (isHuman) return 0;
     if (senderId.startsWith("web_")) return 0;
-    return 2000;
+    return 0;
 }
+
+const MESSENGER_DEBOUNCE_MS = 5000;
+const QUEUE_MAX_AGE_MS = 120000;
 
 /**
  * Services the customer explicitly names in THIS message. Used to guard the stored service:
  * the AI defaults to "Comprar" on neutral replies ("usado", a bare zip), which would
  * otherwise turn a rent or transport conversation into a sale.
  */
+const TRANSPORT_SERVICE_RE = /\b(mover\w*|moved|moving|move|mudar\w*|muev\w*|traslad\w*|transport\w*|haul\w*|relocat\w*)\b/i;
+
+function mentionsTransportService(text: string): boolean {
+    return TRANSPORT_SERVICE_RE.test(text || "");
+}
+
 function servicesNamedInMessage(text: string): Set<string> {
     const t = (text || "").toLowerCase();
     const found = new Set<string>();
     if (/\b(export\w*|exportaci[oó]n|overseas|internacional)\b/.test(t)) found.add("Exportacion");
     if (/\b(alquil\w*|rent\w*|lease\w*|arrend\w*)\b/.test(t)) found.add("Alquilar");
     if (/\b(comprar\w*|compra|compras|compro|compramos|buy|buying|purchas\w*|adquir\w*)\b/.test(t)) found.add("Comprar");
-    if (/\b(mover\w*|move|moving|mudar\w*|traslad\w*|transport\w*|haul\w*|relocat\w*)\b/.test(t)) found.add("Transporte");
+    if (mentionsTransportService(t)) found.add("Transporte");
     return found;
+}
+
+function looksLikeNeutralFieldAnswer(text: string): boolean {
+    if (servicesNamedInMessage(text).size > 0) return false;
+    if (inferServiceAction(text)) return false;
+    const t = (text || "").trim();
+    if (!t) return true;
+    if (/^\d{5}(\s+\d{5})?$/.test(t)) return true;
+    if (extractTransportZipsFromText(t)) return true;
+    const lo = t.toLowerCase().replace(/[.,!?]/g, "").trim();
+    if (/^(usado|used|nuevo|new|one[\s-]?trip|wwt|dry|reefer|refrigerado|vac[ií]o|empty|cargado|loaded|funcionando|working|not working|no funcionando)$/i.test(lo)) {
+        return true;
+    }
+    const size = extractSizeFromText(t);
+    if (size && t.length < 40 && !/\b(price|precio|how much|cu[aá]nto)\b/i.test(lo)) return true;
+    return false;
+}
+
+function normalizeServiceAction(raw: any): string | null {
+    if (raw == null || raw === "") return null;
+    const s = String(raw);
+    if (/export/i.test(s)) return "Exportacion";
+    if (/alquil|rent/i.test(s)) return "Alquilar";
+    if (/transp/i.test(s)) return "Transporte";
+    if (/comprar|buy|sale/i.test(s)) return "Comprar";
+    return s;
+}
+
+/** Trust the model's service when they switched meaning; ignore Comprar drift on zip/used/size taps. */
+function resolveExtractedAction(input: string, sessionAction: string | null | undefined, extractedAction: any): string | null {
+    const extracted = normalizeServiceAction(extractedAction);
+    const current = normalizeServiceAction(sessionAction);
+    if (!extracted) return current;
+    if (!current || extracted === current) return extracted;
+    if (looksLikeNeutralFieldAnswer(input) && !servicesNamedInMessage(input).has(extracted)) return current;
+    if (current !== "Comprar" && extracted === "Comprar" && !servicesNamedInMessage(input).has("Comprar") && inferServiceAction(input) !== "Comprar") {
+        return current;
+    }
+    return extracted;
 }
 
 function inferServiceAction(text: string): string | null {
@@ -1091,10 +1709,10 @@ function inferServiceAction(text: string): string | null {
     if (!t.trim()) return null;
     const wantsExport = /\b(export|exportaci[oó]n|exportar|overseas|internacional)\b/i.test(t);
     if (wantsExport) return "Exportacion";
-    const mentionsBuy = /\b(comprar|buy|purchase|alquilar|rentar?|lease|renta)\b/i.test(t);
-    const wantsMove = /\b(mover|transporte|transportar|transport|haul|relocate|mudar|traslad)/i.test(t);
-    if (wantsMove && !mentionsBuy) return "Transporte";
-    if (/\b(alquilar|rentar?|lease|renta)\b/i.test(t) && !/\b(comprar|buy|purchase)\b/i.test(t) && !wantsMove) return "Alquilar";
+    const mentionsBuyOrRent = /\b(comprar|buy|purchase|alquil\w*|rent\w*|lease\w*|arrend\w*)\b/i.test(t);
+    const wantsMove = mentionsTransportService(t);
+    if (wantsMove && !mentionsBuyOrRent) return "Transporte";
+    if (/\b(alquil\w*|rent\w*|lease\w*|arrend\w*)\b/i.test(t) && !/\b(comprar|buy|purchase)\b/i.test(t) && !wantsMove) return "Alquilar";
     if (/\b(comprar|buy|purchase)\b/i.test(t) && !wantsMove) return "Comprar";
     if (/\b(need|want|looking for|busco|necesito|quiero)\b/i.test(t) && /\b(20|40|45|container|contenedor|footer|ft|one[\s-]?trip)\b/i.test(t)) return "Comprar";
     return null;
@@ -1131,13 +1749,106 @@ function hasQuotedPrice(session: any): boolean {
 function isReadyToProceed(input: string, session?: any): boolean {
     const lo = (input || "").toLowerCase().trim();
     if (["sí, proceder", "si, proceder", "yes, proceed", "proceed", "proceder"].includes(lo)) return true;
-    if (/\b(lo quiero|me interesa|confirmo|adelante|listo|v[aá]monos|let's do it|lets do it|i'll take it|ill take it|quiero proceder|hag[aá]moslo|deal|cerramos|ordenar|place the order|place my order|reservar|reserve it)\b/.test(lo)) return true;
+    const processQuestion = /\b(c[oó]mo ser[ií]a|how (would|does) (it|that) work|c[oó]mo (es|funciona) (el )?(proceso|pedido|la entrega))\b/.test(lo);
+    if (/\?/.test(input) && !/\b(proceder|confirmar\s+(el\s+)?(pedido|orden|order)|ordenar)\b/.test(lo) && !processQuestion) return false;
+    if (/\blo quiero\b/.test(lo)) {
+        if (/\blo quiero\s+(poner|usar|guardar|colocar|instalar|meter|llevar|tener|dejar|pagar|ver|saber|preguntar|consultar|ponerlo|usarlo)\b/.test(lo)) return false;
+        if (/\blo quiero\s+(confirmar|proceder|ordenar|reservar|comprar)\b/.test(lo)) return true;
+        if (/^lo quiero[\s,.!]*$/.test(lo)) return true;
+        return false;
+    }
+    if (/\b(me interesa|confirmo|adelante|listo|v[aá]monos|let's do it|lets do it|i'll take it|ill take it|quiero proceder|hag[aá]moslo|hag[aá]?m[oa]sl[oa]|deal|cerramos|ordenar|place the order|place my order|reservar|reserve it)\b/.test(lo)) return true;
+    if (isOrderConfirmationPhrase(input) && hasQuotedPrice(session)) return true;
     if (hasQuotedPrice(session)) {
+        if (/^(s[ií]|yes|ok|okay|vale|claro)([.!]|\s+(por favor|please))?$/i.test(lo)) return true;
+        if (processQuestion) return true;
         if (/\b(qu[eé]\s+necesitas|what do you need|qu[eé] se necesita|qu[eé] m[aá]s necesitas|what else do you need|siguiente paso|next step)\b/.test(lo)) return true;
         if (/\bs[ií]\s*,?\s*qu[eé]\s+necesitas\b/.test(lo)) return true;
         if (/\bconfirmar\s+(el\s+)?(pedido|orden|order)\b/.test(lo)) return true;
+        if (isChoosingPaymentMethod(input)) return true;
+        if (isChoosingAlreadyQuotedCondition(input, session)) return true;
     }
     return false;
+}
+
+function extractUsPhone(input: string): string | null {
+    const raw = input || "";
+    const compact = raw.replace(/\D/g, "");
+    if (compact.length === 11 && compact.startsWith("1")) return compact.slice(1);
+    if (compact.length === 10) return compact;
+    const m = raw.match(/(?:\+?1[\s.-]*)?(?:\(?\d{3}\)?[\s.-]*)\d{3}[\s.-]*\d{4}/);
+    if (!m) return null;
+    const d = m[0].replace(/\D/g, "");
+    if (d.length === 11 && d.startsWith("1")) return d.slice(1);
+    if (d.length === 10) return d;
+    return null;
+}
+
+function isOrderConfirmationPhrase(input: string): boolean {
+    const lo = (input || "").toLowerCase().trim();
+    if (!lo) return false;
+    if (/^(ok|okay|okey|vale|claro|s[ií]|yes|dale|bueno|bien|perfecto|listo)[\s,!.]*$/i.test(lo)) return true;
+    if (/\b(hag[aá]?m[oa]s?l[oa]|hagamoslo|hagamsolo|hagámoslo|vamos\s+a\s+(hacerlo|pedirlo|ordenarlo)|let'?s\s+do\s+it|lets\s+do\s+it)\b/i.test(lo)) return true;
+    if (/^(ok|okay|vale|claro|s[ií]|yes)\s+(hag|vamos|dale|listo|adelante|proced|do it)/i.test(lo)) return true;
+    return false;
+}
+
+function aiExtractedName(data: any): string | null {
+    const n = String(data?.customer_name || "").replace(/\s+/g, " ").trim();
+    return n || null;
+}
+
+function parseContactFromInput(input: string): { name: string | null; phone: string | null } {
+    return { name: null, phone: extractUsPhone(input) };
+}
+
+function isChoosingAlreadyQuotedCondition(input: string, session?: any): boolean {
+    if (!hasQuotedPrice(session)) return false;
+    const quoted = sessionQuotedConditions(session);
+    if (!statesProductChoice(input) && !/\b(entonces|mejor)\b/i.test(input || "")) return false;
+    const used = mentionsUsedCondition(input);
+    const neu = mentionsNewCondition(input);
+    if (used && !neu && quoted.includes("Usado")) return true;
+    if (neu && !used && quoted.includes("Nuevo")) return true;
+    return false;
+}
+
+function quotedAmountForCondition(session: any, cond: "Nuevo" | "Usado"): number | null {
+    const qp = parseQuotePriceMeta(session).quoted_prices || {};
+    const sizeKey = normalizeSizeKey(session?.size || "");
+    const n = qp[`${sizeKey}|${cond}`];
+    return n != null && Number.isFinite(Number(n)) ? Number(n) : null;
+}
+
+function isChoosingPaymentMethod(input: string): boolean {
+    const lo = (input || "").toLowerCase().trim();
+    return /^(con\s+)?(zelle|efectivo|cash|tarjeta|card|cheque|check)([.!]|\s+por\s+favor)?$/i.test(lo)
+        || /^(pago|pagar[eé]|i'?ll pay|we'?ll pay|pay)\s+(con\s+|with\s+|by\s+)?(zelle|efectivo|cash|tarjeta|card|cheque|check)\b/i.test(lo);
+}
+
+function isPaymentPolicyQuestion(input: string): boolean {
+    if (isChoosingPaymentMethod(input)) return false;
+    const lo = (input || "").toLowerCase();
+    if (/\b(cu[aá]ndo\s+(pago|pagamos|lo\s+pago)|pago\s+cuando|when do i pay|pay when|pay on delivery|pago al recibir|cuando lo reciba|forma de pago|payment method|c[oó]mo\s+(se\s+)?paga|how (do i |to |do you |does )?(do the )?pay|aceptan|do you accept|tarjeta o cheque|credit card)\b/.test(lo)) {
+        return true;
+    }
+    if (/\b(payment|pago|pagar)\b/.test(lo) && /\b(how|c[oó]mo|when|cu[aá]ndo|delivery|entrega|before|antes|cash|efectivo|zelle|method|forma)\b/.test(lo)) {
+        return true;
+    }
+    if (/\bpay\b/.test(lo) && /\b(cash|zelle|delivered|delivery|before|card|check)\b/.test(lo)) return true;
+    return /\?/.test(input) && /\b(pago|pagar|pay|zelle|efectivo|cash)\b/.test(lo);
+}
+
+/** Policy / how-it-works question — not a request for a new database price. */
+function isConversationalSideAsk(input: string): boolean {
+    if (isChoosingPaymentMethod(input)) return false;
+    if (isPaymentPolicyQuestion(input)) return true;
+    if (isAskingOurLocation(input)) return true;
+    if (isSchedulingQuestion(input)) return true;
+    const lo = (input || "").toLowerCase();
+    if (/\bhow much\b|\bcu[aá]nto\s*(cuesta|sale|es)\b|\bcot[ií]z/.test(lo)) return false;
+    if (/\bhow\b/.test(lo)) return true;
+    return /\b(where|located|address|oficina|wwt|leak|permiso|discount|garant)\b/.test(lo);
 }
 
 function mergeDataFromSession(session: any, data: any, input?: string, history?: any): void {
@@ -1206,6 +1917,62 @@ function isDimensionsRequest(input: string): boolean {
     return /\b(medida|medidas|dimension|dimensions|measurements|largo|ancho|alto|length|width|height|capacidad|payload|tamaño|tamano)\b/.test(lo);
 }
 
+/** Customer hesitates to buy because they cannot see the exact unit first — often right after the photo policy. */
+function isPhotoHesitationConcern(input: string, _session?: any): boolean {
+    const lo = (input || "").toLowerCase();
+    if (/\b(no me gusta|no quiero|me incomoda|me da miedo|me preocupa|me da desconfianza|no conf[ií]o|don't like|don't want|not comfortable|makes me nervous|worried|hesitant)\b/.test(lo)
+        && /\b(comprar|buy|buying|ordenar|order|pagar|pay|invertir|invest)\b/.test(lo)
+        && /\b(sin ver|without seeing|before seeing|a ciegas|blind|verlo|ver la unidad|ver el contenedor|see it|see what|what i'm buying|lo que compro)\b/.test(lo)) return true;
+    if (/\b(sin ver|without seeing|a ciegas|before i see|before seeing)\b/.test(lo)
+        && /\b(comprar|buy|antes|first)\b/.test(lo)) return true;
+    if (/\bver lo que compro\b/.test(lo) || /\bsee what (i'm|im) buying\b/.test(lo)) return true;
+    if (/\b(mmm+|uh+|eh+|no me gusta|no estoy seguro|not sure|no me convence)\b/.test(lo)
+        && /\b(ver|see|foto|photo|unidad|unit|contenedor|container|comprar|buy)\b/.test(lo)) return true;
+    return false;
+}
+
+function historyHasPhotoPolicy(session?: any): boolean {
+    return historyLooksLike(session?.history, [
+        "#gallery", "[policy_sent:photos]", "fotos del contenedor exacto", "photos of the exact container",
+        "el día programado para su entrega", "on the day of your delivery", "depósitos portuarios están automatizados",
+    ]);
+}
+
+function historyHasWwtInfo(session?: any): boolean {
+    return historyLooksLike(session?.history, [
+        "wind & water tight", "wind and water tight", "wwt:", "significa **wind",
+        "stands for **wind", "garantía estructural wwt", "6-month wwt structural",
+    ]);
+}
+
+function isAskingWwtMeaning(input: string): boolean {
+    const lo = (input || "").toLowerCase();
+    if (!/\bwwt\b/.test(lo)) return false;
+    return /\b(qu[eé]\s+(significa|quiere decir|es|quiere\s+decir)|significa|what\s+(does|is)|meaning of|stands for|definici[oó]n)\b/.test(lo)
+        || /^\s*(y\s+)?(el\s+|la\s+)?wwt\s*\??\s*$/i.test(lo);
+}
+
+function buildPhotoHesitationReply(lang: string, session?: any): string {
+    if (lang === "ES") {
+        let msg = "Te entiendo perfectamente — es **muy normal** querer ver lo que compras. Justamente por eso nuestro proceso funciona así:\n\n";
+        msg += "1. **El día de la entrega**, el chofer te envía fotos del contenedor **exacto** seleccionado para ti.\n";
+        msg += "2. **No sale hacia tu propiedad hasta que tú lo apruebes.** Si no te gusta, no va — sin presión.\n";
+        if (session?.condition === "Usado") {
+            msg += "3. Todos los usados son **WWT** (sellados, sin filtraciones) con **garantía estructural de 6 meses**.\n";
+        }
+        msg += "\nEl precio que te cotizamos ya incluye contenedor + flete, sin cargos ocultos. Muchos clientes empiezan con la misma duda y quedan tranquilos con ese proceso. ¿Te gustaría avanzar o te quedó otra duda?";
+        return msg;
+    }
+    let msg = "I completely understand — it's **totally normal** to want to see what you're buying. That's exactly why our process works this way:\n\n";
+    msg += "1. **On delivery day**, the driver sends you photos of the **exact** container selected for you.\n";
+    msg += "2. **We don't head to your property until you approve it.** If you don't like it, it doesn't go — no pressure.\n";
+    if (session?.condition === "Usado") {
+        msg += "3. All used units are **WWT** (sealed, no leaks) with a **6-month structural guarantee**.\n";
+    }
+    msg += "\nThe price we quoted already includes container + delivery, no hidden fees. Many customers start with the same concern and feel confident once they see how it works. Would you like to move forward, or is there anything else I can help with?";
+    return msg;
+}
+
 function wantsQuoteRecalculation(
     input: string,
     session: any,
@@ -1219,6 +1986,19 @@ function wantsQuoteRecalculation(
     if (isQuotedPriceClarificationQuestion(input, session)) return false;
     if (isZipCorrectionMessage(input, session)) return true;
     if (opts.alternateSizeRequested || opts.asksAlternatePrice) return true;
+
+    const typeSwitch = typeSwitchFromInput(input, session);
+    if (typeSwitch && typeSwitch !== session.type) return true;
+    const loTrim = (input || "").trim();
+    if (/^(prices?|precios?|cotizaci[oó]n)\??$/i.test(loTrim) && hasQuotedPrice(session)) return true;
+
+    // Type and motor first: a size already quoted as Dry is a different product as Reefer
+    if (data.type && data.type !== session.type) return true;
+    const requestedType = typePriceRequestFromInput(input, session);
+    if (requestedType && requestedType !== session.type) return true;
+    const reeferStatus = data.reefer_status || extractReeferStatus(input);
+    if (reeferStatus && reeferStatus !== session.reefer_status) return true;
+
     const lo = (input || "").toLowerCase();
     const normSize = (s: any) => (s ? s.toString().replace(" STD", "").replace(" & 40'", "").replace("20' & ", "") : "");
     if (data.size && normSize(data.size) !== normSize(session.size)) {
@@ -1228,8 +2008,12 @@ function wantsQuoteRecalculation(
     if (data.zip && data.zip !== session.zip) return true;
     if (data.zip_origin && data.zip_origin !== session.zip_origin) return true;
     if (data.zip_dest && data.zip_dest !== session.zip_dest) return true;
-    if (data.condition && data.condition !== session.condition && !isConditionComparisonQuestion(input)) return true;
-    if (data.type && data.type !== session.type) return true;
+    if (data.condition && data.condition !== session.condition && !isConditionComparisonQuestion(input)) {
+        if (sessionQuotedConditions(session).includes(data.condition) && isChoosingAlreadyQuotedCondition(input, session)) {
+            return false;
+        }
+        return true;
+    }
     if (data.quantity && Number(data.quantity) !== Number(session.quantity || 1)) return true;
     if (data.port_dest && data.port_dest !== session.port_dest) return true;
     if (/\b(cotiza|quote|precio del|price for|cu[aá]nto sale|how much.*(40|20|45|nuevo|usado|new|used))\b/i.test(lo)) {
@@ -1365,8 +2149,63 @@ function buildPostQuoteFallbackReply(input: string, lang: string, session: any):
  * discounts, "are we talking about buying?"). When `beforeQuote` is set the answer is going
  * to be prepended to a price message, so it must not close with its own call to action.
  */
+function isAskingOurLocation(input: string): boolean {
+    const lo = (input || "").toLowerCase();
+    const talkingAboutTheirPlace = /\b(mi patio|tu patio|en (el |mi |su )?patio|my (yard|lot)|mi (terreno|propiedad|casa)|almacen\w*|para guardar|storage)\b/.test(lo);
+    const askingToVisitUs = /\b(oficina|visitar(nos|los)?|\bvisit\b|d[oó]nde\s+(est[aá]n?|quedan|ubicad)|where\s+(are\s+you|is\s+your)|located|based|address|\boffice\b|ubicaci[oó]n|direcci[oó]n|nuestro patio|our yard|main office|oficina central)\b/.test(lo);
+    if (talkingAboutTheirPlace && !askingToVisitUs) return false;
+    return askingToVisitUs;
+}
+
+function isSchedulingQuestion(input: string): boolean {
+    const lo = (input || "").toLowerCase();
+    return /\b(cu[aá]ndo\s+(lo\s+)?recib|tiempo\s+de\s+entrega|delivery\s+time|how\s+long|cu[aá]nto\s+tarda|demora|d[ií]as\s+h[aá]bil)\b/.test(lo)
+        || /\b(para\s+qu[eé]\s+d[ií]a|qu[eé]\s+d[ií]a|what day|which day|when (can|would|is|do)\b|agendar|pactar|programar|schedule)\b/.test(lo)
+        || /\b(cu[aá]ndo\s+(lo\s+)?(mueven|recogen|pasan|van|ser[ií]a|puedo|salen))\b/.test(lo);
+}
+
+function buildSchedulingReply(lang: string, session: any): string {
+    const isMove = session?.action === "Transporte";
+    if (isMove) {
+        return lang === "ES"
+            ? "En un **traslado** no fijamos el día hasta tener el servicio en sistema. En cuanto registremos tu **nombre y teléfono**, nuestro equipo de despacho **te llama** para revisar la ruta disponible y **pactar la fecha** de recogida y entrega."
+            : "On a **relocation** we don’t lock a calendar date until the job is in our system. As soon as we have your **name and phone**, our dispatch team **will call you** to check the next available route and **agree on pickup and delivery dates**.";
+    }
+    return lang === "ES"
+        ? "La entrega suele ser en **1 a 3 días hábiles** después de confirmar el pedido. El día programado, el chofer te contacta y te envía fotos del contenedor exacto antes de salir hacia tu propiedad."
+        : "Delivery is typically **1–3 business days** after you confirm the order. On the scheduled day, our driver contacts you and sends photos of the exact unit before heading to your property.";
+}
+
 function buildSideQuestionReply(input: string, lang: string, session: any, beforeQuote = false): string | null {
     const lo = (input || "").toLowerCase();
+    if (!beforeQuote && isPhotoHesitationConcern(input, session)) {
+        return buildPhotoHesitationReply(lang, session);
+    }
+    if (isTypeClarificationQuestion(input) && hasQuotedPrice(session)) {
+        const quoted = session?.type && session.type !== "Dry" ? session.type : "Dry";
+        const labels: Record<string, { es: string; en: string }> = {
+            "Dry": { es: "secos (dry)", en: "dry containers" },
+            "Reefer": { es: "refrigerados (reefer)", en: "refrigerated (reefer) containers" },
+            "Open Side": { es: "Open Side (apertura lateral)", en: "Open Side containers" },
+            "Double Door": { es: "Double Door (doble puerta)", en: "Double Door containers" },
+        };
+        const label = labels[quoted] || labels["Dry"];
+        if (lang === "ES") {
+            let msg = `Los precios que te pasé son de contenedores **${label.es}**.`;
+            if (quoted === "Dry") msg += " Un **refrigerado (reefer)** es un equipo distinto, con motor de frío, y cuesta bastante más.";
+            if (!beforeQuote) msg += " Si necesitas otro tipo, dime cuál y te lo cotizo enseguida.";
+            return msg;
+        }
+        let msg = `The prices I sent you are for **${label.en}**.`;
+        if (quoted === "Dry") msg += " A **refrigerated (reefer)** unit is different equipment, with a cooling engine, and costs considerably more.";
+        if (!beforeQuote) msg += " If you need a different type, tell me which one and I'll quote it right away.";
+        return msg;
+    }
+    if ((session?.action === "Alquilar" || /\b(alquil\w*|rent\w*|lease\w*)\b/.test(lo)) && extractTypeFromText(input) === "Reefer") {
+        return lang === "ES"
+            ? "La renta es solo de contenedores **secos (dry)** para almacenamiento en Estados Unidos. **No alquilamos refrigerados**. Si te sirve un seco para guardar, dime la medida y te cotizo la renta."
+            : "We only rent **dry** containers for storage in the United States. **We don't rent reefers**. If a dry unit works for storage, tell me the size and I'll quote the rental.";
+    }
     if (/\b(hablamos|talking about|trata de|se trata)\b/.test(lo) && /\b(compra|comprar|buy|renta|alquilar|rent)\b/.test(lo)) {
         const size = session?.size ? ` ${session.size}` : "";
         const cond = session?.condition === "Usado"
@@ -1388,18 +2227,34 @@ function buildSideQuestionReply(input: string, lang: string, session: any, befor
             ? "Nuestros precios ya son los más bajos del mercado mayorista, sin márgenes ocultos. No manejamos descuentos adicionales por jubilación, militares ni similares — el precio que te cotizamos es el final."
             : "Our prices are already the lowest wholesale rates with no hidden margins. We don't offer additional senior, military, or similar discounts — the price we quoted is final.";
     }
+    if (isAskingWwtMeaning(input)) {
+        if (lang === "ES") {
+            return historyHasWwtInfo(session)
+                ? "**WWT** son las siglas de **Wind & Water Tight**: hermético al **viento y al agua**. Es el estándar de nuestros usados: **no filtra lluvia** y las puertas sellan. El contenedor que te cotizamos sale con esa certificación y **garantía estructural de 6 meses**."
+                : "**WWT** significa **Wind & Water Tight** (hermético al viento y al agua). En la práctica el contenedor **no debe filtrar**, las **puertas cierran bien** y la estructura está sólida. Todos nuestros usados salen certificados WWT, con **garantía estructural de 6 meses**.";
+        }
+        return historyHasWwtInfo(session)
+            ? "**WWT** stands for **Wind & Water Tight** — sealed against **wind and water**. That's the standard of our used units: **no rain leaks**, doors that seal. The container we quoted includes that certification and a **6-month structural guarantee**."
+            : "**WWT** means **Wind & Water Tight**. In practice the unit **shouldn't leak**, the **doors seal properly**, and the structure is sound. All our used containers ship WWT-certified, with a **6-month structural guarantee**.";
+    }
     if (/\b(filtraci\w*|gotera\w*|leaks?|leaking|water tight|wwt|est[aá]nch\w*|sellad\w*)\b/.test(lo)) {
         const chose = statesProductChoice(input) && !beforeQuote;
+        const sizeBit = session?.size ? ` ${session.size}` : "";
+        if (historyHasWwtInfo(session)) {
+            return lang === "ES"
+                ? `Sí: el usado${sizeBit} que te cotizamos es **WWT**, o sea **sin filtraciones**, y lleva **garantía estructural de 6 meses**. El día de la entrega te enviamos fotos del equipo exacto antes de que salga el camión.`
+                : `Yes: the used${sizeBit} we quoted is **WWT** — **no leaks** — with a **6-month structural guarantee**. On delivery day we send photos of the exact unit before the truck leaves.`;
+        }
         if (lang === "ES") {
             let msg = "Todos nuestros contenedores usados son **Wind & Water Tight (WWT)**: sin filtraciones, puertas que sellan bien y estructura sólida. Además incluyen **garantía estructural WWT de 6 meses**.";
-            if (chose) msg += "\n\n¡Perfecto entonces! Cuando quieras avanzar con el 40' usado, dime tu **nombre completo** y armo la orden.";
+            if (chose) msg += `\n\n¡Perfecto entonces! Cuando quieras avanzar con el usado${sizeBit}, dime tu **nombre completo** y armo la orden.`;
             return msg;
         }
         let msg = "All our used containers are **Wind & Water Tight (WWT)**: no leaks, doors seal properly, and the structure is sound. They also include a **6-month WWT structural guarantee**.";
-        if (chose) msg += "\n\nSounds good! Whenever you're ready to move forward with the used 40', send me your **full name** and I'll set up the order.";
+        if (chose) msg += `\n\nSounds good! Whenever you're ready to move forward with the used${sizeBit}, send me your **full name** and I'll set up the order.`;
         return msg;
     }
-    if (/\b(pagos?|pagar|pago inicial|pay|paying|payment|zelle|efectivo|cash|cu[aá]ndo pago|when do i pay|tengo que pagar|do i pay|forma de pago|payment method)\b/.test(lo)) {
+    if (isPaymentPolicyQuestion(input)) {
         if (session?.action === "Alquilar") {
             return lang === "ES"
                 ? "Para renta, el **pago inicial** (primer mes + logística) se realiza **al momento de la entrega**. Aceptamos **efectivo** o **Zelle**."
@@ -1408,6 +2263,19 @@ function buildSideQuestionReply(input: string, lang: string, session: any, befor
         return lang === "ES"
             ? "El pago se realiza **al momento de la entrega**. Aceptamos **efectivo** o **Zelle**. Si prefieres tarjeta o cheque, debe pagarse por completo **antes** de que el camión salga de nuestro patio."
             : "Payment is due **at delivery**. We accept **cash** or **Zelle**. If you prefer card or check, it must be paid in full **before** the truck leaves our yard.";
+    }
+    if (isSchedulingQuestion(input)) {
+        return buildSchedulingReply(lang, session);
+    }
+    if (/\b(permiso|permisos|zoning|county|municipio|legal|regulaci|code enforcement|ordenanza)\b/.test(lo)) {
+        return lang === "ES"
+            ? "Los requisitos de permisos **varían por condado y ciudad** — nosotros no somos la autoridad municipal. Muchos clientes colocan contenedores en terreno o patio sin problema, pero te recomendamos **verificar con tu condado o municipio** local. Nosotros nos encargamos de la entrega y la colocación en tu propiedad."
+            : "Permit requirements **vary by county and city** — we're not the local authority. Many customers place containers on their lot without issues, but we recommend **checking with your local county or municipality**. We handle delivery and placement on your property.";
+    }
+    if (isAskingOurLocation(input)) {
+        return lang === "ES"
+            ? "Estamos en Florida, con centros de distribución en **Miami, Tampa, Titusville, Jacksonville, Savannah y Atlanta**. La **oficina central** está en **9804 NW 80th Ave, Hialeah Gardens FL 33016**. **Llámanos antes** al **786-768-4409** o **786-736-6288** para agendar cita — la oficina puede estar cerrada si llegas sin avisar."
+            : "We are based in Florida, with distribution centers in **Miami, Tampa, Titusville, Jacksonville, Savannah, and Atlanta**. Our **central office** is at **9804 NW 80th Ave, Hialeah Gardens FL 33016**. **Please call first** at **786-768-4409** or **786-736-6288** to schedule an appointment — the office may be closed if you show up unannounced.";
     }
     return null;
 }
@@ -1527,6 +2395,41 @@ function is20StdHcQuestion(input: string, session: any): boolean {
 }
 
 /** Customer asks what is different between STD and HC — educational, not a new quote. */
+function isReeferRejectionMessage(input: string): boolean {
+    const lo = (input || "").toLowerCase();
+    return /\b(don'?t|do not|no)\s+(need|want)\s+(a\s+)?(new\s+)?(reefer|refriger)/i.test(lo)
+        || /\b(not|without|no)\s+(a\s+)?(reefer|refriger)/i.test(lo);
+}
+
+/** Customer confirms they want a standard dry unit — not when rejecting dry ("not a regular container"). */
+function isRegularDryAffirmation(input: string): boolean {
+    const lo = (input || "").toLowerCase();
+    if (!/\b(regular|standard|normal)\s+(container|contenedor)\b/.test(lo)) return false;
+    if (/\bnot\s+(a\s+)?(regular|standard|normal)\s+(container|contenedor)\b/.test(lo)) return false;
+    if (/\b(no|without)\s+(regular|standard|normal)\s+(container|contenedor)\b/.test(lo)) return false;
+    if (/\b(isn'?t|aren'?t|wasn'?t)\s+(a\s+)?(regular|standard|normal)\s+(container|contenedor)\b/.test(lo)) return false;
+    return true;
+}
+
+function buildReeferRejectionReply(lang: string, session: any, history?: any): string {
+    const hist = history || session?.history;
+    const histCond = inferConditionFromConversation("", hist) || resolveExplicitCondition("", hist, {}, session);
+    const condKey = (histCond || session?.condition) === "Usado" ? (lang === "ES" ? "usado" : "used") : (lang === "ES" ? "nuevo" : "new");
+    const size = session?.size || "40'";
+    if (lang === "ES") {
+        return `La cotización que te di es de un contenedor **seco (dry) ${condKey}** de ${size}, no un refrigerado. ¿Te gustaría proceder?`;
+    }
+    return `The quote I gave you is for a **standard dry ${condKey}** ${size} container — not a reefer. Would you like to proceed?`;
+}
+
+function conversationMentionsReeferIntent(input: string, history: any): boolean {
+    for (const text of conversationUserTexts(input, history)) {
+        if (isReeferRejectionMessage(text)) continue;
+        if (/\b(reefer|refrigerad\w*|refrigerated|freezer|congelad\w*)\b/i.test(text)) return true;
+    }
+    return false;
+}
+
 function isStdHcComparisonQuestion(input: string, session?: any): boolean {
     const lo = (input || "").toLowerCase().trim();
     if (/\b(precio|price|cu[aá]nto|cuesta|how much|cost|cotiza|quote)\b/.test(lo)
@@ -1548,17 +2451,73 @@ function isStdHcComparisonQuestion(input: string, session?: any): boolean {
     return false;
 }
 
-/** Open question mid-flow — answer with AI, do not skip to the next structured step. */
+function isCatalogQuestion(input: string): boolean {
+    const lo = (input || "").toLowerCase().trim();
+    if (/\b(te hice una pregunta|i asked you|no me respondiste|answer (my|the) question|eso no era lo que pregunt)\b/.test(lo)) {
+        return true;
+    }
+    if (extractZipFromText(input)) return false;
+    if (extractSizeFromText(input) && /\b(cu[aá]nto|precio|how much|quiero|necesito|need)\b/.test(lo)) return false;
+    if (/\b(cu[aá]nto|how much|precio|cotiz|quote)\b/.test(lo)) return false;
+    const asksIfWeHave = /\b(venden|vendes|tienen|tienes|hacen|trabajan|manejan|do you (sell|have|carry)|are there|hay|si venden|si vendes|quer[ií]a saber si)\b/.test(lo);
+    const namesProduct = /\b(contenedor\w*|container\w*|usado\w*|used|nuevo\w*|new|reefer|refrigerad|wwt|one[\s-]?trip)\b/.test(lo);
+    return asksIfWeHave && namesProduct;
+}
+
+function buildCatalogAvailabilityReply(input: string, lang: string): string {
+    const lo = (input || "").toLowerCase();
+    const used = /\b(usado\w*|used|wwt)\b/.test(lo);
+    const neu = /\b(nuevo\w*|new|one[\s-]?trip)\b/.test(lo);
+    if (inferServiceAction(input) === "Alquilar" || /\b(alquil\w*|rent\w*|lease\w*)\b/.test(lo)) {
+        return lang === "ES"
+            ? "Sí, alquilamos contenedores **secos (dry)** para almacenamiento en Estados Unidos. ¿Qué tamaño te interesa, 20', 40' o 45'?"
+            : "Yes, we rent **dry** storage containers for use in the United States. What size are you looking at — 20', 40', or 45'?";
+    }
+    if (lang === "ES") {
+        if (used && !neu) {
+            return "Sí, vendemos contenedores **usados WWT**: estructurales, sin filtraciones y con puertas que sellan. También hay **nuevos one-trip** si los prefieres. Cuando quieras un precio, dime la medida (20, 40 o 45) o el ZIP de entrega y te cotizo.";
+        }
+        if (neu && !used) {
+            return "Sí, tenemos **nuevos one-trip** (casi sin uso previo) y también **usados WWT**. Cuando quieras cotizar, dime medida o ZIP y te armo el precio.";
+        }
+        return "Sí, vendemos contenedores **usados WWT** y **nuevos one-trip**, en 20', 40' y 45'. Si quieres un precio, dime qué medida te interesa o tu ZIP de entrega.";
+    }
+    if (used && !neu) {
+        return "Yes — we sell **used WWT** containers: structurally sound, no leaks, doors that seal. We also have **brand-new one-trip** units. When you want a price, tell me the size (20, 40, or 45) or the delivery ZIP and I’ll quote it.";
+    }
+    if (neu && !used) {
+        return "Yes, we have **brand-new one-trip** units, and **used WWT** as well. When you’re ready for a quote, tell me the size or ZIP.";
+    }
+    return "Yes, we sell **used WWT** and **new one-trip** containers in 20', 40', and 45'. If you want a price, tell me the size or delivery ZIP.";
+}
+
+function wantsQuoteNow(input: string, session?: any): boolean {
+    if (hasQuotedPrice(session)) return true;
+    if (extractZipFromText(input)) return true;
+    const lo = (input || "").toLowerCase();
+    if (/\b(cu[aá]nto\s*(cuesta|sale|es)|how much|precio|cotiz|quote me|pasame (el )?precio|quiero comprar|i want to buy|vamos a cotizar)\b/.test(lo)) {
+        return true;
+    }
+    if (extractSizeFromText(input) && /\b(quiero|necesito|need|want|comprar|buy|alquilar|rent)\b/.test(lo)) return true;
+    return false;
+}
+
 function isOpenEducationalQuestion(input: string, session?: any): boolean {
+    if (isConversationalSideAsk(input)) return true;
+    if (isCatalogQuestion(input) && !wantsQuoteNow(input, session)) return true;
     if (isQuotedPriceClarificationQuestion(input, session)) return true;
     if (isStdHcComparisonQuestion(input, session)) return true;
     if (isConditionComparisonQuestion(input)) return true;
     if (isZipCorrectionMessage(input, session)) return false;
     const lo = (input || "").toLowerCase().trim();
     if (isReadyToProceed(input, session)) return false;
-    if (/\b(descuentos?|discounts?|jubilad\w*|senior|militar\w*|military|filtraci\w*|gotera\w*|leaks?|garant\w*|warranty|pagos?|payment|zelle|efectivo|cash)\b/.test(lo)) return true;
+    if (parseContactFromInput(input).phone) return false;
+    if (/\b(descuentos?|discounts?|jubilad\w*|senior|militar\w*|military|filtraci\w*|gotera\w*|leaks?|garant\w*|warranty)\b/.test(lo)) return true;
+    if (isPaymentPolicyQuestion(input)) return true;
+    if (/\b(moj\w*|lluvia|humedad|rain|wet|conviene|qu[eé] me conviene)\b/.test(lo)) return true;
     if (/\b(por favor|please)\b/.test(lo) && /\b(sin|no |without|que no)\b/.test(lo)) return true;
-    if (/\b(diferencia|difference|explica|explain|funciona|works|incluye|include|entrega|delivery|demora|tarda|cu[aá]ndo|when|recomiendas?|recommend|transformador|transformer|voltaje|voltage|440|open side|double door|doble puerta|puertas laterales)\b/.test(lo)) return true;
+    if (isPhotoHesitationConcern(input, session)) return true;
+    if (/\b(diferencia|difference|explica|explain|funciona|works|incluye|include|entrega|delivery|demora|tarda|cu[aá]ndo|when|recomiendas?|recommend|transformador|transformer|voltaje|voltage|440|open side|double door|doble puerta|puertas laterales|permiso|permisos|zoning|municipio|county|d[oó]nde|ubicad\w*|oficina|direcci[oó]n)\b/.test(lo)) return true;
     if (hasQuotedPrice(session) && !wantsQuoteRecalculation(input, session || {}, {}, { alternateSizeRequested: false, asksAlternatePrice: false, stdHcComparison: false, conditionComparison: false })) {
         if (/\?/.test(input) || lo.length > 15) return true;
     }
@@ -1833,10 +2792,27 @@ type HcBotQuoteResult =
     | { ok: true; price: number; containerPrice: number; deliveryPrice: number; disclaimer: boolean }
     | { ok: false; message: string; needsInsist?: boolean; needsCondition?: boolean };
 
-function isHcUsedInsistRequest(input: string): boolean {
+function prefersStdOverHc(input: string): boolean {
+    const lo = (input || "").toLowerCase();
+    return /\b(20[\s']*std|est[aá]ndar|standard)\b/.test(lo) && !/\b(hc|high\s*cube)\b/.test(lo);
+}
+
+function isHcUsedInsistRequest(input: string, session?: any): boolean {
     const lo = (input || "").toLowerCase().trim();
+    if (!lo || prefersStdOverHc(input)) return false;
     if (["cotizar hc usado", "quote used hc", "cotizar hc", "quote hc"].includes(lo)) return true;
-    return /\b(cotiza(r)?\s+(el\s+)?hc(\s+usado)?|precio\s+igual|igual\s+quiero|insisto|dame\s+el\s+precio|with delivery|con\s+flete|quote it anyway|cotizar\s+igual)\b/.test(lo);
+    if (/\b(cotiza(r)?\s+(el\s+)?hc(\s+usado)?|precio\s+igual|igual\s+quiero|insisto|dame\s+el\s+precio|with delivery|con\s+flete|quote it anyway|cotizar\s+igual)\b/.test(lo)) {
+        return true;
+    }
+    const warned = !!session?.hc_used_warn_shown;
+    const followUp = (input || "").trim().length < 48 && is20HcSize(session?.size)
+        && (session?.condition === "Usado" || warned);
+    if (!warned && !followUp) return false;
+    if (/^(hc|high\s*cube|20[\s']*hc|20[\s']*high\s*cube)$/i.test(lo)) return true;
+    if (followUp && /\b(hc|high\s*cube)\b/.test(lo)) return true;
+    if (warned && /\b(hc|high\s*cube)\b/.test(lo)) return true;
+    if (warned && /^(s[ií]|yes|ok|okay|vale|claro|dale)([.!]|\s+(por favor|please))?$/i.test(lo)) return true;
+    return false;
 }
 
 function roundPrice25(n: number): number {
@@ -1893,7 +2869,7 @@ async function build20HcBotQuoteAsync(
     const zip = session.zip || "";
     const containerPrice = isNew ? HC20_BOT.new : HC20_BOT.used;
 
-    if (!isNew && !isMiamiAreaZip(zip) && !session.hc_used_force_quote && !isHcUsedInsistRequest(input)) {
+    if (!isNew && !isMiamiAreaZip(zip) && !session.hc_used_force_quote && !isHcUsedInsistRequest(input, session)) {
         return {
             ok: false,
             needsInsist: true,
@@ -1957,6 +2933,8 @@ function asksSameTopic(a: string, b: string): boolean {
         ["zip", "código postal", "codigo postal", "postal code"],
         ["vacío", "vacio", "cargado", "empty", "loaded", "carga"],
         ["usado", "used", "nuevo", "new", "one-trip", "wwt"],
+        ["dry", "reefer", "refrigerad", "seco", "tipo", "type"],
+        ["funcionando", "working", "motor"],
     ];
     return topics.some((words) =>
         words.some((w) => x.includes(w)) && words.some((w) => y.includes(w))
@@ -1965,32 +2943,46 @@ function asksSameTopic(a: string, b: string): boolean {
 
 // Joins a free-form answer with a structured prompt, dropping the prompt when it would
 // just repeat the question the answer already asked.
+function asTextActions(actions: Action[]): Action[] {
+    return (actions || [])
+        .filter((a) => a && a.text)
+        .map((a) => ({ type: "text" as const, text: a.text }));
+}
+
 function joinWithoutRepeating(reply: string | null | undefined, prompt: string): string {
-    if (!reply) return prompt;
-    if (asksSameTopic(reply, prompt)) return prompt;
-    return `${reply}\n\n${prompt}`;
+    if (reply && String(reply).trim()) return String(reply).trim();
+    return prompt;
 }
 
 function closedQuestionFollowUp(session: any, dict: any): { text: string; options: string[] } | null {
     const step = Number(session?.step) || 0;
+    if (session.action === "Comprar" && session.type === "Reefer" && session.condition === "Usado" && !session.reefer_status) {
+        return { text: dict.ask_reefer_status, options: dict.ask_reefer_status_btns };
+    }
     if (step === 6 && !session.lead_phone) {
         return { text: dict.ask_proceed_short, options: dict.proceed_btns };
     }
     if (!session.action) {
         return { text: dict.ask_service_short, options: dict.step1_btns };
     }
-    if (!hasExplicitSize(session)) {
-        const sizeBtns = (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dict.step3_size_btns;
-        const text = session.action === "Alquilar" ? dict.step3_size_msg_rent
-            : session.action === "Transporte" ? dict.step3_size_msg_transport
-            : dict.step3_size_msg;
-        return { text, options: sizeBtns };
+    if (["Comprar", "Alquilar", "Exportacion", "Exportación"].includes(session.action) && needsConditionBeforeQuote(session) && !session.condition) {
+        return { text: dict.ask_condition, options: dict.ask_condition_btns };
+    }
+    if (!hasExplicitSize(session) && session.size !== "20' & 40'") {
+        const skipSizeForDualZip = session.action === "Comprar" && session.zip && needsBuyType(session);
+        if (!skipSizeForDualZip) {
+            const sizeBtns = buySizeButtons(session, dict);
+            const text = session.action === "Alquilar" ? dict.step3_size_msg_rent
+                : session.action === "Transporte" ? dict.step3_size_msg_transport
+                : dict.step3_size_msg;
+            return { text, options: sizeBtns };
+        }
+    }
+    if (needsBuyType(session)) {
+        return { text: dict.ask_type, options: dict.ask_type_btns };
     }
     if (session.action === "Transporte" && session.zip_origin && session.zip_dest && !isCompleteLoadStatus(session.load_status)) {
         return { text: dict.ask_transport_load, options: dict.ask_load_btns };
-    }
-    if (["Comprar", "Alquilar", "Exportacion", "Exportación"].includes(session.action) && hasExplicitSize(session) && needsConditionBeforeQuote(session)) {
-        return { text: dict.ask_condition, options: dict.ask_condition_btns };
     }
     if (session.action === "Comprar" && session.type === "Reefer" && session.condition === "Usado" && !session.reefer_status) {
         return { text: dict.ask_reefer_status, options: dict.ask_reefer_status_btns };
@@ -2098,14 +3090,32 @@ If any information is missing, use null or "---".`;
         const rawHistory = session.history || [];
         const updatedHistory = Array.isArray(rawHistory) ? rawHistory.slice(-9) : [];
         updatedHistory.push({ role: "assistant", content: messageText });
-        await updateSession(senderId, { history: updatedHistory });
+        const hydration = hydrateSessionFromConversation({ ...session, history: updatedHistory });
+        await updateSession(senderId, { history: updatedHistory, ...hydration });
         return [];
     }
 
     let step = Number(session.step) || 0;
 
+    if (isBareGreeting(input) && !session.action && !hasQuotedPrice(session)) {
+        const greetLang = detectMessageLanguage(input, session.lang, session.history);
+        const greet = await callGreetingAI(input, greetLang);
+        const text = greet || (greetLang === "ES" ? "¡Hola! ¿En qué te puedo ayudar hoy?" : "Hi! How can I help you today?");
+        await updateSession(senderId, { lang: greetLang, history: [{ role: "user", content: input }, { role: "assistant", content: text }] });
+        return [{ type: "text", text }];
+    }
+
+    if (!session.action || !hasQuotedPrice(session)) {
+        const hydration = hydrateSessionFromConversation(session, input);
+        if (Object.keys(hydration).length > 0) {
+            await updateSession(senderId, hydration);
+            Object.assign(session, hydration);
+            if (hydration.step != null) step = Number(hydration.step);
+        }
+    }
+
     // Modo silencio (agente humano activo con //)
-    if (step === -1) {
+    if (isBotPaused(session)) {
         const cmd = input.toLowerCase();
         if (cmd !== "reiniciar" && cmd !== "restart" && cmd !== "menu") return [];
     }
@@ -2120,16 +3130,24 @@ If any information is missing, use null or "---".`;
     const rawHistory = session.history || [];
     let lang = detectMessageLanguage(input, session.lang, rawHistory);
     let dictCurrent = chatDict[lang];
-    const isLangPick = ["español", "espanol", "es", "english", "en"].includes(input.toLowerCase());
-
-    // Bienvenida cálida (hola/hello también cubiertos por quickDetect)
-    if ((input.toLowerCase() === "hola" || input.toLowerCase() === "hello" || input.toLowerCase() === "hi") && !session.action) {
-        lang = input.toLowerCase() === "hola" ? "ES" : "EN";
-        dictCurrent = chatDict[lang];
-        await updateSession(senderId, { step: 0, lang, action: null, condition: null, size: null, type: null, zip: null, quantity: null, history: null, quoted_conditions: null, new_stock_cache: null, hc_stock_pending: null, hc_stock_interest: null, hc_used_force_quote: null, hc_used_warn_shown: null });
-        actions.push({ type: "quick_replies", text: buildWarmWelcomeReply(lang), options: dictCurrent.step1_btns });
-        return actions;
+    if (lang !== session.lang) {
+        session.lang = lang;
+        await updateSession(senderId, { lang });
     }
+    const langSwitch = detectLanguageSwitchRequest(input);
+    if (langSwitch) {
+        lang = langSwitch;
+        dictCurrent = chatDict[lang];
+        await updateSession(senderId, { lang });
+        if (langSwitch === "ES") {
+            const ack = session.action && hasQuotedPrice(session)
+                ? "Claro, seguimos en español. ¿Qué más te gustaría saber?"
+                : "Perfecto, seguimos en español.";
+            actions.push({ type: "text", text: ack });
+            return actions;
+        }
+    }
+    const isLangPick = ["español", "espanol", "es", "english", "en"].includes(input.toLowerCase());
 
     if (isLangPick && !session.action && !session.size && !session.zip) {
         await updateSession(senderId, { lang });
@@ -2145,15 +3163,21 @@ If any information is missing, use null or "---".`;
     // ── Detección rápida (sin tokens de IA) o llamada a IA ──
     let extracted = quickDetect(input, senderId, session);
     if (!extracted || step === 7 || step === 8) {
-        extracted = await callAI(recentHistory, session);
+        extracted = await callAI(recentHistory, {
+            ...session,
+            action: session.action || inferServiceAction(input),
+        });
         if (!extracted) extracted = { intent: "quote", lang, extracted_data: {} };
     }
 
     if (extracted.lang) {
         const scores = scoreLanguage(input);
-        // Solo dejar que la IA elija idioma si el mensaje actual no tiene señales claras
-        if (scores.es === 0 && scores.en === 0) {
-            lang = extracted.lang;
+        if (scores.es > scores.en) {
+            lang = "ES";
+        } else if (scores.en > scores.es) {
+            lang = "EN";
+        } else if (session.lang === "ES") {
+            lang = "ES";
         }
         dictCurrent = chatDict[lang];
     }
@@ -2162,17 +3186,19 @@ If any information is missing, use null or "---".`;
     applyZipCorrectionFromInput(input, session, data);
     if (!data.load_status && data.items?.[0]?.load_status) data.load_status = data.items[0].load_status;
     if (!data.action && data.items?.[0]?.action) data.action = data.items[0].action;
-    applyConversationInferences(input, session.history, data);
+    applyConversationInferences(input, session.history, data, session);
     sanitizeInferredCondition(input, session, data);
+    sanitizeInferredType(input, session, data);
 
-    if (extracted.intent === "general_chat" && !isOpenEducationalQuestion(input, session) && !isQuotedPriceClarificationQuestion(input, session) && (data.size || data.action === "Comprar") && extractSizeFromText(conversationUserTexts(input, session.history).join("\n"))) {
+    if (extracted.intent === "general_chat" && !isOpenEducationalQuestion(input, session) && !isConversationalSideAsk(input) && !isQuotedPriceClarificationQuestion(input, session) && (data.size || data.action === "Comprar") && extractSizeFromText(conversationUserTexts(input, session.history).join("\n"))) {
         extracted.intent = "quote";
         extracted.ai_reply = null;
     }
     
     if (data.items && data.items.length > 0) {
         const hasSize = data.items.some((i: any) => i.size);
-        if (!hasSize && session.items && session.items.length > 0) {
+        const mergedDeltaWithoutSize = !hasSize && session.items && session.items.length > 0;
+        if (mergedDeltaWithoutSize) {
             const delta = data.items[0];
             const isExportSession = session.action === "Exportación" || session.action === "Exportacion";
             session.items.forEach((existingItem: any) => {
@@ -2208,7 +3234,9 @@ If any information is missing, use null or "---".`;
         }
         if (first.export_action) data.export_action = first.export_action;
         if (first.type) data.type = first.type;
-        if (first.size) data.size = first.size;
+        // A type/motor-only tap is merged onto the existing cart. Don't collapse
+        // "20' & 40'" down to the first item's size.
+        if (first.size && !mergedDeltaWithoutSize) data.size = first.size;
         if (first.quantity) data.quantity = first.quantity;
         if (first.reefer_status) data.reefer_status = first.reefer_status;
         if (first.load_status) data.load_status = first.load_status;
@@ -2223,17 +3251,96 @@ If any information is missing, use null or "---".`;
     syncQuoteItemsForSession(session, data, input);
     sanitizeInferredCondition(input, session, data);
 
+    const forcedType = typeSwitchFromInput(input, session);
+    if (forcedType) {
+        data.type = forcedType;
+        if (data.items?.length) {
+            for (const item of data.items) item.type = forcedType;
+        }
+    }
+    const reeferRejectionOnDryQuote = hasQuotedPrice(session) && isReeferRejectionMessage(input) && session.type !== "Reefer";
+
     const stdHcComparison = isStdHcComparisonQuestion(input, session);
     // When we can price the other condition from the database, do that instead of a generic comparison
     const otherConditionPrice = asksOtherConditionPrice(input, session);
     const conditionComparison = isConditionComparisonQuestion(input) && !otherConditionPrice;
     const openEducational = isOpenEducationalQuestion(input, session);
+    if (isCatalogQuestion(input) && !wantsQuoteNow(input, session)) {
+        extracted.intent = "general_chat";
+    }
     const alternateSizeRequested = stdHcComparison ? false : applyAlternateSizeRequest(session, data, input);
     const asksAlternatePrice = !stdHcComparison
         && /\b(cu[aá]nto|precio|price|how much|cuesta|cost|sale)\b/i.test(input)
         && (mentionsStdSize(input) || mentionsHcSize(input) || alternateSizeRequested);
+    const quoteOpts = { alternateSizeRequested, asksAlternatePrice, stdHcComparison, conditionComparison };
+    let shouldRecalculateQuote = wantsQuoteRecalculation(input, session, data, quoteOpts);
+    if (reeferRejectionOnDryQuote) shouldRecalculateQuote = false;
+    if (hasQuotedPrice(session) && isConversationalSideAsk(input) && !asksAlternatePrice) {
+        shouldRecalculateQuote = false;
+        if (extracted.intent === "quote") extracted.intent = "general_chat";
+    }
 
-    if (isHcUsedInsistRequest(input) || ["cotizar hc usado", "quote used hc", "cotizar hc", "quote hc"].includes(input.toLowerCase().trim())) {
+    if (hasQuotedPrice(session) && session.type !== "Reefer" && isRegularDryAffirmation(input)) {
+        shouldRecalculateQuote = false;
+        extracted.intent = "general_chat";
+        extracted.ai_reply = buildReeferRejectionReply(lang, session, session.history);
+    }
+
+    if (reeferRejectionOnDryQuote) {
+        extracted.intent = "general_chat";
+        extracted.ai_reply = buildReeferRejectionReply(lang, session, session.history);
+        data.type = "Dry";
+    }
+
+    if (isCancellationMessage(input)) extracted.intent = "cancel";
+
+    // Cancel before post-quote chat can override intent to general_chat
+    if (extracted.intent === "cancel") {
+        const ackOnly = ["ok", "okay", "ok.", "vale", "perfecto"].includes(input.toLowerCase().trim());
+        if (!ackOnly) {
+            if (!session.action && !session.size && !session.zip) {
+                return [];
+            }
+            if (!session.lead_phone) {
+                await updateSession(senderId, {
+                    step: 0, action: null, size: null, zip: null, zip_origin: null, zip_dest: null,
+                    condition: null, type: null, reefer_status: null, quantity: null, history: null,
+                    export_action: null, port_dest: null, items: null, quoted_conditions: null,
+                    new_stock_cache: null, hc_stock_pending: null, hc_stock_interest: null,
+                    hc_used_force_quote: null, hc_used_warn_shown: null,
+                    final_amount: null, final_form_amount: null,
+                    is_processing: false, queued_messages: null,
+                    pending_debounce_payload: null, pending_debounce_version: 0,
+                    transport_pending_origin: null, transport_pending_dest: null,
+                });
+            }
+            let defaultMsg = lang === "EN" ? "Thank you!" : "¡Gracias!";
+            if (input.toLowerCase().includes("gracias") || input.toLowerCase().includes("thanks")) {
+                defaultMsg = lang === "EN" ? "You're welcome!" : "¡De nada!";
+            }
+            actions.push({ type: "text", text: defaultMsg });
+            return actions;
+        }
+        extracted.intent = "general_chat";
+    }
+
+    const typeCorrection = typeSwitchFromInput(input, session);
+    if (typeCorrection && typeCorrection !== session.type) {
+        data.type = typeCorrection;
+        session.type = typeCorrection;
+        session.reefer_status = null;
+        data.reefer_status = null;
+        applyTypeToItems(session, typeCorrection);
+        applyTypeToItems(data, typeCorrection);
+        if (typeCorrection === "Dry" && mentionsUsedCondition(conversationUserTexts(input, session.history).join("\n"))) {
+            data.condition = "Usado";
+            session.condition = "Usado";
+        }
+        extracted.intent = "quote";
+        extracted.ai_reply = null;
+    }
+
+    if (isHcUsedInsistRequest(input, session) || ["cotizar hc usado", "quote used hc", "cotizar hc", "quote hc"].includes(input.toLowerCase().trim())) {
         session.hc_used_force_quote = true;
     }
     if (["cotizar 20' std", "cotizar 20 std", "quote 20' std", "quote 20 std"].includes(input.toLowerCase().trim())) {
@@ -2245,13 +3352,23 @@ If any information is missing, use null or "---".`;
     }
 
     if (step === 7 || step === 8) {
-        if (!session.hc_stock_pending && (extracted.intent === "general_chat" || extracted.intent === "quote" || extracted.intent === "photos" || extracted.intent === "dimensions" || extracted.intent === "cancel")) {
+        const contactEarly = parseContactFromInput(input);
+        const looksLikeContact = !!(aiExtractedName(data) || contactEarly.phone || data.customer_phone);
+        if (!session.hc_stock_pending && !looksLikeContact && (extracted.intent === "general_chat" || extracted.intent === "quote" || extracted.intent === "photos" || extracted.intent === "dimensions" || extracted.intent === "cancel")) {
             step = 6;
             await updateSession(senderId, { step: 6 });
         } else {
             if (step === 7) {
-                const nameCandidate = data.customer_name || (session.hc_stock_pending && input.length > 1 ? input.trim() : null);
-                if (nameCandidate) {
+                const parsed = parseContactFromInput(input);
+                const nameCandidate = aiExtractedName(data);
+                const phoneNow = data.customer_phone || parsed.phone;
+                if (nameCandidate && phoneNow) {
+                    session.lead_name = nameCandidate;
+                    data.customer_phone = phoneNow;
+                    await updateSession(senderId, { lead_name: nameCandidate, step: 8 });
+                    step = 8;
+                    // fall through to phone completion below
+                } else if (nameCandidate) {
                     await updateSession(senderId, { lead_name: nameCandidate, step: 8 });
                     actions.push({ type: "text", text: dictCurrent.ask_phone.replace("{name}", nameCandidate) });
                     return actions;
@@ -2264,7 +3381,7 @@ If any information is missing, use null or "---".`;
                 }
             }
             if (step === 8) {
-                const phoneRaw = data.customer_phone || input;
+                const phoneRaw = data.customer_phone || parseContactFromInput(input).phone || input;
                 if (phoneRaw) {
                     const cleanPhone = phoneRaw.replace(/[\s\-\(\)\+]/g, '');
                     const digitsOnly = cleanPhone.match(/\d/g);
@@ -2334,10 +3451,10 @@ If any information is missing, use null or "---".`;
     let postQuotePriceDoubt = false;
     if (inQuotedChat) {
         const lowerInput = input.toLowerCase();
-        if (isReadyToProceed(input, session)) {
+        if (isReadyToProceed(input, session) && !isOpenEducationalQuestion(input, session)) {
             extracted.intent = "proceed";
             extracted.ai_reply = null;
-        } else if (wantsQuoteRecalculation(input, session, data, { alternateSizeRequested, asksAlternatePrice, stdHcComparison, conditionComparison })) {
+        } else if (shouldRecalculateQuote && !isConversationalSideAsk(input)) {
             extracted.intent = "quote";
             extracted.ai_reply = null;
             if (otherConditionPrice) {
@@ -2364,18 +3481,46 @@ If any information is missing, use null or "---".`;
                 }
             }
             if (data.type && data.type !== session.type) {
-                const mentionedType = ["dry", "reefer", "open side", "double door", "refrigerado", "estandar"].some((kw) => lowerInput.includes(kw));
-                if (!mentionedType) {
+                const switched = typeSwitchFromInput(input, session);
+                const mentionedType = !isTypeClarificationQuestion(input)
+                    && ["dry", "reefer", "open side", "double door", "refrigerado", "estandar", "regular", "standard", "normal"].some((kw) => lowerInput.includes(kw));
+                if (switched) {
+                    data.type = switched;
+                    if (data.items?.length) data.items[0].type = switched;
+                } else if (!mentionedType) {
                     data.type = session.type;
                     if (data.items?.length) data.items[0].type = session.type;
                 }
             }
+            const requestedType = typeSwitchFromInput(input, session) || typePriceRequestFromInput(input, session);
+            if (requestedType && requestedType !== session.type) {
+                data.type = requestedType;
+                session.type = requestedType;
+                session.reefer_status = null;
+                data.reefer_status = null;
+                if (requestedType === "Dry") {
+                    data.condition = data.condition || session.condition || "Usado";
+                    session.condition = data.condition;
+                }
+                applyTypeToItems(session, requestedType);
+                applyTypeToItems(data, requestedType);
+                if (!data.items?.length && session.items?.length) data.items = session.items;
+            }
+        } else if (isPhotoHesitationConcern(input, session)) {
+            extracted.intent = "general_chat";
+            extracted.ai_reply = buildPhotoHesitationReply(lang, session);
         } else if (isPhotosRequest(input)) {
             extracted.intent = "photos";
             extracted.ai_reply = null;
         } else if (isDimensionsRequest(input)) {
             extracted.intent = "dimensions";
             extracted.ai_reply = null;
+        } else if (!extracted.ai_reply && isTypeClarificationQuestion(input) && buildSideQuestionReply(input, lang, session)) {
+            extracted.intent = "general_chat";
+            extracted.ai_reply = buildSideQuestionReply(input, lang, session);
+        } else if (!extracted.ai_reply && buildSideQuestionReply(input, lang, session)) {
+            extracted.intent = "general_chat";
+            extracted.ai_reply = buildSideQuestionReply(input, lang, session);
         } else if (isQuotedPriceClarificationQuestion(input, session)) {
             postQuotePriceDoubt = true;
             extracted.intent = "general_chat";
@@ -2444,24 +3589,73 @@ If any information is missing, use null or "---".`;
     if (session.items) updates.items = session.items;
     if (data.size) updates.size = data.size;
     
+    if (!data.action && inferServiceAction(input) === "Transporte") {
+        data.action = "Transporte";
+    }
     if (data.action) {
         const actionStr = data.action.toString().toLowerCase();
         if (isExportFlow) {
             if (actionStr.includes("comprar") || actionStr.includes("buy") || actionStr.includes("alquilar") || actionStr.includes("rent")) {
                 updates.export_action = "Comprar";
             }
-        } else if (!session.action || data.action === session.action) {
-            updates.action = data.action;
-        } else if (servicesNamedInMessage(input).has(data.action)) {
-            // Switching service only when they actually said so keeps rent/transport intact
-            updates.action = data.action;
         } else {
+            const resolved = resolveExtractedAction(input, session.action, data.action);
+            if (resolved) {
+                updates.action = resolved;
+                data.action = resolved;
+            }
+        }
+    }
+    if (isCatalogQuestion(input) && !wantsQuoteNow(input, session)) {
+        delete updates.condition;
+        data.condition = session.condition;
+        if (inferServiceAction(input) === "Alquilar") {
+            updates.action = "Alquilar";
+            data.action = "Alquilar";
+        } else {
+            delete updates.action;
             data.action = session.action;
         }
     }
+    if (updates.action === "Transporte" && session.action !== "Transporte") {
+        // Customer-owned unit: condition / buy ZIP do not apply to a move
+        updates.condition = null;
+        data.condition = null;
+        session.condition = null;
+        data.zip = null;
+        if (session.items) {
+            updates.items = session.items.map((item: any) => {
+                const next = { ...item, action: "Transporte" };
+                delete next.condition;
+                return next;
+            });
+            session.items = updates.items;
+        }
+    }
+    
+    if (session.action === "Transporte" || data.action === "Transporte" || updates.action === "Transporte") {
+        data.action = "Transporte";
+        data.zip = null;
+    }
     
     applyExplicitConditionToUpdates(input, session, data, updates);
-    if (data.type) updates.type = data.type;
+    const regularDryAffirmation = hasQuotedPrice(session) && session.type !== "Reefer" && isRegularDryAffirmation(input);
+    if (reeferRejectionOnDryQuote || regularDryAffirmation) {
+        data.type = "Dry";
+        const histCond = resolveExplicitCondition(input, session.history, data, session);
+        if (histCond) data.condition = histCond;
+        updates.type = "Dry";
+        applyTypeToItems(session, "Dry");
+        if (session.items) updates.items = session.items;
+    } else if (data.type) {
+        updates.type = data.type;
+        if (data.type !== session.type) {
+            updates.reefer_status = null;
+            session.reefer_status = null;
+        }
+        applyTypeToItems(session, data.type);
+        if (session.items) updates.items = session.items;
+    }
     if (data.reefer_status) updates.reefer_status = data.reefer_status;
     if (data.load_status) {
         const normalized = normalizeLoadStatus(data.load_status);
@@ -2494,16 +3688,18 @@ If any information is missing, use null or "---".`;
         if (data.zip.length !== 5) data.zip = null;
     }
 
-    const twoZipsInInput = input.match(/\b(\d{5})\s+(\d{5})\b/);
+    const transportPairInInput = extractTransportZipsFromText(input);
     const transportNow = (data.action || session.action || updates.action) === "Transporte";
-    if (transportNow && twoZipsInInput) {
-        data.zip_origin = twoZipsInInput[1];
-        data.zip_dest = twoZipsInInput[2];
+    if (transportNow && transportPairInInput) {
+        data.zip_origin = transportPairInInput.zip_origin;
+        data.zip_dest = transportPairInInput.zip_dest;
+        data.zip = null;
     } else if (transportNow && data.zip && !data.zip_origin && !data.zip_dest) {
         if (!session.zip_origin) data.zip_origin = data.zip;
         else if (!session.zip_dest) data.zip_dest = data.zip;
         data.zip = null;
     }
+    if (transportNow) data.zip = null;
 
     const isNonContinental = (z: string) => {
         if (!z) return false;
@@ -2521,6 +3717,17 @@ If any information is missing, use null or "---".`;
             ? "The zip code you entered is outside the continental US. We need the continental US zip code where you want us to deliver the container so you can load it."
             : "El código postal que ingresaste está fuera de EE. UU. continental. Necesitamos el código postal dentro de EE. UU. continental donde deseas que te entreguemos el contenedor para que lo cargues.";
     }
+    if (transportNow && (data.zip_origin || data.zip_dest)) {
+        const explicitZipsInMessage = extractTransportZipsFromText(input);
+        if (!explicitZipsInMessage && !isTransportZipConfirmation(input)) {
+            if (data.zip_origin && data.zip_dest) {
+                updates.transport_pending_origin = data.zip_origin;
+                updates.transport_pending_dest = data.zip_dest;
+            }
+            data.zip_origin = null;
+            data.zip_dest = null;
+        }
+    }
     if (data.zip_origin) updates.zip_origin = data.zip_origin;
     if (data.zip_dest) updates.zip_dest = data.zip_dest;
     
@@ -2536,7 +3743,9 @@ If any information is missing, use null or "---".`;
         }
     }
 
-    if (data.zip) {
+    if (data.zip && transportNow) {
+        data.zip = null;
+    } else if (data.zip) {
         updates.zip = data.zip;
     }
 
@@ -2545,6 +3754,7 @@ If any information is missing, use null or "---".`;
         const inferred = inferServiceAction(input);
         if (data.zip_origin || data.zip_dest) updates.action = "Transporte";
         else if (inferred) updates.action = inferred;
+        else if (transportNow) updates.action = "Transporte";
         else if (data.size || data.zip) updates.action = "Comprar";
     }
 
@@ -2555,6 +3765,42 @@ If any information is missing, use null or "---".`;
 
     await updateSession(senderId, updates);
     Object.assign(session, updates);
+
+    const contactNow = parseContactFromInput(input);
+    const capturedName = aiExtractedName(data) || session.lead_name;
+    const capturedPhone = data.customer_phone || contactNow.phone;
+    const waitingForLead = session.final_amount != null && !session.lead_phone
+        && [6, 7, 8].includes(Number(session.step));
+    if (waitingForLead && (capturedPhone || aiExtractedName(data))) {
+        if (capturedName && capturedName !== session.lead_name) {
+            session.lead_name = capturedName;
+            await updateSession(senderId, { lead_name: capturedName });
+        }
+        if (capturedPhone && session.lead_name) {
+            const priceMetaLead = parseQuotePriceMeta(session);
+            const optionNoteLead = priceMetaLead.option ? ` Transport option: ${priceMetaLead.option}.` : "";
+            await updateSession(senderId, { lead_phone: capturedPhone, lead_name: session.lead_name, step: 6 });
+            await supabase.from("call_logs").insert([{
+                customer: session.lead_name, phone: capturedPhone,
+                service_type: session.action || "Sales", city: "---",
+                description: session.action === "Exportacion" || session.action === "Exportación"
+                    ? `Order via AI Bot (EXPORT SALE). Zip: ${session.zip}. Port: ${session.port_dest}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.${optionNoteLead}`
+                    : `Order via AI Bot. Zip: ${session.zip}. Condition: ${session.condition}. Size: ${session.size}. Type: ${session.type}. Qty: ${session.quantity || 1}.${optionNoteLead}`,
+                created_by: "AI BOT", source: "chatbot",
+                status: "PENDING", date: new Date().toISOString().split("T")[0],
+                next_call_date: new Date().toISOString().split("T")[0],
+                amount: session.final_amount, zip_code: session.zip, measures: session.size,
+                language: mapCallLanguage(lang || session.lang)
+            }]);
+            actions.push({ type: "text", text: dictCurrent.order_done });
+            return actions;
+        }
+        if (capturedName && !capturedPhone) {
+            await updateSession(senderId, { lead_name: capturedName, step: 8 });
+            actions.push({ type: "text", text: dictCurrent.ask_phone.replace("{name}", capturedName) });
+            return actions;
+        }
+    }
 
     // ── INTENT: PHOTOS / DIMENSIONS ──
     // Only promote when nothing more specific was decided, so a price question that merely
@@ -2575,14 +3821,20 @@ If any information is missing, use null or "---".`;
 
         if (alreadySent && !wantsLinkAgain) {
             const aiLooksCanned = !!(extracted.ai_reply && /#gallery|#container-dimensions|depósitos portuarios|port depots are automated/i.test(extracted.ai_reply));
-            const followUp = (!aiLooksCanned && extracted.ai_reply) || (isPhotos
-                ? (lang === "ES"
-                    ? "Entiendo que quieras verlo antes, es normal. Como te comenté, no podemos mandarte ahora la unidad exacta porque en el puerto se mueven todo el tiempo. El día de la entrega el chofer te manda las fotos y no sale hacia tu propiedad hasta que las apruebes. ¿Seguimos con la orden o te quedó otra duda?"
-                    : "I get that you want to see it first — totally fair. Like I mentioned, we can't send the exact unit right now because the port stacks move constantly. On delivery day the driver sends you photos and waits for your OK before heading to your property. Want to proceed with the order, or is there anything else I can help with?")
-                : (lang === "ES"
-                    ? "Las medidas están en el enlace que te pasé hace un momento (largo, ancho, alto y capacidad). Si me dices qué tamaño te interesa, te confirmo lo que aplica a tu cotización."
-                    : "The measurements are in the link I sent a moment ago (length, width, height, and capacity). If you tell me which size you want, I can confirm what applies to your quote."));
+            const followUp = isPhotoHesitationConcern(input, session)
+                ? buildPhotoHesitationReply(lang, session)
+                : ((!aiLooksCanned && extracted.ai_reply) || (isPhotos
+                    ? (lang === "ES"
+                        ? "Entiendo que quieras verlo antes, es normal. Como te comenté, no podemos mandarte ahora la unidad exacta porque en el puerto se mueven todo el tiempo. El día de la entrega el chofer te manda las fotos y no sale hacia tu propiedad hasta que las apruebes. ¿Seguimos con la orden o te quedó otra duda?"
+                        : "I get that you want to see it first — totally fair. Like I mentioned, we can't send the exact unit right now because the port stacks move constantly. On delivery day the driver sends you photos and waits for your OK before heading to your property. Want to proceed with the order, or is there anything else I can help with?")
+                    : (lang === "ES"
+                        ? "Las medidas están en el enlace que te pasé hace un momento (largo, ancho, alto y capacidad). Si me dices qué tamaño te interesa, te confirmo lo que aplica a tu cotización."
+                        : "The measurements are in the link I sent a moment ago (length, width, height, and capacity). If you tell me which size you want, I can confirm what applies to your quote.")));
             await appendHistory(senderId, session, followUp, isPhotos ? "photos" : "dimensions");
+            if (Number(session.step) === 6 && hasQuotedPrice(session) && !session.lead_phone) {
+                actions.push({ type: "quick_replies", text: followUp, options: dictCurrent.proceed_btns });
+                return actions;
+            }
             actions.push({ type: "text", text: followUp });
             if (Number(session.step) === 6 && hasQuotedPrice(session)) {
                 return actions;
@@ -2647,7 +3899,17 @@ If any information is missing, use null or "---".`;
         }
 
         if (!session.lead_phone) {
-            await updateSession(senderId, { step: 0, action: null, size: null, zip: null, condition: null, type: null, reefer_status: null, quantity: null, history: null, export_action: null, port_dest: null, items: null, quoted_conditions: null, new_stock_cache: null, hc_stock_pending: null, hc_stock_interest: null, hc_used_force_quote: null, hc_used_warn_shown: null });
+            await updateSession(senderId, {
+                step: 0, action: null, size: null, zip: null, zip_origin: null, zip_dest: null,
+                condition: null, type: null, reefer_status: null, quantity: null, history: null,
+                export_action: null, port_dest: null, items: null, quoted_conditions: null,
+                new_stock_cache: null, hc_stock_pending: null, hc_stock_interest: null,
+                hc_used_force_quote: null, hc_used_warn_shown: null,
+                final_amount: null, final_form_amount: null,
+                is_processing: false, queued_messages: null,
+                pending_debounce_payload: null, pending_debounce_version: 0,
+                transport_pending_origin: null, transport_pending_dest: null,
+            });
         }
         
         let defaultMsg = lang === "EN" ? "Thank you!" : "¡Gracias!";
@@ -2671,13 +3933,20 @@ If any information is missing, use null or "---".`;
     }
 
     // ── INTENT: PROCEED ──
-    if (extracted.intent === "proceed" || (step === 6 && isReadyToProceed(input, session))) {
+    if ((extracted.intent === "proceed" || (step === 6 && isReadyToProceed(input, session)))
+        && !isOpenEducationalQuestion(input, session)) {
         if (step !== 6 && !hasQuotedPrice(session)) {
             extracted.intent = "quote";
         } else {
             const transportOpt = parseTransportOption(input) || data.transport_option || null;
             const priceMeta = parseQuotePriceMeta(session);
             let amount = session.final_amount;
+            const chosenCond = extractConditionFromText(input);
+            if (chosenCond && sessionQuotedConditions(session).includes(chosenCond)) {
+                session.condition = chosenCond;
+                const restored = quotedAmountForCondition(session, chosenCond);
+                if (restored != null) amount = restored;
+            }
             if (transportOpt === "Inmediato" && priceMeta.immediate != null) amount = priceMeta.immediate;
             if (transportOpt === "Flexible" && priceMeta.flexible != null) amount = priceMeta.flexible;
             const optionNote = transportOpt ? ` Transport option: ${transportOpt}.` : "";
@@ -2687,6 +3956,7 @@ If any information is missing, use null or "---".`;
 
             await updateSession(senderId, {
                 final_amount: amount,
+                condition: session.condition,
                 final_form_amount: JSON.stringify({ ...priceMeta, option: transportOpt || priceMeta.option || null })
             });
             session.final_amount = amount;
@@ -2739,31 +4009,51 @@ If any information is missing, use null or "---".`;
 
     // ── INTENT: GENERAL_CHAT (la IA responde libremente) ──
     if (extracted.intent === "general_chat") {
-        if (!session.action) {
+        const postQuoteTypeSwitch = typeSwitchFromInput(input, session);
+        if (step === 6 && hasQuotedPrice(session) && postQuoteTypeSwitch && postQuoteTypeSwitch !== session.type) {
+            extracted.intent = "quote";
+        }
+    }
+    if (extracted.intent === "general_chat") {
+        if (!session.action || (inferServiceAction(input) === "Transporte" && servicesNamedInMessage(input).has("Transporte") && session.action !== "Transporte")) {
             const inferred = inferServiceAction(input);
             if (inferred) {
                 session.action = inferred;
-                await updateSession(senderId, { action: inferred });
+                const switchUpdates: any = { action: inferred };
+                if (inferred === "Transporte") {
+                    session.condition = null;
+                    switchUpdates.condition = null;
+                }
+                await updateSession(senderId, switchUpdates);
             }
         }
-        const alreadyPhotos = historyLooksLike(session.history, ["#gallery", "[policy_sent:photos]", "fotos del contenedor exacto", "photos of the exact container"]);
+        const alreadyPhotos = historyHasPhotoPolicy(session);
         const alreadyDims = historyLooksLike(session.history, ["#container-dimensions", "[policy_sent:dimensions]"]);
         const askingPhotosAgain = /\b(foto|photo|pics|imagen|verlo|see it|see the|gallery|galer)/i.test(input);
         const askingDimsAgain = /\b(medida|dimension|largo|ancho|alto|length|width|height)\b/i.test(input);
-        const keepChat = (alreadyPhotos && askingPhotosAgain) || (alreadyDims && askingDimsAgain);
+        const photoConcern = isPhotoHesitationConcern(input, session);
+        const keepChat = (alreadyPhotos && (askingPhotosAgain || photoConcern)) || (alreadyDims && askingDimsAgain);
 
         if (step < 6 && session.action && !keepChat && !openEducational) {
             extracted.intent = "quote";
         } else {
             // Only greet someone who hasn't started yet — never welcome a customer mid-quote
-            const noReplyFallback = session.action
-                ? (buildPostQuoteFallbackReply(input, lang, session)
-                    || (lang === "ES" ? "Claro, ¿qué más te gustaría saber?" : "Sure — what else would you like to know?"))
-                : buildWarmWelcomeReply(lang, input);
-            let aiMsg = extracted.ai_reply || noReplyFallback;
-            const repeatingPhotos = alreadyPhotos && /#gallery|depósitos portuarios|port depots are automated/i.test(aiMsg);
+            const noReplyFallback = isCatalogQuestion(input)
+                ? buildCatalogAvailabilityReply(input, lang)
+                : (session.action
+                    ? (buildPostQuoteFallbackReply(input, lang, session)
+                        || (lang === "ES" ? "Con gusto te ayudo. ¿Qué te gustaría saber?" : "Happy to help — what would you like to know?"))
+                    : buildWarmWelcomeReply(lang, input));
+            let aiMsg = buildSideQuestionReply(input, lang, session) || extracted.ai_reply || noReplyFallback;
+            if (isCatalogQuestion(input) && (!extracted.ai_reply || /qu[eé] m[aá]s te gustar[ií]a saber|what else would you like/i.test(extracted.ai_reply))) {
+                aiMsg = buildCatalogAvailabilityReply(input, lang);
+            }
+            const repeatingPhotos = alreadyPhotos && (/^Entiendo que quieras verlo|^I get that you want to see it|^Te entiendo perfectamente|^I completely understand/.test(aiMsg)
+                || /#gallery|depósitos portuarios|port depots are automated/i.test(aiMsg));
             const repeatingDims = alreadyDims && /#container-dimensions/i.test(aiMsg);
-            if (repeatingPhotos) {
+            if (photoConcern && (alreadyPhotos || step === 6)) {
+                aiMsg = buildPhotoHesitationReply(lang, session);
+            } else if (repeatingPhotos) {
                 aiMsg = lang === "ES"
                     ? "Entiendo que quieras verlo antes, es normal. Como te comenté, el día de la entrega el chofer te manda las fotos de la unidad exacta y no sale hacia tu propiedad hasta que las apruebes. ¿Seguimos con la orden o te quedó otra duda?"
                     : "I get that you want to see it first — totally fair. Like I mentioned, on delivery day the driver sends photos of the exact unit and waits for your OK before heading to your property. Want to proceed, or is there anything else I can help with?";
@@ -2773,7 +4063,7 @@ If any information is missing, use null or "---".`;
                     : "The measurements are in the link I sent a moment ago. Tell me the size and I’ll confirm what applies to your quote.";
             }
             const followCards = closedQuestionFollowUp(session, dictCurrent);
-            if (followCards && step < 6 && session.action) {
+            if (followCards && step < 6 && session.action && !isCatalogQuestion(input) && !openEducational) {
                 // Keep the conversational answer; drop the canned prompt if it repeats the question
                 const text = asksSameTopic(aiMsg, followCards.text) ? aiMsg : `${aiMsg}\n\n${followCards.text}`;
                 actions.push({ type: "quick_replies", text, options: followCards.options });
@@ -2784,15 +4074,20 @@ If any information is missing, use null or "---".`;
                     aiMsg = extracted.ai_reply || buildQuotedPriceClarificationReply(input, lang, session) || aiMsg;
                 } else {
                     aiMsg = fixAiReplyForKnownSession(aiMsg, session, lang, dictCurrent);
-                    if (isReadyToProceed(input, session) || aiReplyAsksForKnownField(extracted.ai_reply || "", session, input)) {
+                    if ((isReadyToProceed(input, session) && !isOpenEducationalQuestion(input, session))
+                        || aiReplyAsksForKnownField(extracted.ai_reply || "", session, input)) {
                         await updateSession(senderId, { step: 7 });
                         actions.push({ type: "text", text: aiMsg.includes("nombre") || aiMsg.includes("name") ? aiMsg : dictCurrent.ask_name });
                         return actions;
                     }
                 }
                 await appendHistory(senderId, session, aiMsg, "post_quote_chat");
-                actions.push({ type: "text", text: aiMsg });
-            } else if (step === 6 && !session.lead_phone && isReadyToProceed(input, session)) {
+                if (photoConcern) {
+                    actions.push({ type: "quick_replies", text: aiMsg, options: dictCurrent.proceed_btns });
+                } else {
+                    actions.push({ type: "text", text: aiMsg });
+                }
+            } else if (step === 6 && !session.lead_phone && isReadyToProceed(input, session) && !isOpenEducationalQuestion(input, session)) {
                 actions.push({ type: "quick_replies", text: aiMsg, options: dictCurrent.proceed_btns });
             } else {
                 actions.push({ type: "text", text: aiMsg });
@@ -2811,11 +4106,16 @@ If any information is missing, use null or "---".`;
     }
 
     // ── FLUJO DE COTIZACIÓN ESTRUCTURADO ──
-    if (!session.action) {
+    if (!session.action || (inferServiceAction(input) === "Transporte" && servicesNamedInMessage(input).has("Transporte") && session.action !== "Transporte")) {
         const inferred = inferServiceAction(input);
         if (inferred) {
             session.action = inferred;
-            await updateSession(senderId, { action: inferred });
+            const switchUpdates: any = { action: inferred };
+            if (inferred === "Transporte") {
+                session.condition = null;
+                switchUpdates.condition = null;
+            }
+            await updateSession(senderId, switchUpdates);
         }
     }
     if (!session.action) {
@@ -2852,8 +4152,81 @@ If any information is missing, use null or "---".`;
         }
         if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg_transport), options: dictCurrent.step3_size_btns }); return actions; }
         if (!session.zip_origin || !session.zip_dest) {
-            actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_transport_zips) });
-            return actions;
+            const pendingOrigin = session.transport_pending_origin;
+            const pendingDest = session.transport_pending_dest;
+            if (pendingOrigin && pendingDest) {
+                const loLoadPending = input.toLowerCase();
+                if (/\b(vac[ií]o|empty)\b/.test(loLoadPending) && !/\b(cargado|loaded|lleno|full)\b/.test(loLoadPending)) {
+                    session.load_status = "Vacio";
+                    updates.load_status = "Vacio";
+                    await updateSession(senderId, { load_status: "Vacio" });
+                }
+                if (isTransportZipConfirmation(input)) {
+                    session.zip_origin = pendingOrigin;
+                    session.zip_dest = pendingDest;
+                    updates.zip_origin = pendingOrigin;
+                    updates.zip_dest = pendingDest;
+                    updates.transport_pending_origin = null;
+                    updates.transport_pending_dest = null;
+                    await updateSession(senderId, {
+                        zip_origin: pendingOrigin,
+                        zip_dest: pendingDest,
+                        transport_pending_origin: null,
+                        transport_pending_dest: null,
+                    });
+                } else if (isTransportZipRejection(input)) {
+                    await updateSession(senderId, { transport_pending_origin: null, transport_pending_dest: null });
+                    actions.push({ type: "text", text: appendAiReply(buildTransportZipsAsk(lang, input, session.history)) });
+                    return actions;
+                } else {
+                    const corrected = extractTransportZipsFromText(input);
+                    if (corrected) {
+                        session.zip_origin = corrected.zip_origin;
+                        session.zip_dest = corrected.zip_dest;
+                        updates.zip_origin = corrected.zip_origin;
+                        updates.zip_dest = corrected.zip_dest;
+                        updates.transport_pending_origin = null;
+                        updates.transport_pending_dest = null;
+                        await updateSession(senderId, {
+                            zip_origin: corrected.zip_origin,
+                            zip_dest: corrected.zip_dest,
+                            transport_pending_origin: null,
+                            transport_pending_dest: null,
+                        });
+                    } else {
+                        const confirmText = dictCurrent.transport_zips_confirm
+                            .replace("{origin}", pendingOrigin)
+                            .replace("{dest}", pendingDest);
+                        actions.push({
+                            type: "quick_replies",
+                            text: appendAiReply(confirmText),
+                            options: dictCurrent.transport_zips_confirm_btns,
+                        });
+                        return actions;
+                    }
+                }
+            } else {
+                const geocoded = await tryGeocodeTransportRoute(input, session.history);
+                if (geocoded) {
+                    session.transport_pending_origin = geocoded.zip_origin;
+                    session.transport_pending_dest = geocoded.zip_dest;
+                    await updateSession(senderId, {
+                        transport_pending_origin: geocoded.zip_origin,
+                        transport_pending_dest: geocoded.zip_dest,
+                    });
+                    const confirmText = dictCurrent.transport_zips_confirm
+                        .replace("{origin}", geocoded.zip_origin)
+                        .replace("{dest}", geocoded.zip_dest);
+                    actions.push({
+                        type: "quick_replies",
+                        text: appendAiReply(confirmText),
+                        options: dictCurrent.transport_zips_confirm_btns,
+                    });
+                    return actions;
+                }
+                actions.push({ type: "text", text: appendAiReply(buildTransportZipsAsk(lang, input, session.history)) });
+                return actions;
+            }
         }
         if (!isCompleteLoadStatus(session.load_status)) {
             const loLoad = input.toLowerCase();
@@ -2876,7 +4249,7 @@ If any information is missing, use null or "---".`;
         }
     } else if (session.action === "Exportación" || session.action === "Exportacion") {
         ensureDryDefaultType(session, updates, input, session.history);
-        if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: (["Reefer", "Open Side", "Double Door"].includes(session.type)) ? ["20'", "40'"] : dictCurrent.step3_size_btns }); return actions; }
+        if (!session.size) { actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: buySizeButtons(session, dictCurrent) }); return actions; }
         if (needsConditionBeforeQuote(session) && !hasKnownCondition(session, input, session.history, data)) {
             actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_condition), options: dictCurrent.ask_condition_btns });
             return actions;
@@ -2914,24 +4287,57 @@ If any information is missing, use null or "---".`;
             return actions;
         }
     } else {
+        applyBuyTypeDefaults(session, updates, input, session.history);
         ensureDryDefaultType(session, updates, input, session.history);
-        if (session.action === "Comprar") {
-            if (session.type === "Reefer" && session.condition === "Usado" && !session.reefer_status) {
-                actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_reefer_status), options: dictCurrent.ask_reefer_status_btns }); return actions;
-            }
-        }
-        if (!session.size) {
-            ensureQuoteItems(session, updates, session.history, input, "Comprar");
-        }
         if (needsConditionBeforeQuote(session) && !hasKnownCondition(session, input, session.history, data)) {
             actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_condition), options: dictCurrent.ask_condition_btns });
             return actions;
+        }
+        if (!hasExplicitSize(session) && session.size !== "20' & 40'") {
+            const inferredSize = extractSizeFromText(input) || data.size;
+            if (inferredSize) {
+                const condition = session.condition || resolveConditionFromContext(input, session.history, { condition: session.condition }) || undefined;
+                session.size = inferredSize;
+                session.items = [{ size: inferredSize, action: "Comprar", ...(session.type ? { type: session.type } : {}), ...(condition ? { condition } : {}) }];
+                updates.size = inferredSize;
+                updates.items = session.items;
+                applyBuyTypeDefaults(session, updates, input, session.history);
+            } else if (!session.zip && !inferZipFromConversation(input, session.history)) {
+                const dualDryReady = session.type === "Dry" && wantsQuoteNow(input, session);
+                if (!dualDryReady) {
+                    actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.step3_size_msg), options: buySizeButtons(session, dictCurrent) });
+                    return actions;
+                }
+            }
+        }
+        applyBuyTypeDefaults(session, updates, input, session.history);
+        if (needsBuyType(session, input, session.history)) {
+            const inferredNow = extractTypeFromText(input) || data.type;
+            if (inferredNow) {
+                session.type = inferredNow;
+                updates.type = inferredNow;
+                applyTypeToItems(session, inferredNow);
+                if (session.items) updates.items = session.items;
+            } else {
+                await updateSession(senderId, updates);
+                actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_type), options: dictCurrent.ask_type_btns });
+                return actions;
+            }
+        }
+        if (session.action === "Comprar") {
+            if (session.type === "Reefer" && session.condition === "Usado" && !session.reefer_status) {
+                await updateSession(senderId, updates);
+                actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_reefer_status), options: dictCurrent.ask_reefer_status_btns }); return actions;
+            }
         }
         if (is20HcSize(session.size) && !hasKnownCondition(session, input, session.history, data)) {
             actions.push({ type: "quick_replies", text: appendAiReply(dictCurrent.ask_condition), options: dictCurrent.ask_condition_btns });
             return actions;
         }
         if (!session.zip) { actions.push({ type: "text", text: appendAiReply(dictCurrent.ask_zip) }); return actions; }
+        if (!session.size) {
+            ensureQuoteItems(session, updates, session.history, input, "Comprar");
+        }
     }
 
     if (await tryHcStockHandoff(senderId, session, lang, dictCurrent, input, data, actions)) {
@@ -2946,7 +4352,7 @@ If any information is missing, use null or "---".`;
     }
 
     // Safety net: never re-quote at step 6 without an explicit change request
-    if (step === 6 && hasQuotedPrice(session) && extracted.intent === "quote" && !wantsQuoteRecalculation(input, session, data, { alternateSizeRequested, asksAlternatePrice, stdHcComparison, conditionComparison })) {
+    if (step === 6 && hasQuotedPrice(session) && extracted.intent === "quote" && !shouldRecalculateQuote) {
         let aiMsg = extracted.ai_reply || buildQuotedPriceClarificationReply(input, lang, session) || buildPostQuoteFallbackReply(input, lang, session)
             || (lang === "ES" ? "Claro, ¿qué más te gustaría saber?" : "Sure — what else would you like to know?");
         await appendHistory(senderId, session, aiMsg, "post_quote_chat");
@@ -2955,6 +4361,24 @@ If any information is missing, use null or "---".`;
     }
 
     // ── CALCULAR PRECIO ──
+    if (/^(prices?|precios?)\??$/i.test(input.trim()) && hasQuotedPrice(session)) {
+        data.type = session.type || "Dry";
+        const histCond = inferConditionFromConversation(input, session.history);
+        if (histCond) {
+            data.condition = histCond;
+            session.condition = histCond;
+        } else {
+            data.condition = session.condition;
+        }
+        if (session.quantity) data.quantity = session.quantity;
+    }
+    if (session.action === "Comprar" && !conversationMentionsReeferIntent(input, session.history)) {
+        session.type = "Dry";
+        data.type = "Dry";
+        if (session.items?.length) {
+            for (const item of session.items) item.type = "Dry";
+        }
+    }
     try {
         let finalMessages: string[] = [];
         let finalTotalPrice = 0;
@@ -2977,7 +4401,7 @@ If any information is missing, use null or "---".`;
             
             const itemAction = item.action || session.action;
             const itemCondition = item.condition || session.condition;
-            const itemType = item.type || session.type || "Dry";
+            const itemType = session.type || item.type || "Dry";
             const itemSize = item.size || session.size;
             const itemQty = Number(item.quantity) || Number(session.quantity) || 1;
             const itemExportAction = item.export_action || session.export_action;
@@ -2995,10 +4419,10 @@ If any information is missing, use null or "---".`;
             } else if (itemCondition || convCondition) {
                 item.condition = itemCondition || convCondition;
             }
-            if (!item.type) item.type = itemType;
+            if (itemType) item.type = itemType;
             if (i === 0) {
                 session.condition = item.condition;
-                session.type = item.type;
+                session.type = itemType;
             }
 
             const explicitNew = item.condition === "Nuevo"
@@ -3056,6 +4480,7 @@ If any information is missing, use null or "---".`;
                         return actions;
                     }
                     if (hcQuote.needsInsist) {
+                        session.hc_used_warn_shown = true;
                         await updateSession(senderId, { hc_used_warn_shown: true });
                         actions.push({
                             type: "quick_replies",
@@ -3071,7 +4496,7 @@ If any information is missing, use null or "---".`;
                     allQuotesValid = false;
                     continue;
                 }
-                if (!isNew && (session.hc_used_force_quote || isHcUsedInsistRequest(input))) {
+                if (!isNew && (session.hc_used_force_quote || isHcUsedInsistRequest(input, session))) {
                     await updateSession(senderId, { hc_used_force_quote: true });
                     session.hc_used_force_quote = true;
                 }
@@ -3438,8 +4863,13 @@ async function resetChatSession(senderId: string, lang: "EN" | "ES" = "EN"): Pro
         lead_name: null,
         lead_phone: null,
     });
-    const dict = chatDict[lang];
-    return [{ type: "quick_replies", text: buildWarmWelcomeReply(lang), options: dict.step1_btns }];
+    const greet = await callGreetingAI(lang === "ES" ? "hola" : "hello", lang);
+    const text = greet || (lang === "ES" ? "¡Hola! ¿En qué te puedo ayudar hoy?" : "Hi! How can I help you today?");
+    return [{ type: "text", text }];
+}
+
+function isBotPaused(session: any): boolean {
+    return Number(session?.step) === -1;
 }
 
 async function processMessage(senderId: string, messageText: string, isHuman: boolean = false, messageId?: string, extraMidsFromClient: string[] = []): Promise<Action[]> {
@@ -3451,6 +4881,11 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
     }
 
     let session = await getSession(senderId);
+
+    // Modo silencio (agente humano tomó el control con //)
+    if (!isHuman && isBotPaused(session)) {
+        return [];
+    }
 
     if (historyHasMid(session, messageId) && extraMidsFromClient.every((id) => historyHasMid(session, id))) {
         console.log(`Skipping already processed message (webhook retry): ${messageId}`);
@@ -3473,18 +4908,12 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
                 console.log(`Skipping duplicate message (webhook retry) in queue: ${messageId}`);
                 return [];
             }
-            queue.push(JSON.stringify({ text: messageText, mid: messageId, type: "queue" }));
+            queue.push(JSON.stringify({ text: messageText, mid: messageId, type: "queue", ts: Date.now() }));
             for (const id of extraMidsFromClient) {
                 if (id && id !== messageId) queue.push(JSON.stringify({ type: "seen", mid: id }));
             }
             await updateSession(senderId, { queued_messages: queue });
-            const queueLang = session.lang === "ES" ? "ES" : "EN";
-            return [{
-                type: "text",
-                text: queueLang === "ES"
-                    ? "Un momento, estoy procesando tu mensaje anterior..."
-                    : "One moment, still processing your previous message...",
-            }];
+            return [];
         }
     }
 
@@ -3540,27 +4969,32 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
             .filter((item) => item.type === "queue" && item.text);
 
         const freshFollowUps = followUpItems.filter((item) => {
+            if (item.ts && Date.now() - item.ts > QUEUE_MAX_AGE_MS) return false;
             if (item.mid && (seenMids.includes(item.mid) || historyHasMid(currentSession, item.mid))) return false;
             if (item.text && item.text.trim() === messageText.trim()) return false;
             return true;
         });
 
         if (freshFollowUps.length > 0) {
-            const combinedQueueMessage = freshFollowUps.map((item) => item.text).join(" ");
-            const followUpMids = freshFollowUps.map((item) => item.mid).filter((m): m is string => !!m);
-            const stillSeen = seenMids.concat(followUpMids).map((mid) => JSON.stringify({ type: "seen", mid }));
-            await updateSession(senderId, { queued_messages: stillSeen });
-            try {
-                const extraActions = await processMessageInner(senderId, combinedQueueMessage, false, followUpMids[0], followUpMids.slice(1));
-                actions.push(...extraActions);
-            } catch (e) {
-                console.error("Error processing queue:", e);
+            const currentForFollowUp = await getSession(senderId);
+            if (!isBotPaused(currentForFollowUp)) {
+                const combinedQueueMessage = freshFollowUps.map((item) => item.text).join(" ");
+                const followUpMids = freshFollowUps.map((item) => item.mid).filter((m): m is string => !!m);
+                const stillSeen = seenMids.concat(followUpMids).map((mid) => JSON.stringify({ type: "seen", mid }));
+                await updateSession(senderId, { queued_messages: stillSeen });
+                try {
+                    const extraActions = await processMessageInner(senderId, combinedQueueMessage, false, followUpMids[0], followUpMids.slice(1));
+                    actions.push(...extraActions);
+                } catch (e) {
+                    console.error("Error processing queue:", e);
+                }
             }
         }
         await updateSession(senderId, { is_processing: false, queued_messages: [] });
     }
     if (actions.length === 0) {
         const idleSession = await getSession(senderId);
+        if (isBotPaused(idleSession)) return [];
         const idleDict = chatDict[idleSession?.lang === "ES" ? "ES" : "EN"];
         actions.push({
             type: "text",
@@ -3569,10 +5003,10 @@ async function processMessage(senderId: string, messageText: string, isHuman: bo
                 : "I couldn't respond to that. Please try again or type **restart** to begin again.",
         });
         if (needsConditionBeforeQuote(idleSession) && is20HcSize(idleSession?.size)) {
-            actions.push({ type: "quick_replies", text: idleDict.ask_condition, options: idleDict.ask_condition_btns });
+            actions.push({ type: "text", text: idleDict.ask_condition });
         }
     }
-    return actions;
+    return asTextActions(actions);
 }
 
 // ─── SERVIDOR ─────────────────────────────────────────────────────────────────
